@@ -15,7 +15,7 @@ export default function AgentsDirectoryView() {
       <AgentRosterHeader totalAgents={agents.length} />
 
       {/* Agents Roster Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
         {agents.map((agent) => (
           <AgentCard
             key={agent.id}

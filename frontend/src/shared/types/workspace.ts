@@ -1,4 +1,4 @@
-// Domain types for ContextForge AI Agent Workspace
+// Domain types for ContextForge Conversational Agentic Workspace
 
 export type TaskStatus =
   | 'queued'
@@ -21,7 +21,7 @@ export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'failed'
 export interface ToolCall {
   id: string
   toolName: string
-  category: 'mcp' | 'github' | 'notion' | 'openapi' | 'terminal' | 'ast'
+  category: 'mcp' | 'github' | 'notion' | 'openapi' | 'terminal' | 'ast' | 'obsidian' | 'web' | 'calendar'
   description: string
   startedAt: string
   durationMs: number
@@ -109,14 +109,42 @@ export interface Agent {
   systemPrompt: string
   capabilities: AgentCapability[]
   assignedTools: string[]
+  assignedSkills?: string[]
   status: 'idle' | 'executing' | 'offline'
   totalTasksCompleted: number
   successRatePct: number
 }
 
+export interface Skill {
+  id: string
+  name: string
+  description: string
+  category: 'architecture' | 'qa_testing' | 'security' | 'knowledge' | 'database' | 'productivity'
+  icon: string
+  sopSummary: string
+  instructions: string
+  assignedTools: string[]
+  enabled: boolean
+  isCustom?: boolean
+}
+
+export interface Plugin {
+  id: string
+  name: string
+  description: string
+  category: 'engineering' | 'security' | 'knowledge' | 'devops' | 'productivity'
+  icon: string
+  author: string
+  version: string
+  installed: boolean
+  bundledConnectorIds: string[]
+  bundledSkillIds: string[]
+  badge?: string
+}
+
 export interface KnowledgeSource {
   id: string
-  type: 'github_repo' | 'notion_workspace' | 'openapi_spec' | 'database_schema' | 'document'
+  type: 'obsidian_vault' | 'github_repo' | 'notion_workspace' | 'openapi_spec' | 'database_schema' | 'web_search' | 'document'
   name: string
   description: string
   location: string
@@ -125,7 +153,7 @@ export interface KnowledgeSource {
   chunksCount: number
   lastSynced: string
   status: 'synced' | 'syncing' | 'error'
-  iconType: 'terminal' | 'layers' | 'globe' | 'database' | 'file'
+  iconType: 'terminal' | 'layers' | 'globe' | 'database' | 'file' | 'book-open'
   color: string
 }
 
@@ -139,7 +167,7 @@ export interface McpTool {
 export interface Integration {
   id: string
   name: string
-  category: 'mcp_server' | 'git_provider' | 'documentation' | 'notification' | 'telemetry'
+  category: 'mcp_server' | 'git_provider' | 'documentation' | 'notification' | 'telemetry' | 'productivity'
   status: 'connected' | 'connecting' | 'disconnected' | 'error'
   endpoint: string
   version: string
@@ -147,6 +175,65 @@ export interface Integration {
   tools: McpTool[]
   lastPingMs: number
   latencyMs: number
+  transport?: 'stdio' | 'sse' | 'rest'
+  isCustom?: boolean
+}
+
+// -------------------------------------------------------------
+// Conversational Outcome & Artifact Types
+// -------------------------------------------------------------
+
+export interface ActionCardData {
+  id: string
+  type: 'obsidian_note' | 'calendar_reminder' | 'web_search_summary' | 'git_pr' | 'database_query'
+  title: string
+  description: string
+  badgeText: string
+  badgeColor?: string
+  locationPath?: string
+  metaDetails?: Record<string, string>
+  actions: {
+    label: string
+    actionKey: string
+    primary?: boolean
+    icon?: string
+  }[]
+}
+
+export interface Artifact {
+  id: string
+  type: 'markdown_doc' | 'code_patch' | 'reminder_event' | 'search_synthesis'
+  title: string
+  content: string
+  locationPath?: string
+  serviceOrigin?: 'obsidian' | 'calendar' | 'web' | 'github' | 'postgres'
+  createdAt: string
+  updatedAt?: string
+  wordCount?: number
+  diffs?: CodeDiffFile[]
+}
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+  intent?: {
+    toolName: string
+    service: 'obsidian' | 'web' | 'calendar' | 'github' | 'database'
+    status: 'executing' | 'completed'
+    summaryText: string
+  }
+  actionCard?: ActionCardData
+  artifactId?: string
+}
+
+export interface ChatSession {
+  id: string
+  title: string
+  createdAt: string
+  messages: ChatMessage[]
+  activeArtifactId?: string
 }
 
 export interface ActivityLogEntry {
@@ -165,6 +252,9 @@ export interface ActivityLogEntry {
     | 'human_rejected'
     | 'pr_created'
     | 'source_indexed'
+    | 'obsidian_note_created'
+    | 'reminder_created'
+    | 'web_searched'
   summary: string
   details?: Record<string, unknown>
   status: 'info' | 'success' | 'warning' | 'error'

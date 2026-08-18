@@ -1,12 +1,20 @@
 import { useState } from 'react'
 import { useWorkspace } from '../../../shared/mock'
+import type { KnowledgeSource } from '../../../shared/types/workspace'
 import { KnowledgeHeader } from '../components/KnowledgeHeader'
 import { KnowledgeSourceCard } from '../components/KnowledgeSourceCard'
+import { KnowledgeSourceDetailModal } from '../components/KnowledgeSourceDetailModal'
 import { AddSourceModal } from '../components/AddSourceModal'
 
 export default function KnowledgeSourcesView() {
-  const { knowledgeSources, toggleKnowledgeSync, showToast } = useWorkspace()
+  const {
+    knowledgeSources,
+    toggleKnowledgeSync,
+    toggleKnowledgeSourceConnect,
+    showToast,
+  } = useWorkspace()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [selectedSource, setSelectedSource] = useState<KnowledgeSource | null>(null)
 
   const handleAddSource = () => {
     showToast('✓ Knowledge source connected & chunking scheduled!')
@@ -17,16 +25,44 @@ export default function KnowledgeSourcesView() {
       {/* Top Banner Header */}
       <KnowledgeHeader onAddSource={() => setIsAddModalOpen(true)} />
 
-      {/* Sources Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Sources Grid in 2 Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
         {knowledgeSources.map((src) => (
           <KnowledgeSourceCard
             key={src.id}
             source={src}
-            onSync={() => toggleKnowledgeSync(src.id)}
+            onOpenDetail={() => setSelectedSource(src)}
           />
         ))}
       </div>
+
+      {/* Grounding Source Detail & Vector Modal */}
+      <KnowledgeSourceDetailModal
+        source={selectedSource}
+        onClose={() => setSelectedSource(null)}
+        onSync={(id) => {
+          toggleKnowledgeSync(id)
+          setSelectedSource((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  status: prev.status === 'synced' ? 'syncing' : 'synced',
+                }
+              : null
+          )
+        }}
+        onToggleConnect={(id) => {
+          toggleKnowledgeSourceConnect(id)
+          setSelectedSource((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  status: prev.status === 'synced' ? 'error' : 'synced',
+                }
+              : null
+          )
+        }}
+      />
 
       {/* Connect New Source Modal */}
       <AddSourceModal

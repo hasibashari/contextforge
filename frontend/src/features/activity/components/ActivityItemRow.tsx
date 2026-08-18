@@ -6,8 +6,10 @@ import {
   ShieldCheck,
   CheckCircle2,
   GitPullRequest,
+  BookOpen,
+  Calendar,
+  Globe,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import type { ActivityLogEntry } from '../../../shared/types/workspace'
 
 interface ActivityItemRowProps {
@@ -17,6 +19,12 @@ interface ActivityItemRowProps {
 export const ActivityItemRow: React.FC<ActivityItemRowProps> = ({ activity }) => {
   const getActionIcon = (actionType: ActivityLogEntry['actionType']) => {
     switch (actionType) {
+      case 'obsidian_note_created':
+        return <BookOpen size={14} className="text-primary" />
+      case 'reminder_created':
+        return <Calendar size={14} className="text-semantic-success" />
+      case 'web_searched':
+        return <Globe size={14} className="text-[#3b6ea5]" />
       case 'task_dispatched':
         return <Sparkles size={14} className="text-primary" />
       case 'tool_invoked':
@@ -43,12 +51,9 @@ export const ActivityItemRow: React.FC<ActivityItemRowProps> = ({ activity }) =>
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-xs text-ink">{activity.summary}</span>
             {activity.taskId && (
-              <Link
-                to={`/tasks/${activity.taskId}`}
-                className="font-mono text-[10px] font-bold text-primary hover:underline"
-              >
+              <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-strong text-primary">
                 {activity.taskId}
-              </Link>
+              </span>
             )}
           </div>
 
@@ -61,7 +66,7 @@ export const ActivityItemRow: React.FC<ActivityItemRowProps> = ({ activity }) =>
       </div>
 
       <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-surface-strong text-muted shrink-0">
-        {activity.actionType.replace('_', ' ')}
+        {activity.actionType.replace(/_/g, ' ')}
       </span>
     </div>
   )

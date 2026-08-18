@@ -6,14 +6,11 @@ import DashboardLayout from './DashboardLayout'
 import DashboardSidebar from '../../features/dashboard/components/DashboardSidebar'
 import DashboardHeader from '../../features/dashboard/components/DashboardHeader'
 import DashboardContextAside from '../../features/dashboard/components/DashboardContextAside'
-import NewTaskModal from '../../features/dashboard/components/NewTaskModal'
 import { useWorkspace } from '../mock'
 
 export default function WorkspaceLayout() {
-  const { toastMessage } = useWorkspace()
+  const { toastMessage, isAsideOpen, toggleAside } = useWorkspace()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
-  const [isAsideOpen, setIsAsideOpen] = useState(true)
 
   return (
     <>
@@ -42,9 +39,8 @@ export default function WorkspaceLayout() {
         header={
           <DashboardHeader
             onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-            onNewTaskClick={() => setIsNewTaskModalOpen(true)}
             isAsideOpen={isAsideOpen}
-            onToggleAside={() => setIsAsideOpen(!isAsideOpen)}
+            onToggleAside={toggleAside}
           />
         }
         aside={<DashboardContextAside />}
@@ -52,12 +48,6 @@ export default function WorkspaceLayout() {
       >
         <Outlet />
       </DashboardLayout>
-
-      {/* Global Dispatch Agent Modal */}
-      <NewTaskModal
-        isOpen={isNewTaskModalOpen}
-        onClose={() => setIsNewTaskModalOpen(false)}
-      />
     </>
   )
 }

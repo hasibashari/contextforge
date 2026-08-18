@@ -55,8 +55,16 @@
   letter-spacing: 0.08em;
 }
 
-/* GPU Accelerated & Instant 1:1 Scrolling Optimization */
+/* Full Viewport 100% Height Root Setup */
+html, body, #root {
+  min-height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 body {
+  overflow-x: hidden;
   font-family: var(--font-sans);
   background-color: var(--color-canvas);
   color: var(--color-ink);

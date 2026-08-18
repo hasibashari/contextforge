@@ -26,7 +26,7 @@ export const KnowledgeHeader: React.FC<KnowledgeHeaderProps> = ({ onAddSource })
         className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold transition-colors shadow-xs cursor-pointer shrink-0"
       >
         <Plus size={15} />
-        <span>+ Connect Knowledge Source</span>
+        <span>Connect Knowledge Source</span>
       </button>
     </div>
   )

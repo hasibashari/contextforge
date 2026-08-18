@@ -1,15 +1,15 @@
 import {
   Terminal,
-  LayoutDashboard,
-  CheckSquare,
+  MessageSquare,
   Bot,
-  Database,
   Cpu,
   Activity,
   Settings,
   ShieldCheck,
   ArrowLeft,
   Sparkles,
+  Plus,
+  BookOpen,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWorkspace } from '../../../shared/mock'
@@ -24,19 +24,19 @@ export default function DashboardSidebar({
   onCloseMobile,
 }: DashboardSidebarProps) {
   const location = useLocation()
-  const { tasks, agents, knowledgeSources, integrations } = useWorkspace()
-
-  const pendingApprovalCount = tasks.filter((t) => t.status === 'waiting_approval').length
+  const {
+    agents,
+    knowledgeSources,
+    integrations,
+    plugins,
+    chatSessions,
+    activeSessionId,
+    switchChatSession,
+    createNewChatSession,
+  } = useWorkspace()
 
   const NAV_ITEMS = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    {
-      path: '/tasks',
-      label: 'Tasks',
-      icon: CheckSquare,
-      badge: pendingApprovalCount > 0 ? `${pendingApprovalCount} Review` : undefined,
-      badgeColor: 'bg-primary text-on-primary',
-    },
+    { path: '/dashboard', label: 'Chat Canvas', icon: MessageSquare },
     {
       path: '/agents',
       label: 'Agents',
@@ -46,19 +46,19 @@ export default function DashboardSidebar({
     },
     {
       path: '/knowledge',
-      label: 'Knowledge',
-      icon: Database,
+      label: 'Knowledge & Vaults',
+      icon: BookOpen,
       badge: `${knowledgeSources.length}`,
       badgeColor: 'bg-surface-strong text-body',
     },
     {
       path: '/integrations',
-      label: 'Integrations',
+      label: 'Ecosystem & MCP',
       icon: Cpu,
-      badge: `${integrations.length} MCP`,
-      badgeColor: 'bg-surface-strong text-body',
+      badge: `${integrations.length + plugins.length}`,
+      badgeColor: 'bg-primary/10 text-primary font-semibold',
     },
-    { path: '/activity', label: 'Activity', icon: Activity },
+    { path: '/activity', label: 'Activity Feed', icon: Activity },
     { path: '/settings', label: 'Settings', icon: Settings },
   ]
 
@@ -89,74 +89,107 @@ export default function DashboardSidebar({
               </span>
             </Link>
             <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface-strong text-muted">
-              Workspace
+              AI OS
             </span>
           </div>
 
-          <div className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-surface-card border border-hairline text-left">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <div className="w-4 h-4 rounded bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold font-mono">
-                A
-              </div>
-              <div className="truncate">
-                <div className="text-xs font-medium text-ink truncate">Acme Platform Org</div>
-                <div className="text-[10px] text-muted font-mono truncate">production-cluster</div>
-              </div>
-            </div>
-          </div>
+          {/* New Chat Primary Button */}
+          <button
+            onClick={() => {
+              createNewChatSession()
+              onCloseMobile?.()
+            }}
+            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            <Plus size={14} />
+            <span>New Chat</span>
+          </button>
         </div>
 
-        {/* Navigation List */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-caption text-muted">
-            Workspace Nav
+        {/* Navigation & Chat Sessions List */}
+        <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
+          {/* Main Navigation */}
+          <div className="space-y-1">
+            <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-caption text-muted">
+              Workspace Nav
+            </div>
+
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon
+              const isActive = location.pathname === item.path
+
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={onCloseMobile}
+                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                    isActive
+                      ? 'bg-ink text-canvas shadow-xs font-semibold'
+                      : 'text-body hover:text-ink hover:bg-surface-card'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon size={16} className={isActive ? 'text-primary' : 'text-muted'} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold ${
+                        isActive ? 'bg-primary text-on-primary' : item.badgeColor
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
           </div>
 
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon
-            const isActive =
-              location.pathname === item.path ||
-              (item.path === '/tasks' && location.pathname.startsWith('/tasks'))
+          {/* Recent Chat History */}
+          <div className="space-y-1 pt-2 border-t border-hairline">
+            <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-caption text-muted flex items-center justify-between">
+              <span>Chat Sessions</span>
+              <span className="text-[10px] font-mono text-muted">{chatSessions.length}</span>
+            </div>
 
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={onCloseMobile}
-                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
-                  isActive
-                    ? 'bg-ink text-canvas shadow-xs font-semibold'
-                    : 'text-body hover:text-ink hover:bg-surface-card'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon size={16} className={isActive ? 'text-primary' : 'text-muted'} />
-                  <span>{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span
-                    className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold ${
-                      isActive ? 'bg-primary text-on-primary' : item.badgeColor
+            <div className="space-y-1">
+              {chatSessions.map((session) => {
+                const isCurrent = session.id === activeSessionId && location.pathname === '/dashboard'
+
+                return (
+                  <Link
+                    key={session.id}
+                    to="/dashboard"
+                    onClick={() => {
+                      switchChatSession(session.id)
+                      onCloseMobile?.()
+                    }}
+                    className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                      isCurrent
+                        ? 'bg-surface-card text-ink font-semibold border border-hairline shadow-2xs'
+                        : 'text-muted hover:text-ink hover:bg-surface-card'
                     }`}
                   >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            )
-          })}
-
-          <div className="pt-4 px-2 py-1 text-[10px] font-mono uppercase tracking-caption text-muted">
-            Safety & Guardrails
+                    <div className="flex items-center gap-2 truncate">
+                      <MessageSquare size={13} className={isCurrent ? 'text-primary' : 'text-muted'} />
+                      <span className="truncate">{session.title}</span>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
           </div>
 
+          {/* Safety & Grounding Badge */}
           <div className="px-2.5 py-2 rounded-lg bg-canvas-soft border border-hairline space-y-1.5">
             <div className="flex items-center gap-1.5 text-xs font-medium text-ink">
               <ShieldCheck size={14} className="text-semantic-success" />
-              <span>HITL Approval Gate</span>
+              <span>Multi-Source AI Engine</span>
             </div>
             <p className="text-[11px] text-muted leading-tight">
-              Agents require human confirmation before dispatching pull requests.
+              Obsidian Vault, Calendar, and Web Search connected seamlessly behind the scenes.
             </p>
           </div>
         </nav>
@@ -168,7 +201,7 @@ export default function DashboardSidebar({
             className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted hover:text-ink hover:bg-surface-card transition-colors"
           >
             <ArrowLeft size={14} />
-            <span>Back to Landing Page</span>
+            <span>Back to Home</span>
           </Link>
 
           <div className="flex items-center justify-between pt-2 border-t border-hairline-soft px-1">
@@ -178,7 +211,7 @@ export default function DashboardSidebar({
               </div>
               <div>
                 <div className="text-xs font-medium text-ink">Lead Architect</div>
-                <div className="text-[10px] text-muted">Enterprise Tier</div>
+                <div className="text-[10px] text-muted font-mono">Auto-Agent Pro</div>
               </div>
             </div>
             <Sparkles size={14} className="text-primary" />
