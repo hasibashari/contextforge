@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Menu, X, Terminal, ArrowRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { cn } from '../utils/cn'
 
 function GithubIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
@@ -34,7 +35,7 @@ export default function Navbar() {
     >
       <div className="container mx-auto px-4 sm:px-6 max-w-6xl flex items-center justify-between">
         {/* Brand */}
-        <a href="#" className="flex items-center gap-2.5 group">
+        <Link to="/" className="flex items-center gap-2.5 group">
           <div className="w-7 h-7 rounded-md bg-ink flex items-center justify-center text-canvas group-hover:bg-primary transition-colors">
             <Terminal size={15} strokeWidth={2.2} />
           </div>
@@ -44,7 +45,7 @@ export default function Navbar() {
           <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface-strong text-muted text-nowrap hidden sm:inline-block">
             v0.9-agent
           </span>
-        </a>
+        </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-7">
@@ -92,14 +93,13 @@ export default function Navbar() {
             <span>GitHub</span>
           </a>
 
-
-          <a
-            href="#hero-sandbox"
-            className="inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-active text-on-primary text-xs font-medium px-3.5 py-2 rounded-md transition-colors"
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-active text-on-primary text-xs font-medium px-3.5 py-2 rounded-md transition-colors shadow-xs"
           >
             <span>Launch Workspace</span>
             <ArrowRight size={13} />
-          </a>
+          </Link>
         </div>
 
         {/* Mobile Toggle */}
@@ -152,14 +152,14 @@ export default function Navbar() {
           </a>
 
           <div className="pt-2 flex flex-col gap-2">
-            <a
-              href="#hero-sandbox"
+            <Link
+              to="/dashboard"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="bg-primary hover:bg-primary-active text-on-primary text-center py-2.5 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+              className="bg-primary hover:bg-primary-active text-on-primary text-center py-2.5 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-1.5 shadow-xs"
             >
               <span>Launch Workspace</span>
               <ArrowRight size={14} />
-            </a>
+            </Link>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { motion } from 'motion/react'
 import { ArrowRight, Terminal } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export default function CTASection() {
   return (
@@ -25,13 +26,13 @@ export default function CTASection() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
-            <a
-              href="#hero-sandbox"
+            <Link
+              to="/dashboard"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-active text-on-primary text-sm font-medium px-8 py-3.5 rounded-md transition-colors shadow-xs"
             >
               <span>Launch Workspace</span>
               <ArrowRight size={16} />
-            </a>
+            </Link>
 
             <a
               href="https://github.com"

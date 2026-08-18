@@ -1,0 +1,7 @@
+export { default as DashboardView } from './views/DashboardView'
+export { default as DashboardSidebar } from './components/DashboardSidebar'
+export type { DashboardTab } from './components/DashboardSidebar'
+export { default as DashboardHeader } from './components/DashboardHeader'
+export { default as DashboardOverview } from './components/DashboardOverview'
+export { default as DashboardContextAside } from './components/DashboardContextAside'
+export { default as NewTaskModal } from './components/NewTaskModal'
