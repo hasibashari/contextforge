@@ -21,7 +21,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({ activities }) => {
   }
 
   return (
-    <div className="bg-surface-card border border-hairline rounded-xl overflow-hidden shadow-xs">
+    <div className="bg-surface-card border border-hairline rounded-xl sm:rounded-2xl overflow-hidden shadow-xs">
       <div className="divide-y divide-hairline">
         {activities.map((act) => (
           <ActivityItemRow key={act.id} activity={act} />

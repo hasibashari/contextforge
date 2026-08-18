@@ -7,7 +7,8 @@ export interface EcosystemCardProps {
   description: string
   metaLine?: string | React.ReactNode
   badge?: string
-  actionIcon?: React.ReactNode
+  actionIcon?: React.ReactNode | null
+  hideAction?: boolean
   onClick: () => void
   onActionClick?: () => void
   actionTooltip?: string
@@ -20,6 +21,7 @@ export const EcosystemCard: React.FC<EcosystemCardProps> = ({
   metaLine,
   badge,
   actionIcon,
+  hideAction = false,
   onClick,
   onActionClick,
   actionTooltip = 'View details & options',
@@ -52,22 +54,24 @@ export const EcosystemCard: React.FC<EcosystemCardProps> = ({
           </div>
         </div>
 
-        {/* Action Button (Plus or Settings) - Hover effects only active on button hover */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            if (onActionClick) {
-              onActionClick()
-            } else {
-              onClick()
-            }
-          }}
-          className="w-8 h-8 rounded-xl bg-canvas-soft hover:bg-surface-strong border border-hairline hover:border-hairline-strong text-muted hover:text-ink flex items-center justify-center transition-all duration-150 cursor-pointer shadow-2xs shrink-0"
-          title={actionTooltip}
-        >
-          {actionIcon || <Plus size={16} />}
-        </button>
+        {/* Action Button (Optional) - Hover effects only active on button hover */}
+        {!hideAction && actionIcon !== null && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              if (onActionClick) {
+                onActionClick()
+              } else {
+                onClick()
+              }
+            }}
+            className="w-8 h-8 rounded-xl bg-canvas-soft hover:bg-surface-strong border border-hairline hover:border-hairline-strong text-muted hover:text-ink flex items-center justify-center transition-all duration-150 cursor-pointer shadow-2xs shrink-0"
+            title={actionTooltip}
+          >
+            {actionIcon || <Plus size={16} />}
+          </button>
+        )}
       </div>
 
       {/* Description - Spans full width aligned with left margin */}

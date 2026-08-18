@@ -96,14 +96,12 @@ export default function IntegrationsView() {
   const activeSkillsCount = skills.filter((s) => s.enabled).length
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
       {/* Top Banner Header */}
       <IntegrationsHeader
         pluginsCount={plugins.length}
         connectorsCount={integrations.length}
         activeSkillsCount={activeSkillsCount}
-        onAddConnector={() => setIsAddConnectorOpen(true)}
-        onAddSkill={() => setIsAddSkillOpen(true)}
       />
 
       {/* Tabs Navigation & Search Controls */}

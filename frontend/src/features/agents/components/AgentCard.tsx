@@ -20,16 +20,17 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, onInspect }) => {
   const skillsCount = agent.assignedSkills?.length || 0
   const toolsCount = agent.assignedTools?.length || 0
 
+  const roleBadge = agent.agentType === 'orchestrator' ? 'Main Orchestrator' : 'Side Agent Worker'
+
   return (
     <EcosystemCard
       icon={icon}
       title={agent.name}
       description={agent.description}
-      badge={agent.role}
+      badge={`${roleBadge} · ${agent.role}`}
       metaLine={`${skillsCount} Skills · ${toolsCount} Tools · ${agent.model} · ${agent.successRatePct}% Success`}
       onClick={onInspect}
-      onActionClick={onInspect}
-      actionTooltip="Inspect Persona, Skills & Tools"
+      hideAction={true}
     />
   )
 }

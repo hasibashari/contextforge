@@ -8,93 +8,125 @@ import type {
   ActivityLogEntry,
   Artifact,
   ChatSession,
+  CalendarEvent,
+  UserMemoryItem,
 } from '@/shared/types/workspace'
 
 export const INITIAL_AGENTS: Agent[] = [
   {
     id: 'agent-sec-docs',
-    name: 'Security & RFC Architect',
-    role: 'Security Specialist & Token Compliance',
+    name: 'ContextForge Core Orchestrator',
+    role: 'Main Reasoning & Analysis Agent',
+    agentType: 'orchestrator',
+    permissions: 'read_only',
     description:
-      'Specialized in RFC compliance, OAuth/JWT verification, token rotation, and zero-regression AST checks.',
+      'Primary conversational brain for Q&A, live web research, memory retrieval, and formulating execution plans for Side Agents.',
     avatarColor: 'bg-primary',
-    model: 'claude-3-7-sonnet',
+    model: 'gemini-2.5-flash',
     temperature: 0.1,
     systemPrompt:
-      'You are ContextForge Security Architect. Analyze codebase references against Notion Security RFCs, Obsidian security notes, and AST verification.',
+      'You are ContextForge Core Orchestrator. You handle general reasoning, conversational discussion, live web search, and analysis. When mutations (file edits, Obsidian writes, CLI runs) are required, formulate a structured delegation spec for a Side Agent.',
     capabilities: [
-      { id: 'c1', name: 'AST Syntax Validation', description: 'Parse AST and ensure zero broken references' },
-      { id: 'c2', name: 'RFC Grounding', description: 'Cross-reference internal Notion & Obsidian RFC specs' },
-      { id: 'c3', name: 'Pull Request Generation', description: 'Generate atomic Git diffs with changelog' },
+      { id: 'c1', name: 'Conversational Reasoning', description: 'Deep reasoning, Q&A, and technical architecture analysis' },
+      { id: 'c2', name: 'Live Web Grounding', description: 'Query web search engines and synthesize cited answers' },
+      { id: 'c3', name: 'Side Agent Delegation', description: 'Formulate structured task specs and dispatch execution sandboxes' },
     ],
-    assignedTools: ['github_grep', 'notion_read_rfc', 'obsidian_vault_writer', 'github_create_pr'],
-    assignedSkills: ['skill-cve-threat-model', 'skill-rfc-architect'],
+    assignedTools: ['web_search', 'read_file', 'query_memory', 'search_vault', 'dispatch_side_agent'],
+    assignedSkills: ['skill-rfc-architect', 'skill-deep-web-research'],
     status: 'executing',
-    totalTasksCompleted: 42,
-    successRatePct: 98.4,
+    totalTasksCompleted: 128,
+    successRatePct: 99.4,
   },
   {
     id: 'agent-doc-crawl',
-    name: 'Knowledge & Obsidian Sync',
-    role: 'Obsidian Vault & Web Intelligence Agent',
+    name: 'Obsidian Vault Worker',
+    role: 'Side Agent: Vault & Document Writer',
+    agentType: 'execution_worker',
+    permissions: 'sandbox_write',
     description:
-      'Autonomously writes structured Markdown notes into Obsidian vaults, searches web sources, and syncs OpenAPI docs.',
+      'Ephemeral execution worker that writes structured Markdown notes, updates frontmatter, and syncs Obsidian vaults.',
     avatarColor: 'bg-[#9fbbe0]',
-    model: 'gemini-2.5-flash',
+    model: 'claude-3-7-sonnet',
     temperature: 0.2,
     systemPrompt:
-      'You are ContextForge Knowledge Sync Agent. Format rich markdown documents, write directly to Obsidian vaults via MCP, and search the live web.',
+      'You are Obsidian Vault Worker Side Agent. Execute file creation and note formatting in local Obsidian vaults.',
     capabilities: [
       { id: 'c4', name: 'Obsidian Vault Writing', description: 'Create and update Markdown notes with frontmatter in Obsidian' },
-      { id: 'c5', name: 'Live Web Research', description: 'Query search engines, summarize articles, and provide citations' },
+      { id: 'c5', name: 'Note Formatting', description: 'Apply consistent markdown templates, tags, and bi-directional links' },
     ],
-    assignedTools: ['obsidian_vault_writer', 'obsidian_vault_reader', 'web_search', 'web_crawl_openapi'],
-    assignedSkills: ['skill-obsidian-vault-synthesis', 'skill-deep-web-research'],
+    assignedTools: ['obsidian_vault_writer', 'obsidian_vault_reader'],
+    assignedSkills: ['skill-obsidian-vault-synthesis'],
     status: 'idle',
     totalTasksCompleted: 58,
     successRatePct: 99.2,
   },
   {
-    id: 'agent-db-platform',
-    name: 'Database & Productivity Agent',
-    role: 'PostgreSQL MCP & Calendar Scheduler',
+    id: 'agent-code-reviewer',
+    name: 'CLI & Code Sandbox Runner',
+    role: 'Side Agent: Terminal & File Execution',
+    agentType: 'execution_worker',
+    permissions: 'full_system',
     description:
-      'Inspects database schemas via MCP, sets calendar reminders, and generates optimization migration notes.',
-    avatarColor: 'bg-[#9fc9a2]',
+      'Sandboxed execution worker that creates files, edits codebases, executes bash commands, and runs test suites.',
+    avatarColor: 'bg-[#c0a8dd]',
     model: 'claude-3-7-sonnet',
     temperature: 0.1,
     systemPrompt:
-      'You are ContextForge Database & Productivity Agent. Handle database telemetry and schedule human workflow reminders.',
+      'You are Code Sandbox Side Agent. Execute file mutations, run CLI commands, verify AST syntax, and return execution summaries.',
+    capabilities: [
+      { id: 'c8', name: 'File Creation & Editing', description: 'Write source code, apply atomic diffs, and create directories' },
+      { id: 'c9', name: 'CLI Command Execution', description: 'Run test runners, package installers, and lint checks in sandbox' },
+    ],
+    assignedTools: ['write_file', 'replace_file_content', 'run_command', 'git_create_pr'],
+    assignedSkills: ['skill-tdd-flow', 'skill-cve-threat-model'],
+    status: 'idle',
+    totalTasksCompleted: 74,
+    successRatePct: 99.1,
+  },
+  {
+    id: 'agent-db-platform',
+    name: 'Calendar & Workflow Worker',
+    role: 'Side Agent: Calendar & API Mutator',
+    agentType: 'execution_worker',
+    permissions: 'sandbox_write',
+    description:
+      'Side agent for scheduling Google Calendar reminders, updating database records, and triggering external webhooks.',
+    avatarColor: 'bg-[#9fc9a2]',
+    model: 'gemini-2.5-flash',
+    temperature: 0.1,
+    systemPrompt:
+      'You are Calendar & Workflow Worker. Schedule calendar events, configure notification reminders, and run API mutations.',
     capabilities: [
       { id: 'c6', name: 'Calendar Scheduling', description: 'Create, update, and manage Google Calendar reminders' },
-      { id: 'c7', name: 'MCP Read-Only Inspection', description: 'Introspect schemas & query plans via MCP server' },
+      { id: 'c7', name: 'API Mutation Execution', description: 'Trigger webhook integrations and update cloud records' },
     ],
-    assignedTools: ['calendar_create_reminder', 'mcp_postgres_query', 'pg_explain_analyzer'],
+    assignedTools: ['calendar_create_reminder', 'api_post_webhook'],
     assignedSkills: ['skill-postgres-schema-analyzer'],
     status: 'idle',
     totalTasksCompleted: 34,
     successRatePct: 100.0,
   },
   {
-    id: 'agent-code-reviewer',
-    name: 'Full-Stack Code Reviewer',
-    role: 'Full-Stack AST & Static Analyzer',
+    id: 'agent-frontend-arch',
+    name: 'Visual & Asset Generator',
+    role: 'Side Agent: GPU Asset Renderer',
+    agentType: 'execution_worker',
+    permissions: 'sandbox_write',
     description:
-      'Performs automated linting, test suite execution, and semantic code review across pull requests.',
-    avatarColor: 'bg-[#c0a8dd]',
-    model: 'gemini-2.5-flash',
-    temperature: 0.1,
+      'Specialized GPU worker for rendering UI mockups, architecture diagrams, and visual design assets.',
+    avatarColor: 'bg-[#ff5e00]',
+    model: 'imagen-3-flux',
+    temperature: 0.7,
     systemPrompt:
-      'You are CodeReviewerAgent. Execute vitest coverage suites, check for memory leaks, and generate inline GitHub review comments.',
+      'You are Visual Asset Generator. Render high-resolution visual designs and diagram assets.',
     capabilities: [
-      { id: 'c8', name: 'Regression Suite Execution', description: 'Run sandboxed test containers with code coverage' },
-      { id: 'c9', name: 'Security Vulnerability Scan', description: 'Detect CVEs and unsafe dependency patterns' },
+      { id: 'c10', name: 'Visual Asset Rendering', description: 'Generate high-res SVG and PNG visual assets' },
     ],
-    assignedTools: ['vitest_sandbox_runner', 'eslint_ast_checker', 'npm_audit_scanner'],
-    assignedSkills: ['skill-tdd-flow', 'skill-cve-threat-model'],
-    status: 'executing',
-    totalTasksCompleted: 64,
-    successRatePct: 99.1,
+    assignedTools: ['image_generation_pipeline'],
+    assignedSkills: ['skill-deep-web-research'],
+    status: 'idle',
+    totalTasksCompleted: 29,
+    successRatePct: 98.8,
   },
 ]
 
@@ -567,26 +599,6 @@ Static JWT session tokens present security vulnerability if authorization header
 3. Dispatch PR \`feat/ephemeral-oauth2-rfc204\`.
 `,
   },
-  {
-    id: 'art-web-ai-benchmarks',
-    type: 'search_synthesis',
-    title: 'Live Web Research: Latest AI Reasoning Models',
-    serviceOrigin: 'web',
-    locationPath: 'Live Web Search Synthesis',
-    createdAt: '25m ago',
-    wordCount: 290,
-    content: `# Live Web Research: AI Reasoning Models (Aug 2026)
-
-## Summary of Key Developments
-1. **Extended Thinking & Latent Search:** Models now dynamically adjust inference-time compute depending on query difficulty.
-2. **MCP Tool Ubiquity:** The Model Context Protocol has become the de-facto standard for connecting LLMs to desktop filesystems (like Obsidian) and internal databases.
-3. **Conversational Outcome Shift:** Modern AI products prioritize direct delivery of finished artifacts over interactive step-by-step terminal logs.
-
-### Verified Sources
-- *Google DeepMind Research Paper (2026)* - Unified Agentic Routing
-- *Anthropic MCP Specification v2.0* - Standardizing Local File MCP Server
-`,
-  },
 ]
 
 // -------------------------------------------------------------
@@ -610,8 +622,14 @@ export const INITIAL_CHAT_SESSIONS: ChatSession[] = [
       {
         id: 'msg-2',
         role: 'assistant',
-        content:
-          'Sure! I have analyzed the project goals and drafted the Sprint 34 work plan. The document has been formatted in clean Markdown and saved directly to your Obsidian vault.\n\nYou can review or edit the full document in the right panel (Aside) at any time.',
+        content: `Saya telah mendelegasikan penyusunan dokumen ke **Obsidian Vault Worker**. Dokumen rencana lengkap telah disimpan dan dibuka di panel **Workspace Aside** sebelah kanan.
+
+### 📋 Ringkasan Eksekutif Sprint 34:
+- **Dokumen:** \`Sprint 34: Core Agent & Obsidian Sync Plan\`
+- **Target Vault:** \`Vault/Work/Sprints/Sprint-34-Plan.md\`
+- **Work Streams:** Obsidian Vault MCP Gateway, Auto-Routing Intent Engine, dan Productivity Triggers.
+
+*Anda dapat membaca, mengedit, atau men-download dokumen lengkapnya langsung pada panel editor di sebelah kanan.*`,
         timestamp: '10:42 AM',
         intent: {
           toolName: 'obsidian_vault_writer',
@@ -620,25 +638,28 @@ export const INITIAL_CHAT_SESSIONS: ChatSession[] = [
           summaryText: 'Saved to Obsidian: Vault/Work/Sprints/Sprint-34-Plan.md',
         },
         artifactId: 'art-sprint-34',
-        actionCard: {
-          id: 'card-sprint-34',
-          type: 'obsidian_note',
-          title: 'Sprint 34: Core Agent & Obsidian Sync Plan',
-          description:
-            'Complete sprint plan document with deliverable checklist and architecture notes created.',
-          badgeText: '✓ Saved to Obsidian',
-          badgeColor: 'bg-primary/10 text-primary',
-          locationPath: 'Vault/Work/Sprints/Sprint-34-Plan.md',
-          metaDetails: {
-            'File Size': '1.4 KB',
-            'Vault': 'Personal Obsidian Vault',
-            'Tags': '#sprint, #roadmap',
-          },
-          actions: [
-            { label: 'Open in Aside Panel', actionKey: 'open_aside', primary: true },
-            { label: 'Copy Markdown', actionKey: 'copy_content' },
-            { label: 'Re-sync to Vault', actionKey: 'sync_vault' },
+        sideAgent: {
+          id: 'sa-init-1',
+          agentId: 'agent-doc-crawl',
+          agentName: 'Obsidian Vault Worker',
+          agentRole: 'Side Agent: Vault & Document Writer',
+          avatarColor: 'bg-[#9fbbe0]',
+          taskGoal: 'Format markdown and write note to "Vault/Work/Sprints/Sprint-34-Plan.md"',
+          actionType: 'obsidian_write',
+          targetResource: 'Vault/Work/Sprints/Sprint-34-Plan.md',
+          status: 'completed',
+          riskLevel: 'low_risk',
+          executionTimeMs: 380,
+          tokensUsed: { input: 240, output: 95 },
+          logs: [
+            '[ObsidianWorker] Initializing isolated worker execution...',
+            '[ObsidianWorker] Connecting to vault at: obsidian://vault/Engineering-HQ',
+            '[ObsidianWorker] Writing payload to: Vault/Work/Sprints/Sprint-34-Plan.md',
+            '[ObsidianWorker] Verification: File integrity OK (0 errors). Worker terminated.',
           ],
+          summary: 'Formatted and written note to Obsidian vault at Vault/Work/Sprints/Sprint-34-Plan.md',
+          filesModified: ['Vault/Work/Sprints/Sprint-34-Plan.md'],
+          artifactId: 'art-sprint-34',
         },
       },
     ],
@@ -647,7 +668,6 @@ export const INITIAL_CHAT_SESSIONS: ChatSession[] = [
     id: 'session-web-research',
     title: 'AI Model Trends & MCP Research',
     createdAt: '25m ago',
-    activeArtifactId: 'art-web-ai-benchmarks',
     messages: [
       {
         id: 'msg-3',
@@ -659,33 +679,30 @@ export const INITIAL_CHAT_SESSIONS: ChatSession[] = [
       {
         id: 'msg-4',
         role: 'assistant',
-        content:
-          'Based on recent web research and technical references, the primary trend has shifted from basic "Q&A chatbots" to **Outcome-Driven Conversational Agents**.\n\nProtocols such as the **Model Context Protocol (MCP)** now allow AI agents to interact with desktop applications like **Obsidian** locally and securely without uploading sensitive data to public clouds.',
+        content: `### 🌐 Research Summary: AI Agent Trends & Local MCP Integration (2026)
+
+Based on recent live web crawling across technical specifications and engineering reports:
+
+1. **Shift from Conversational Bots to Outcome-Driven Execution:**
+   Modern AI interfaces have evolved past basic chatbot dialogue. They emphasize direct delivery of finished, actionable artifacts (such as local Markdown notes, unit-tested code files, and verified schemas).
+
+2. **Standardization on Model Context Protocol (MCP):**
+   The Model Context Protocol has emerged as the universal standard for connecting LLMs to local desktop software (like Obsidian, SQLite, and local Git repositories) securely without uploading sensitive personal knowledge to centralized cloud databases.
+
+3. **Dual-Agent Privilege Separation:**
+   High-performance systems use a **Main Orchestrator** in read-only mode for reasoning and web synthesis, while delegating mutating operations (file writes, CLI commands) to isolated, ephemeral **Side Agents**.`,
         timestamp: '10:15 AM',
         intent: {
           toolName: 'web_search',
           service: 'web',
           status: 'completed',
-          summaryText: 'Searched Web via Tavily Search Engine (3 verified sources)',
+          summaryText: 'Web Grounding (3 sources cited · Read-Only)',
         },
-        artifactId: 'art-web-ai-benchmarks',
-        actionCard: {
-          id: 'card-web-research',
-          type: 'web_search_summary',
-          title: 'Live Web Research: AI Reasoning & Local MCP',
-          description:
-            '3 research articles and official documentation have been synthesized into a comprehensive summary.',
-          badgeText: '🌐 Web Grounded',
-          badgeColor: 'bg-[#9fbbe0]/20 text-[#3b6ea5]',
-          metaDetails: {
-            'Primary Sources': 'Google DeepMind & Anthropic Spec',
-            'Status': 'Up to date (Aug 2026)',
-          },
-          actions: [
-            { label: 'View Summary in Aside Panel', actionKey: 'open_aside', primary: true },
-            { label: 'Copy Citations', actionKey: 'copy_citations' },
-          ],
-        },
+        sourceDomains: [
+          'Google DeepMind Paper (2026)',
+          'Anthropic MCP Spec v2.0',
+          'O\'Reilly AI Architecture Guidelines',
+        ],
       },
     ],
   },
@@ -704,32 +721,40 @@ export const INITIAL_CHAT_SESSIONS: ChatSession[] = [
       {
         id: 'msg-6',
         role: 'assistant',
-        content:
-          'Done! The calendar reminder has been automatically scheduled via Google Calendar integration.',
+        content: `📅 **Jadwal Berhasil Dibuat!**
+
+Saya telah mendelegasikan penjadwalan ke **Calendar & Workflow Worker** Side Agent:
+- **Acara:** Review RFC #204 Token Compliance
+- **Waktu:** Besok, 09:00 AM
+- **Kalender:** Primary Google Calendar
+- **Notifikasi:** Alarm aktif 10 menit sebelum acara.`,
         timestamp: '09:30 AM',
         intent: {
           toolName: 'calendar_create_reminder',
           service: 'calendar',
           status: 'completed',
-          summaryText: 'Recorded in Google Calendar: Tomorrow, Aug 19, 2026 @ 09:00 AM',
+          summaryText: 'Calendar: Tomorrow @ 09:00 AM (Review RFC #204)',
         },
-        actionCard: {
-          id: 'card-cal-1',
-          type: 'calendar_reminder',
-          title: 'Review RFC #204 Token Compliance',
-          description:
-            'Reminder has been set on your primary calendar with a notification 10 minutes prior.',
-          badgeText: '📅 Reminder Active',
-          badgeColor: 'bg-semantic-success/15 text-semantic-success',
-          metaDetails: {
-            'Time': 'Tomorrow, Aug 19, 2026 @ 09:00 AM',
-            'Calendar': 'Primary (Google Calendar)',
-            'Alert': 'Push + Email Alert',
-          },
-          actions: [
-            { label: 'Open Calendar', actionKey: 'open_calendar', primary: true },
-            { label: 'Edit Time', actionKey: 'edit_time' },
+        sideAgent: {
+          id: 'sa-cal-init',
+          agentId: 'agent-db-platform',
+          agentName: 'Calendar & Workflow Worker',
+          agentRole: 'Side Agent: Calendar & API Mutator',
+          avatarColor: 'bg-[#9fc9a2]',
+          taskGoal: 'Schedule event "Review RFC #204 Token Compliance" in Google Calendar API',
+          actionType: 'calendar_schedule',
+          targetResource: 'Google Calendar (Primary)',
+          status: 'completed',
+          riskLevel: 'low_risk',
+          executionTimeMs: 290,
+          tokensUsed: { input: 180, output: 75 },
+          logs: [
+            '[CalendarWorker] Authenticating with Google Calendar API v3...',
+            '[CalendarWorker] Creating event payload: "Review RFC #204 Token Compliance" @ Tomorrow 09:00 AM...',
+            '[CalendarWorker] Dispatching API POST /calendars/primary/events... 200 OK',
+            '[CalendarWorker] Setting push notification alarm (10m before event)... Done.',
           ],
+          summary: 'Scheduled event "Review RFC #204 Token Compliance" in Google Calendar with 10-minute alarm.',
         },
       },
     ],
@@ -839,5 +864,89 @@ export const INITIAL_ACTIVITIES: ActivityLogEntry[] = [
     actionType: 'reminder_created',
     summary: 'Scheduled calendar reminder: "Review RFC #204 Token Compliance" for tomorrow 09:00',
     status: 'success',
+  },
+]
+
+export const INITIAL_CALENDAR_EVENTS: CalendarEvent[] = [
+  {
+    id: 'cal-1',
+    title: 'Daily Architecture Standup & Sync',
+    time: '09:00 AM',
+    date: 'Today',
+    duration: '30 mins',
+    location: 'Google Meet',
+    status: 'completed',
+    category: 'meeting',
+    attendees: ['Alex', 'Sarah (DevOps)', 'Dave (Lead)'],
+  },
+  {
+    id: 'cal-2',
+    title: 'Review RFC #204 Token Compliance PR #104',
+    time: '11:00 AM',
+    date: 'Today',
+    duration: '45 mins',
+    location: 'GitHub PR Review',
+    status: 'in_progress',
+    category: 'review',
+    attendees: ['Alex', 'Security Agent'],
+  },
+  {
+    id: 'cal-3',
+    title: 'Sprint 34 Backlog Refinement & Planning',
+    time: '02:00 PM',
+    date: 'Today',
+    duration: '1 hour',
+    location: 'Conference Room B / Online',
+    status: 'upcoming',
+    category: 'meeting',
+    attendees: ['Frontend Team', 'Product Lead'],
+  },
+  {
+    id: 'cal-4',
+    title: 'Sync Obsidian Documentation & Weekly Insights',
+    time: '05:00 PM',
+    date: 'Today',
+    duration: '20 mins',
+    location: 'Obsidian Local Vault',
+    status: 'upcoming',
+    category: 'task',
+  },
+]
+
+export const INITIAL_USER_MEMORIES: UserMemoryItem[] = [
+  {
+    id: 'mem-1',
+    category: 'profile',
+    key: 'Preferred Name',
+    value: 'Alex (Principal Engineer)',
+    lastUpdated: '1d ago',
+  },
+  {
+    id: 'mem-2',
+    category: 'preference',
+    key: 'Core Tech Stack',
+    value: 'React 19, TypeScript, Tailwind CSS v4, Node.js, Fastify, PostgreSQL',
+    lastUpdated: '2d ago',
+  },
+  {
+    id: 'mem-3',
+    category: 'workflow',
+    key: 'Communication Style',
+    value: 'Concise, analytical, code-first with actionable markdown diffs',
+    lastUpdated: '3d ago',
+  },
+  {
+    id: 'mem-4',
+    category: 'project',
+    key: 'Active Milestone',
+    value: 'ContextForge AI OS & Autonomous Agent Proactive Interface',
+    lastUpdated: 'Just now',
+  },
+  {
+    id: 'mem-5',
+    category: 'preference',
+    key: 'Knowledge Base Root',
+    value: 'Local Obsidian Vault at `/Vault/Work/` & Notion Workspace',
+    lastUpdated: '4d ago',
   },
 ]

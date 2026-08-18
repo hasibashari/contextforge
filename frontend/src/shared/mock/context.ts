@@ -10,6 +10,8 @@ import type {
   Artifact,
   ChatSession,
   ActionCardData,
+  CalendarEvent,
+  UserMemoryItem,
 } from '@/shared/types/workspace'
 
 export interface WorkspaceContextType {
@@ -34,6 +36,15 @@ export interface WorkspaceContextType {
   isGeneratingResponse: boolean
   selectedAgentMode: string // 'auto' or agent ID
   activeSourceFilters: string[]
+
+  // Proactive, Calendar & Memory State
+  calendarEvents: CalendarEvent[]
+  userMemories: UserMemoryItem[]
+  triggerMorningBriefing: () => void
+  addCalendarEvent: (event: Omit<CalendarEvent, 'id'>) => CalendarEvent
+  updateCalendarEventStatus: (id: string, status: CalendarEvent['status']) => void
+  addUserMemory: (memory: Omit<UserMemoryItem, 'id' | 'lastUpdated'>) => void
+  deleteUserMemory: (id: string) => void
 
   // Ecosystem & Skills Actions
   toggleSkill: (skillId: string) => void

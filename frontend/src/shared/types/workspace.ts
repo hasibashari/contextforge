@@ -98,10 +98,15 @@ export interface AgentCapability {
   description: string
 }
 
+export type AgentRoleType = 'orchestrator' | 'execution_worker'
+export type AgentPermissionType = 'read_only' | 'sandbox_write' | 'full_system'
+
 export interface Agent {
   id: string
   name: string
   role: string
+  agentType?: AgentRoleType
+  permissions?: AgentPermissionType
   description: string
   avatarColor: string
   model: string
@@ -183,14 +188,36 @@ export interface Integration {
 // Conversational Outcome & Artifact Types
 // -------------------------------------------------------------
 
+export interface CalendarEvent {
+  id: string
+  title: string
+  time: string
+  date: string
+  duration: string
+  location?: string
+  status: 'upcoming' | 'in_progress' | 'completed'
+  category: 'meeting' | 'task' | 'review' | 'personal'
+  attendees?: string[]
+}
+
+export interface UserMemoryItem {
+  id: string
+  category: 'profile' | 'preference' | 'project' | 'workflow'
+  key: string
+  value: string
+  lastUpdated: string
+}
+
 export interface ActionCardData {
   id: string
-  type: 'obsidian_note' | 'calendar_reminder' | 'web_search_summary' | 'git_pr' | 'database_query'
+  type: 'obsidian_note' | 'calendar_reminder' | 'web_search_summary' | 'git_pr' | 'database_query' | 'image_generation'
   title: string
   description: string
   badgeText: string
   badgeColor?: string
   locationPath?: string
+  imageUrl?: string
+  imagePrompt?: string
   metaDetails?: Record<string, string>
   actions: {
     label: string
@@ -202,15 +229,49 @@ export interface ActionCardData {
 
 export interface Artifact {
   id: string
-  type: 'markdown_doc' | 'code_patch' | 'reminder_event' | 'search_synthesis'
+  type: 'markdown_doc' | 'code_patch' | 'reminder_event' | 'search_synthesis' | 'image_asset'
   title: string
   content: string
   locationPath?: string
-  serviceOrigin?: 'obsidian' | 'calendar' | 'web' | 'github' | 'postgres'
+  imageUrl?: string
+  imagePrompt?: string
+  serviceOrigin?: 'obsidian' | 'calendar' | 'web' | 'github' | 'postgres' | 'imagen'
   createdAt: string
   updatedAt?: string
   wordCount?: number
   diffs?: CodeDiffFile[]
+}
+
+export type ExecutionRiskLevel = 'low_risk' | 'medium_risk' | 'high_risk'
+
+export interface SideAgentExecution {
+  id: string
+  agentId: string
+  agentName: string
+  agentRole: string
+  avatarColor?: string
+  taskGoal: string
+  actionType:
+    | 'create_file'
+    | 'edit_file'
+    | 'obsidian_write'
+    | 'terminal_command'
+    | 'api_mutate'
+    | 'calendar_schedule'
+    | 'image_render'
+  targetResource: string
+  status: 'queued' | 'running' | 'completed' | 'failed'
+  riskLevel: ExecutionRiskLevel
+  executionTimeMs: number
+  tokensUsed: {
+    input: number
+    output: number
+  }
+  logs: string[]
+  summary: string
+  filesModified?: string[]
+  diffPreview?: string
+  artifactId?: string
 }
 
 export interface ChatMessage {
@@ -220,12 +281,14 @@ export interface ChatMessage {
   timestamp: string
   intent?: {
     toolName: string
-    service: 'obsidian' | 'web' | 'calendar' | 'github' | 'database'
+    service: 'obsidian' | 'web' | 'calendar' | 'github' | 'database' | 'imagen' | 'briefing'
     status: 'executing' | 'completed'
     summaryText: string
   }
+  sideAgent?: SideAgentExecution
   actionCard?: ActionCardData
   artifactId?: string
+  sourceDomains?: string[]
 }
 
 export interface ChatSession {
@@ -255,6 +318,8 @@ export interface ActivityLogEntry {
     | 'obsidian_note_created'
     | 'reminder_created'
     | 'web_searched'
+    | 'image_generated'
+    | 'morning_briefing'
   summary: string
   details?: Record<string, unknown>
   status: 'info' | 'success' | 'warning' | 'error'

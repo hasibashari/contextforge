@@ -6,25 +6,37 @@ import {
   Calendar,
   Globe,
   RefreshCw,
-  ChevronRight,
-  Layers,
   Zap,
   Cpu,
+  Mic,
+  MicOff,
+  Sun,
+  Image as ImageIcon,
+  Terminal,
+  ExternalLink,
+  FileText,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
-import type { ActionCardData, ChatMessage } from '@/shared/types/workspace'
+import { MarkdownRenderer } from '@/shared/components'
+import type { ChatMessage, Artifact } from '@/shared/types/workspace'
 
 export default function DashboardChatCanvas() {
   const {
     activeSession,
     isGeneratingResponse,
     sendChatMessage,
-    executeCardAction,
+    triggerMorningBriefing,
     agents,
     skills,
+    setAsideOpen,
+    setActiveArtifact,
+    artifacts,
+    showToast,
   } = useWorkspace()
 
   const [inputPrompt, setInputPrompt] = useState('')
+  const [isVoiceListening, setIsVoiceListening] = useState(false)
+  const [voiceTranscriptText, setVoiceTranscriptText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -38,6 +50,32 @@ export default function DashboardChatCanvas() {
   useEffect(() => {
     scrollToBottom()
   }, [activeSession?.messages, isGeneratingResponse])
+
+  // Voice Simulation Handler
+  const handleToggleVoice = () => {
+    if (isVoiceListening) {
+      setIsVoiceListening(false)
+      setVoiceTranscriptText('')
+      return
+    }
+
+    setIsVoiceListening(true)
+    setVoiceTranscriptText('Listening to audio stream...')
+
+    // Simulated Real-Time Speech-to-Text streaming
+    setTimeout(() => {
+      setVoiceTranscriptText('"Hey ContextForge, schedule a review meeting tomorrow at 3 PM and note the details in Obsidian"')
+    }, 1200)
+
+    setTimeout(() => {
+      setInputPrompt('Schedule a review meeting with Sarah tomorrow at 3 PM and note the discussion points in Obsidian.')
+      setIsVoiceListening(false)
+      setVoiceTranscriptText('')
+      if (textareaRef.current) {
+        textareaRef.current.focus()
+      }
+    }, 2800)
+  }
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -79,30 +117,30 @@ export default function DashboardChatCanvas() {
     {
       label: 'Draft Sprint Plan to Obsidian',
       icon: BookOpen,
-      category: 'Obsidian MCP',
-      prompt: 'Draft a Sprint 34 plan for our new architecture, then save it to the `/Work/Sprints` folder in Obsidian.',
-      desc: 'Automatically writes structured Markdown notes via Obsidian MCP.',
+      category: 'Side Agent (Write)',
+      prompt: 'Draft a Sprint 35 plan for our new architecture, then save it to the `/Work/Sprints` folder in Obsidian.',
+      desc: 'Dispatches Obsidian Vault Worker to write structured markdown note.',
     },
     {
-      label: 'Run TDD Vitest Sandbox',
-      icon: Zap,
-      category: 'TDD Skill',
-      prompt: '/tdd-flow Run test coverage on auth token rotation and propose clean AST diffs.',
-      desc: 'Invokes red-green-refactor testing playbook.',
+      label: 'Create Auth Middleware & Test',
+      icon: Terminal,
+      category: 'Side Agent (CLI)',
+      prompt: 'Buatkan file middleware auth.ts dengan TypeScript dan jalankan verifikasi.',
+      desc: 'Dispatches CLI & Code Sandbox Runner to write code and run test suite.',
     },
     {
-      label: 'Schedule Reminder Tomorrow 09:00',
-      icon: Calendar,
-      category: 'Calendar MCP',
-      prompt: 'Remind me to review RFC #204 token compliance tomorrow at 9 AM.',
-      desc: 'Set an automated reminder alarm in your calendar.',
+      label: 'Research 2026 AI Trends',
+      icon: Globe,
+      category: 'Main Agent (Read-Only)',
+      prompt: 'Cari informasi terbaru tentang tren arsitektur dual-agent dan Model Context Protocol di tahun 2026.',
+      desc: 'Main Agent executes live web search with grounded citations.',
     },
     {
-      label: 'Audit Security & RFC Compliance',
-      icon: Layers,
-      category: 'Security Skill',
-      prompt: '/cve-threat-model Audit codebase against Notion Security RFC #204 and prepare a PR.',
-      desc: 'Static AST scan and dependency CVE vulnerability lookup.',
+      label: 'Analyze Microservices vs Monolith',
+      icon: Sparkles,
+      category: 'Main Agent (Reasoning)',
+      prompt: 'Analisis kelebihan dan kekurangan arsitektur Microservices vs Modular Monolith untuk ContextForge.',
+      desc: 'Direct architectural reasoning without side-effects or mutations.',
     },
   ]
 
@@ -125,14 +163,24 @@ export default function DashboardChatCanvas() {
                   ContextForge Conversational Workspace
                 </h2>
                 <p className="text-xs sm:text-sm text-body max-w-lg mx-auto leading-relaxed">
-                  Provide natural instructions — agents automatically select the right MCP tools (Obsidian, Calendar, Web, GitHub) and reasoning skills to deliver tangible outcomes.
+                  <strong>Main Agent</strong> handles conversation, analysis, and web search in read-only mode. When file edits, Obsidian writes, or CLI executions are needed, isolated <strong>Side Agents</strong> are safely dispatched.
                 </p>
+                <div className="pt-2 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={triggerMorningBriefing}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-mono font-semibold transition-all shadow-2xs cursor-pointer"
+                  >
+                    <Sun size={14} className="text-primary animate-pulse" />
+                    <span>Trigger Proactive Morning Briefing</span>
+                  </button>
+                </div>
               </div>
 
               {/* Quick Prompts Grid */}
               <div className="pt-2 text-left space-y-2.5 max-w-xl mx-auto">
                 <div className="text-[11px] font-mono uppercase tracking-caption text-muted text-center">
-                  Try quick autonomous workflows or type <code className="text-primary bg-canvas-soft px-1 rounded">/</code> for skills:
+                  Try quick workflows or type <code className="text-primary bg-canvas-soft px-1 rounded">/</code> for skills:
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -180,15 +228,60 @@ export default function DashboardChatCanvas() {
             }
 
             // Assistant Response
+            const attachedArtifact = msg.artifactId
+              ? artifacts.find((a) => a.id === msg.artifactId)
+              : undefined
+
             return (
               <div key={msg.id} className="w-full space-y-3 pt-1">
-                {/* Assistant Markdown Content */}
-                <div className="text-xs sm:text-sm text-ink leading-relaxed whitespace-pre-wrap">
-                  {msg.content}
-                </div>
+                {/* Assistant Rich Markdown Content (Rendered as HTML / GFM) */}
+                <MarkdownRenderer content={msg.content} />
 
-                {/* Micro-status intent badge */}
-                {msg.intent && (
+                {/* Gemini-Style Source Chips (Web Grounding Citations) */}
+                {msg.sourceDomains && msg.sourceDomains.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1 text-[11px] font-mono">
+                    <span className="text-muted flex items-center gap-1">
+                      <Globe size={11} className="text-[#3b6ea5]" />
+                      <span>Sources:</span>
+                    </span>
+                    {msg.sourceDomains.map((src, i) => (
+                      <span
+                        key={i}
+                        className="px-2 py-0.5 rounded-md bg-canvas-soft border border-hairline text-ink font-medium text-[10px]"
+                      >
+                        {src}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Claude-Style Sleek Compact Artifact Button Pill */}
+                {attachedArtifact && (
+                  <div className="pt-0.5">
+                    <CompactArtifactPill
+                      artifact={attachedArtifact}
+                      onOpen={() => {
+                        setActiveArtifact(attachedArtifact)
+                        setAsideOpen(true)
+                        showToast('📌 Opened in Workspace Aside')
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Minimal Side Agent Execution Status Pill */}
+                {msg.sideAgent && (
+                  <div className="flex items-center gap-2 text-[11px] font-mono text-muted bg-canvas-soft px-2.5 py-1 rounded-lg border border-hairline w-fit">
+                    <Zap size={12} className="text-primary shrink-0" />
+                    <span className="text-ink font-semibold">{msg.sideAgent.agentName}</span>
+                    <span className="text-muted">·</span>
+                    <span className="text-muted truncate max-w-xs">{msg.sideAgent.targetResource}</span>
+                    <span className="text-semantic-success font-semibold">({msg.sideAgent.executionTimeMs}ms)</span>
+                  </div>
+                )}
+
+                {/* Micro-status intent badge (When no side agent) */}
+                {msg.intent && !msg.sideAgent && (
                   <div className="flex items-center gap-1.5 text-[11px] font-mono text-muted bg-canvas-soft px-2.5 py-1 rounded-lg border border-hairline w-fit">
                     {msg.intent.service === 'obsidian' && (
                       <BookOpen size={12} className="text-primary" />
@@ -199,14 +292,16 @@ export default function DashboardChatCanvas() {
                     {msg.intent.service === 'calendar' && (
                       <Calendar size={12} className="text-semantic-success" />
                     )}
+                    {msg.intent.service === 'briefing' && (
+                      <Sun size={12} className="text-primary" />
+                    )}
+                    {msg.intent.service === 'imagen' && (
+                      <ImageIcon size={12} className="text-[#ff5e00]" />
+                    )}
+                    {msg.intent.service === 'github' && (
+                      <Terminal size={12} className="text-ink" />
+                    )}
                     <span>{msg.intent.summaryText}</span>
-                  </div>
-                )}
-
-                {/* Outcome Action Card (If Present) */}
-                {msg.actionCard && (
-                  <div className="w-full pt-1">
-                    <OutcomeActionCard card={msg.actionCard} onAction={executeCardAction} />
                   </div>
                 )}
 
@@ -232,6 +327,35 @@ export default function DashboardChatCanvas() {
       {/* Bottom Floating Prompt Area (Pinned at Bottom) */}
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 bg-linear-to-t from-canvas via-canvas/95 to-transparent shrink-0 sticky bottom-0 z-10 w-full backdrop-blur-xs">
         <div className="max-w-4xl mx-auto w-full space-y-2">
+          {/* Animated Voice Waveform Simulator Banner */}
+          {isVoiceListening && (
+            <div className="bg-surface-card border border-primary/40 rounded-2xl p-3.5 shadow-lg flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-semantic-error/15 text-semantic-error flex items-center justify-center animate-pulse shrink-0">
+                  <Mic size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+                    <span>Voice Input Streaming</span>
+                    <span className="inline-block w-2 h-2 rounded-full bg-semantic-error animate-ping" />
+                  </div>
+                  <p className="text-[11px] font-mono text-primary truncate">
+                    {voiceTranscriptText}
+                  </p>
+                </div>
+              </div>
+
+              {/* Animated Waveform Bars */}
+              <div className="flex items-center gap-1 shrink-0 px-2">
+                <span className="w-1 h-3 bg-primary rounded-full animate-pulse" />
+                <span className="w-1 h-6 bg-primary rounded-full animate-pulse" />
+                <span className="w-1 h-4 bg-primary rounded-full animate-pulse" />
+                <span className="w-1 h-7 bg-primary rounded-full animate-pulse" />
+                <span className="w-1 h-3 bg-primary rounded-full animate-pulse" />
+              </div>
+            </div>
+          )}
+
           {/* Slash Commands Popover */}
           {showSlashMenu && (
             <div className="bg-surface-card border border-hairline rounded-xl p-2 shadow-xl space-y-1 text-xs font-mono max-h-48 overflow-y-auto">
@@ -248,42 +372,42 @@ export default function DashboardChatCanvas() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-primary">/{skill.id.replace('skill-', '')}</span>
-                    <span className="text-muted text-[11px] truncate max-w-xs">{skill.name}</span>
+                    <span className="text-muted truncate">{skill.name}</span>
                   </div>
-                  <span className="text-[10px] text-muted capitalize">{skill.category.replace('_', ' ')}</span>
+                  <span className="text-[10px] text-muted">{skill.category}</span>
                 </button>
               ))}
             </div>
           )}
 
-          {/* Mention Popover */}
+          {/* Mention Agent/Connector Popover */}
           {showMentionMenu && (
             <div className="bg-surface-card border border-hairline rounded-xl p-2 shadow-xl space-y-1 text-xs font-mono max-h-48 overflow-y-auto">
               <div className="text-[10px] uppercase text-muted px-2 py-1 flex items-center gap-1">
                 <Cpu size={11} className="text-primary" />
-                <span>Mention Agent or Connector:</span>
+                <span>Route to Specialized Agent or Connector:</span>
               </div>
               {agents.map((ag) => (
                 <button
                   key={ag.id}
                   type="button"
-                  onClick={() => handleSelectAgentOrConnector(ag.name.replace(/\s+/g, ''))}
+                  onClick={() => handleSelectAgentOrConnector(ag.id.replace('agent-', ''))}
                   className="w-full px-2.5 py-1.5 rounded-lg hover:bg-canvas-soft text-left flex items-center justify-between text-ink transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-primary">@{ag.name.replace(/\s+/g, '')}</span>
-                    <span className="text-muted text-[11px]">{ag.role}</span>
+                    <span className="font-semibold text-primary">@{ag.id.replace('agent-', '')}</span>
+                    <span className="text-muted truncate">{ag.name}</span>
                   </div>
-                  <span className="text-[10px] text-semantic-success">● {ag.status}</span>
+                  <span className="text-[10px] text-muted">{ag.role}</span>
                 </button>
               ))}
             </div>
           )}
 
-          {/* Prompt Input Form */}
+          {/* Main Input Field */}
           <form
             onSubmit={handleSend}
-            className="relative bg-surface-card border border-hairline focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20 rounded-2xl shadow-xs transition-all p-2.5 sm:p-3"
+            className="bg-surface-card border border-hairline-strong focus-within:border-primary rounded-2xl p-2.5 sm:p-3 shadow-md transition-all space-y-2"
           >
             <textarea
               ref={textareaRef}
@@ -291,18 +415,32 @@ export default function DashboardChatCanvas() {
               value={inputPrompt}
               onChange={handleTextareaInput}
               onKeyDown={handleKeyDown}
-              placeholder="Enter instruction or type '/' for skills, '@' for agents (e.g., '/tdd-flow Run test coverage', 'Save notes to Obsidian...')"
-              className="w-full bg-transparent border-none resize-none text-xs sm:text-sm text-ink placeholder:text-muted focus:outline-none px-2 pt-1 max-h-40 leading-relaxed font-sans"
+              placeholder="Ask, delegate a task, schedule meetings, or type / for skills, @ for agents..."
+              className="w-full bg-transparent border-0 resize-none text-xs sm:text-sm text-ink placeholder:text-muted focus:outline-none px-2 py-1 max-h-40 leading-relaxed"
             />
 
             <div className="flex items-center justify-between pt-2 px-2 border-t border-hairline/60 text-[11px] text-muted font-mono">
               <div className="flex items-center gap-2">
                 <span className="hidden sm:inline">
-                  ⚡ Auto-Routing MCP Active (Obsidian, Calendar, Web, GitHub)
+                  ⚡ Auto-Routing MCP Active (Obsidian, Calendar, Web, GitHub, Imagen)
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Voice Mic Simulator Button */}
+                <button
+                  type="button"
+                  onClick={handleToggleVoice}
+                  className={`inline-flex items-center justify-center w-7 h-7 rounded-lg transition-all cursor-pointer ${
+                    isVoiceListening
+                      ? 'bg-semantic-error text-canvas shadow-xs animate-pulse'
+                      : 'bg-canvas-soft hover:bg-surface-strong text-muted hover:text-ink border border-hairline'
+                  }`}
+                  title={isVoiceListening ? 'Stop Listening' : 'Voice Input (Simulate Speech-to-Text)'}
+                >
+                  {isVoiceListening ? <MicOff size={13} /> : <Mic size={13} />}
+                </button>
+
                 <span className="text-[10px] hidden md:inline">Shift + Enter for new line</span>
                 <button
                   type="submit"
@@ -321,73 +459,26 @@ export default function DashboardChatCanvas() {
   )
 }
 
-function OutcomeActionCard({
-  card,
-  onAction,
+function CompactArtifactPill({
+  artifact,
+  onOpen,
 }: {
-  card: ActionCardData
-  onAction: (actionKey: string, card: ActionCardData) => void
+  artifact: Artifact
+  onOpen: () => void
 }) {
-  const getIcon = () => {
-    switch (card.type) {
-      case 'obsidian_note':
-        return <BookOpen size={16} className="text-primary shrink-0" />
-      case 'calendar_reminder':
-        return <Calendar size={16} className="text-semantic-success shrink-0" />
-      case 'web_search_summary':
-        return <Globe size={16} className="text-[#3b6ea5] shrink-0" />
-      default:
-        return <Sparkles size={16} className="text-primary shrink-0" />
-    }
-  }
-
   return (
-    <div className="bg-surface-card border border-hairline-strong rounded-xl p-4 sm:p-5 shadow-2xs space-y-3.5 transition-all hover:border-hairline">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {getIcon()}
-          <h4 className="text-xs sm:text-sm font-semibold text-ink leading-snug">
-            {card.title}
-          </h4>
-        </div>
-        <span
-          className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold shrink-0 ${
-            card.badgeColor || 'bg-primary/10 text-primary'
-          }`}
-        >
-          {card.badgeText}
-        </span>
-      </div>
-
-      <p className="text-xs text-body leading-relaxed">{card.description}</p>
-
-      {card.metaDetails && (
-        <div className="p-2.5 rounded-lg bg-canvas-soft border border-hairline grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
-          {Object.entries(card.metaDetails).map(([key, val]) => (
-            <div key={key} className="flex items-center justify-between gap-2">
-              <span className="text-muted">{key}:</span>
-              <span className="font-medium text-ink truncate">{val}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-        {card.actions.map((act) => (
-          <button
-            key={act.actionKey}
-            onClick={() => onAction(act.actionKey, card)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shadow-2xs ${
-              act.primary
-                ? 'bg-primary hover:bg-primary-active text-on-primary font-semibold'
-                : 'bg-canvas-soft hover:bg-canvas border border-hairline text-ink'
-            }`}
-          >
-            <span>{act.label}</span>
-            <ChevronRight size={13} />
-          </button>
-        ))}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onOpen}
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-card hover:bg-canvas-soft border border-hairline hover:border-primary/40 text-xs font-mono text-ink transition-colors cursor-pointer group shadow-2xs"
+    >
+      <FileText size={13} className="text-primary shrink-0" />
+      <span className="font-semibold truncate max-w-xs">{artifact.title}</span>
+      <span className="text-muted">·</span>
+      <span className="text-[11px] text-primary flex items-center gap-0.5 group-hover:underline">
+        <span>Open Aside</span>
+        <ExternalLink size={11} />
+      </span>
+    </button>
   )
 }

@@ -19,7 +19,7 @@ export const ActivityFilterBar: React.FC<ActivityFilterBarProps> = ({
   onSelectFilter,
 }) => {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs font-mono bg-canvas-soft border border-hairline p-3 rounded-xl">
+    <div className="flex flex-wrap items-center gap-2 text-xs font-mono bg-canvas-soft border border-hairline p-3.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-2xs">
       <span className="text-muted text-[11px] uppercase tracking-caption mr-2">Filter Action:</span>
       {FILTER_OPTIONS.map((opt) => (
         <button

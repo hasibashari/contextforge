@@ -5,6 +5,7 @@ import {
   Sparkles,
   BookOpen,
   Globe,
+  Calendar,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
 
@@ -51,6 +52,11 @@ export default function DashboardHeader({
           <div className="flex items-center gap-1 text-primary">
             <BookOpen size={11} />
             <span>Obsidian</span>
+          </div>
+          <span className="text-hairline-strong">·</span>
+          <div className="flex items-center gap-1 text-semantic-success">
+            <Calendar size={11} />
+            <span>Calendar</span>
           </div>
           <span className="text-hairline-strong">·</span>
           <div className="flex items-center gap-1 text-[#3b6ea5]">
