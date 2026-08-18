@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { motion } from 'motion/react'
-import { X, Sparkles, Terminal, Layers, Globe, ShieldCheck, ArrowRight } from 'lucide-react'
+import { X, Sparkles, ShieldCheck, ArrowRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useWorkspace } from '../../../shared/mock'
 
 interface NewTaskModalProps {
   isOpen: boolean
   onClose: () => void
-  onTaskCreated?: (taskTitle: string) => void
+  onTaskCreated?: (taskId: string) => void
 }
 
 export default function NewTaskModal({
@@ -13,28 +15,51 @@ export default function NewTaskModal({
   onClose,
   onTaskCreated,
 }: NewTaskModalProps) {
+  const navigate = useNavigate()
+  const { agents, knowledgeSources, createTask } = useWorkspace()
+
+  const [title, setTitle] = useState('')
   const [goal, setGoal] = useState('')
-  const [sources, setSources] = useState({
-    github: true,
-    notion: true,
-    openapi: false,
-    mcp: true,
-  })
+  const [selectedAgentId, setSelectedAgentId] = useState(agents[0]?.id || 'agent-sec-docs')
+  const [selectedSources, setSelectedSources] = useState<string[]>([
+    'source-github-core',
+    'source-notion-sops',
+  ])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!isOpen) return null
+
+  const toggleSource = (sourceId: string) => {
+    setSelectedSources((prev) =>
+      prev.includes(sourceId) ? prev.filter((id) => id !== sourceId) : [...prev, sourceId]
+    )
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!goal.trim()) return
 
     setIsSubmitting(true)
+
     setTimeout(() => {
+      const newTask = createTask({
+        title: title.trim() || goal.slice(0, 55),
+        objective: goal.trim(),
+        agentId: selectedAgentId,
+        selectedSources,
+      })
+
       setIsSubmitting(false)
-      if (onTaskCreated) onTaskCreated(goal)
+      setTitle('')
       setGoal('')
       onClose()
-    }, 1000)
+
+      if (onTaskCreated) {
+        onTaskCreated(newTask.id)
+      } else {
+        navigate(`/tasks/${newTask.id}`)
+      }
+    }, 600)
   }
 
   return (
@@ -43,17 +68,20 @@ export default function NewTaskModal({
         initial={{ opacity: 0, scale: 0.95, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 8 }}
-        className="bg-surface-card border border-hairline rounded-xl max-w-xl w-full p-6 space-y-5 shadow-xl"
+        className="bg-surface-card border border-hairline rounded-2xl max-w-xl w-full p-6 sm:p-7 space-y-5 shadow-2xl"
       >
+        {/* Header */}
         <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <Sparkles size={18} />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <Sparkles size={20} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-ink">Dispatch New Agent Task</h2>
+              <h2 className="text-base sm:text-lg font-bold text-ink">
+                Dispatch New Agent Task
+              </h2>
               <p className="text-xs text-muted">
-                Agent will ingest context, test in a sandbox, and format an action plan.
+                Agent will formulate a plan, ingest context, run AST tests, and format a reviewable action plan.
               </p>
             </div>
           </div>
@@ -65,113 +93,111 @@ export default function NewTaskModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          {/* Title / Short label */}
+          <div>
+            <label className="block font-semibold text-ink uppercase tracking-caption font-mono mb-1">
+              Task Title (Optional):
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Migrate OAuth2 session tokens"
+              className="w-full p-2.5 bg-canvas-soft border border-hairline rounded-lg text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:bg-surface-card transition-colors"
+            />
+          </div>
+
           {/* Goal Input */}
           <div>
-            <label className="block text-xs font-semibold text-ink uppercase tracking-caption font-mono mb-1.5">
-              Task Objective / Prompt:
+            <label className="block font-semibold text-ink uppercase tracking-caption font-mono mb-1">
+              Objective & Instructions:
             </label>
             <textarea
               required
               rows={3}
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              placeholder="e.g. Ingest Notion security RFC #204, update authMiddleware.ts, and verify all test suites pass..."
-              className="w-full p-3 bg-canvas-soft border border-hairline rounded-lg text-xs text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:bg-surface-card transition-colors resize-none"
+              placeholder="e.g. Ingest Notion security RFC #204, update authMiddleware.ts, and verify all test suites pass with zero regressions..."
+              className="w-full p-3 bg-canvas-soft border border-hairline rounded-lg text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:bg-surface-card transition-colors resize-none leading-relaxed"
             />
+          </div>
+
+          {/* Agent Selection */}
+          <div>
+            <label className="block font-semibold text-ink uppercase tracking-caption font-mono mb-1">
+              Select Specialized Agent:
+            </label>
+            <select
+              value={selectedAgentId}
+              onChange={(e) => setSelectedAgentId(e.target.value)}
+              className="w-full p-2.5 bg-canvas-soft border border-hairline rounded-lg text-ink font-mono focus:outline-none focus:border-primary"
+            >
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} — {a.role}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Context Ingestion Toggles */}
           <div>
-            <label className="block text-xs font-semibold text-ink uppercase tracking-caption font-mono mb-2">
-              Context Sources to Ingest:
+            <label className="block font-semibold text-ink uppercase tracking-caption font-mono mb-1.5">
+              Knowledge Grounding Sources:
             </label>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <label className="flex items-center gap-2 p-2.5 rounded-lg border border-hairline bg-canvas-soft cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={sources.github}
-                  onChange={(e) => setSources({ ...sources, github: e.target.checked })}
-                  className="rounded text-primary focus:ring-0"
-                />
-                <div className="flex items-center gap-1.5 truncate">
-                  <Terminal size={14} className="text-ink shrink-0" />
-                  <span className="truncate">GitHub Codebase</span>
-                </div>
-              </label>
+            <div className="grid grid-cols-2 gap-2">
+              {knowledgeSources.map((src) => {
+                const isSelected = selectedSources.includes(src.id)
 
-              <label className="flex items-center gap-2 p-2.5 rounded-lg border border-hairline bg-canvas-soft cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={sources.notion}
-                  onChange={(e) => setSources({ ...sources, notion: e.target.checked })}
-                  className="rounded text-primary focus:ring-0"
-                />
-                <div className="flex items-center gap-1.5 truncate">
-                  <Layers size={14} className="text-timeline-thinking shrink-0" />
-                  <span className="truncate">Notion & RFCs</span>
-                </div>
-              </label>
-
-              <label className="flex items-center gap-2 p-2.5 rounded-lg border border-hairline bg-canvas-soft cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={sources.openapi}
-                  onChange={(e) => setSources({ ...sources, openapi: e.target.checked })}
-                  className="rounded text-primary focus:ring-0"
-                />
-                <div className="flex items-center gap-1.5 truncate">
-                  <Globe size={14} className="text-timeline-read shrink-0" />
-                  <span className="truncate">Live Web & OpenAPI</span>
-                </div>
-              </label>
-
-              <label className="flex items-center gap-2 p-2.5 rounded-lg border border-hairline bg-canvas-soft cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={sources.mcp}
-                  onChange={(e) => setSources({ ...sources, mcp: e.target.checked })}
-                  className="rounded text-primary focus:ring-0"
-                />
-                <div className="flex items-center gap-1.5 truncate">
-                  <ShieldCheck size={14} className="text-timeline-grep shrink-0" />
-                  <span className="truncate">MCP Tools (Air-Gapped)</span>
-                </div>
-              </label>
+                return (
+                  <button
+                    type="button"
+                    key={src.id}
+                    onClick={() => toggleSource(src.id)}
+                    className={`p-2.5 rounded-lg border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-primary bg-primary/5 text-ink font-medium'
+                        : 'border-hairline bg-canvas-soft text-muted hover:text-ink'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      readOnly
+                      className="rounded text-primary pointer-events-none"
+                    />
+                    <span className="truncate text-xs font-mono">{src.name}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
-          {/* HITL Notice */}
-          <div className="p-3 rounded-lg bg-surface-strong border border-hairline text-[11px] text-body flex items-center gap-2">
-            <ShieldCheck size={16} className="text-semantic-success shrink-0" />
-            <span>
-              Safe Mode: Agent runs in an isolated sandbox. Changes will be formatted into an Action Plan for your review.
+          {/* Guardrail Note */}
+          <div className="p-2.5 bg-canvas-soft rounded-lg border border-hairline flex items-center gap-2 text-muted">
+            <ShieldCheck size={14} className="text-semantic-success shrink-0" />
+            <span className="text-[11px]">
+              Sandboxed execution mode active. Code will not be committed without your sign-off.
             </span>
           </div>
 
-          {/* Modal Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-2">
+          {/* Modal Actions */}
+          <div className="pt-3 border-t border-hairline flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-body hover:text-ink rounded-md hover:bg-canvas-soft cursor-pointer"
+              className="px-4 py-2 text-xs font-medium text-body hover:text-ink cursor-pointer"
             >
               Cancel
             </button>
-
             <button
               type="submit"
               disabled={isSubmitting || !goal.trim()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary hover:bg-primary-active disabled:opacity-50 text-on-primary text-xs font-medium transition-colors shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
             >
-              {isSubmitting ? (
-                <span>Dispatching Agent...</span>
-              ) : (
-                <>
-                  <span>Dispatch Agent Task</span>
-                  <ArrowRight size={14} />
-                </>
-              )}
+              <span>{isSubmitting ? 'Synthesizing DAG...' : 'Dispatch Agent Task'}</span>
+              <ArrowRight size={14} />
             </button>
           </div>
         </form>

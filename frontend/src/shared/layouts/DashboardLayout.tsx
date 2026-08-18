@@ -27,15 +27,15 @@ export default function DashboardLayout({
 
         {/* Workspace Body: Main Content + Right Contextual Aside */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
-          {/* Area 2: Primary Workspace (Scrollable) */}
-          <main className="flex-1 overflow-y-auto min-w-0">
+          {/* Area 2: Primary Workspace (Scrollable with GPU momentum optimization) */}
+          <main className="flex-1 overflow-y-auto min-w-0 overscroll-contain">
             {children}
           </main>
 
           {/* Area 3: Right Contextual Inspector Aside (Collapsible) */}
           {aside && (
             <aside
-              className={`border-l border-hairline bg-canvas-soft transition-all duration-200 ease-in-out flex flex-col shrink-0 overflow-y-auto ${
+              className={`border-l border-hairline bg-canvas-soft transition-[width,transform,opacity] duration-200 ease-in-out flex flex-col shrink-0 overflow-y-auto overscroll-contain ${
                 isAsideOpen
                   ? 'w-72 lg:w-80 translate-x-0'
                   : 'w-0 -translate-x-full border-l-0 opacity-0 overflow-hidden pointer-events-none'

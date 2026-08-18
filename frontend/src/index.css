@@ -55,10 +55,7 @@
   letter-spacing: 0.08em;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
+/* GPU Accelerated & Instant 1:1 Scrolling Optimization */
 body {
   font-family: var(--font-sans);
   background-color: var(--color-canvas);
@@ -67,7 +64,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+main, .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: auto;
+}
+
+/* Isolate animated elements to their own compositor layer */
+.animate-pulse, .animate-spin {
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
 code, pre, .font-mono {
   font-family: var(--font-mono);
 }
-
