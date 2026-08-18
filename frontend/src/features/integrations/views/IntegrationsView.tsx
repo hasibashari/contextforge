@@ -211,7 +211,7 @@ export default function IntegrationsView() {
             <span>
               Showing <strong>{filteredPlugins.length}</strong> Plugins
             </span>
-            <span className="text-[11px] text-primary">
+            <span className="text-[11px] text-muted">
               1-Click activates both Connectors & Skills
             </span>
           </div>

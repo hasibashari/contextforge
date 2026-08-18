@@ -16,7 +16,7 @@ export const GlobalToast: React.FC<GlobalToastProps> = ({ toasts, onDismiss }) =
       case 'info':
         return <Info size={16} className="text-primary shrink-0" />
       case 'warning':
-        return <AlertTriangle size={16} className="text-[#f59e0b] shrink-0" />
+        return <AlertTriangle size={16} className="text-timeline-done shrink-0" />
       case 'error':
         return <AlertCircle size={16} className="text-semantic-error shrink-0" />
       default:
@@ -31,7 +31,7 @@ export const GlobalToast: React.FC<GlobalToastProps> = ({ toasts, onDismiss }) =
       case 'info':
         return 'border-primary/30'
       case 'warning':
-        return 'border-[#f59e0b]/30'
+        return 'border-timeline-done/30'
       case 'error':
         return 'border-semantic-error/30'
       default:

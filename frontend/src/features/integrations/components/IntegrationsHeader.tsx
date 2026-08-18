@@ -42,7 +42,7 @@ export const IntegrationsHeader: React.FC<IntegrationsHeaderProps> = ({
           </span>
           <span className="text-hairline">|</span>
           <span className="flex items-center gap-1.5">
-            <Zap size={13} className="text-[#8c52ff]" />
+            <Zap size={13} className="text-timeline-edit" />
             <strong className="text-ink font-semibold">{activeSkillsCount}</strong>
             <span className="text-muted">Active Skills</span>
           </span>

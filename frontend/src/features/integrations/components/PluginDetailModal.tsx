@@ -60,7 +60,7 @@ export const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
                   {plugin.name}
                 </h2>
                 {plugin.badge && (
-                  <span className="text-[9px] sm:text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-primary text-canvas font-semibold shrink-0">
+                  <span className="text-[9px] sm:text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-surface-strong text-ink border border-hairline font-semibold shrink-0">
                     {plugin.badge}
                   </span>
                 )}

@@ -101,8 +101,8 @@ export default function DashboardContextAside() {
             onClick={() => setActiveTab('artifact')}
             className={`py-1.5 px-1 rounded-lg transition-all text-center truncate cursor-pointer ${
               activeTab === 'artifact'
-                ? 'bg-surface-card text-ink shadow-2xs font-semibold'
-                : 'text-muted hover:text-ink'
+                ? 'bg-ink text-canvas shadow-xs font-semibold'
+                : 'text-muted hover:text-ink hover:bg-canvas'
             }`}
             title="Documents & Artifacts"
           >
@@ -113,8 +113,8 @@ export default function DashboardContextAside() {
             onClick={() => setActiveTab('schedule')}
             className={`py-1.5 px-1 rounded-lg transition-all text-center truncate cursor-pointer ${
               activeTab === 'schedule'
-                ? 'bg-surface-card text-ink shadow-2xs font-semibold'
-                : 'text-muted hover:text-ink'
+                ? 'bg-ink text-canvas shadow-xs font-semibold'
+                : 'text-muted hover:text-ink hover:bg-canvas'
             }`}
             title="Google Calendar Schedule"
           >
@@ -125,8 +125,8 @@ export default function DashboardContextAside() {
             onClick={() => setActiveTab('memories')}
             className={`py-1.5 px-1 rounded-lg transition-all text-center truncate cursor-pointer ${
               activeTab === 'memories'
-                ? 'bg-surface-card text-ink shadow-2xs font-semibold'
-                : 'text-muted hover:text-ink'
+                ? 'bg-ink text-canvas shadow-xs font-semibold'
+                : 'text-muted hover:text-ink hover:bg-canvas'
             }`}
             title="Personal AI Memory Bank"
           >

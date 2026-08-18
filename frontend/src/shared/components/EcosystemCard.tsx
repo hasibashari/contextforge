@@ -40,7 +40,7 @@ export const EcosystemCard: React.FC<EcosystemCardProps> = ({
         return 'bg-canvas-soft text-muted border-hairline'
       case 'primary':
       default:
-        return 'bg-primary/10 text-primary border-primary/20'
+        return 'bg-surface-strong text-ink border-hairline'
     }
   }
 
@@ -62,8 +62,8 @@ export const EcosystemCard: React.FC<EcosystemCardProps> = ({
                 {title}
               </h3>
               <CheckCircle2
-                size={15}
-                className="text-primary/70 shrink-0 fill-primary/10"
+                size={14}
+                className="text-semantic-success/80 shrink-0 fill-semantic-success/10"
               />
               {badge && (
                 <span className={`text-[10px] font-mono uppercase px-1.5 py-0.2 rounded border font-semibold ${getBadgeStyle()}`}>
@@ -72,7 +72,7 @@ export const EcosystemCard: React.FC<EcosystemCardProps> = ({
               )}
             </div>
             {subtitle && (
-              <div className="text-[11px] font-mono text-primary font-medium truncate pt-0.5">
+              <div className="text-[11px] font-mono text-muted truncate pt-0.5">
                 {subtitle}
               </div>
             )}

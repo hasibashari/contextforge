@@ -74,7 +74,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
               <h2 className="text-sm sm:text-base md:text-lg font-semibold text-ink leading-snug truncate">
                 {agent.name}
               </h2>
-              <div className="text-[11px] sm:text-xs text-primary font-medium truncate">{agent.role}</div>
+              <div className="text-[11px] sm:text-xs text-muted font-mono truncate">{agent.role}</div>
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">

@@ -77,6 +77,7 @@ export const KnowledgeSourceCard: React.FC<KnowledgeSourceCardProps> = ({
       title={source.name}
       description={source.description}
       badge={isSyncing ? 'Syncing...' : isSynced ? 'Synced' : 'Disconnected'}
+      badgeVariant={isSynced ? 'success' : isSyncing ? 'warning' : 'neutral'}
       metaLine={`${source.filesCount} Files · ${source.chunksCount} Chunks · Updated ${source.lastSynced}`}
       actionIcon={isSynced ? <Settings size={16} /> : <Plus size={16} />}
       onClick={onOpenDetail}

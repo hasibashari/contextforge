@@ -109,7 +109,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             if (isInline) {
               return (
                 <code
-                  className="px-1.5 py-0.5 rounded bg-canvas-soft border border-hairline font-mono text-[11px] text-primary font-medium"
+                  className="px-1.5 py-0.5 rounded bg-canvas-soft border border-hairline font-mono text-[11px] text-ink font-medium"
                   {...props}
                 >
                   {children}

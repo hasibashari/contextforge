@@ -97,7 +97,7 @@ export const KnowledgeSourceDetailModal: React.FC<KnowledgeSourceDetailModalProp
                 </h2>
                 <CheckCircle2
                   size={15}
-                  className="text-primary shrink-0 fill-primary/10"
+                  className="text-semantic-success/80 shrink-0 fill-semantic-success/10"
                 />
               </div>
               <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-mono text-muted mt-0.5">
