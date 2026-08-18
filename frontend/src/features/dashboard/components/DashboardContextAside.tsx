@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
 import { MarkdownRenderer } from '@/shared/components'
-import type { Artifact, CalendarEvent, UserMemoryItem } from '@/shared/types/workspace'
+import type { Artifact, CalendarEvent, UserMemoryItem, ToastType } from '@/shared/types/workspace'
 
 export default function DashboardContextAside() {
   const {
@@ -428,7 +428,7 @@ function ArtifactViewerAndEditor({
 }: {
   artifact: Artifact
   onSave: (content: string) => void
-  showToast: (msg: string) => void
+  showToast: (msg: string, type?: ToastType) => void
   allArtifacts: Artifact[]
   onSelectArtifact: (art: Artifact) => void
 }) {
@@ -442,7 +442,7 @@ function ArtifactViewerAndEditor({
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(artifact.content)
-    showToast('📋 Document content copied to clipboard')
+    showToast('Document content copied to clipboard', 'success')
   }
 
   const handleDownload = () => {
@@ -453,7 +453,7 @@ function ArtifactViewerAndEditor({
     a.download = `${artifact.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`
     a.click()
     URL.revokeObjectURL(url)
-    showToast('📥 .md file downloaded successfully')
+    showToast('Markdown file downloaded successfully', 'success')
   }
 
   const getServiceBadge = (origin?: string) => {

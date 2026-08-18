@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
-import type { CalendarEvent, UserMemoryItem } from '@/shared/types/workspace'
+import type { CalendarEvent, UserMemoryItem, ToastType } from '@/shared/types/workspace'
 import { INITIAL_CALENDAR_EVENTS, INITIAL_USER_MEMORIES } from '../mockData'
 
-export function useCalendarMemory(showToast: (msg: string) => void) {
+export function useCalendarMemory(showToast: (msg: string, type?: ToastType) => void) {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(INITIAL_CALENDAR_EVENTS)
   const [userMemories, setUserMemories] = useState<UserMemoryItem[]>(INITIAL_USER_MEMORIES)
 
@@ -13,7 +13,7 @@ export function useCalendarMemory(showToast: (msg: string) => void) {
         id: `cal-${Date.now()}`,
       }
       setCalendarEvents((prev) => [newEvent, ...prev])
-      showToast(`📅 Event added to Calendar: ${newEvent.title}`)
+      showToast(`Event added to Calendar: ${newEvent.title}`, 'success')
       return newEvent
     },
     [showToast]
@@ -24,7 +24,7 @@ export function useCalendarMemory(showToast: (msg: string) => void) {
       setCalendarEvents((prev) =>
         prev.map((e) => (e.id === id ? { ...e, status } : e))
       )
-      showToast('📅 Schedule status updated')
+      showToast('Schedule status updated', 'info')
     },
     [showToast]
   )
@@ -37,7 +37,7 @@ export function useCalendarMemory(showToast: (msg: string) => void) {
         lastUpdated: 'Just now',
       }
       setUserMemories((prev) => [newMem, ...prev])
-      showToast(`🧠 Saved to Personal Memory: ${newMem.key}`)
+      showToast(`Saved to Personal Memory: ${newMem.key}`, 'success')
     },
     [showToast]
   )
@@ -45,7 +45,7 @@ export function useCalendarMemory(showToast: (msg: string) => void) {
   const deleteUserMemory = useCallback(
     (id: string) => {
       setUserMemories((prev) => prev.filter((m) => m.id !== id))
-      showToast('🧠 Memory item removed')
+      showToast('Memory item removed', 'warning')
     },
     [showToast]
   )

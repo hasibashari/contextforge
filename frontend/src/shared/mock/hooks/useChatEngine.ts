@@ -197,7 +197,7 @@ export function useChatEngine(
         activityType = 'obsidian_note_created'
         activitySummary = `Obsidian Vault Worker wrote note: "${output.artifact?.locationPath}"`
         activityAgent = 'Obsidian Vault Worker (Side Agent)'
-        toastText = '📝 Side Agent: Obsidian note saved to vault'
+        toastText = 'Obsidian note saved to vault'
       } else if (
         lower.includes('middleware') ||
         lower.includes('file') ||
@@ -210,19 +210,19 @@ export function useChatEngine(
         activityType = 'ast_verified'
         activitySummary = `CLI Sandbox Runner created verified code for: "${output.artifact?.locationPath}"`
         activityAgent = 'CLI & Code Sandbox Runner (Side Agent)'
-        toastText = '⚡ Side Agent: Source code created & tests passed'
+        toastText = 'Source code created and verified'
       } else if (lower.includes('remind') || lower.includes('jadwal') || lower.includes('calendar') || lower.includes('meeting')) {
         output = generateCalendarScheduleOutput(prompt)
         activityType = 'reminder_created'
         activitySummary = `Calendar Worker created scheduled event`
         activityAgent = 'Calendar & Workflow Worker (Side Agent)'
-        toastText = '📅 Side Agent: Calendar event scheduled'
+        toastText = 'Calendar event scheduled'
       } else if (lower.includes('gambar') || lower.includes('diagram') || lower.includes('visual') || lower.includes('desain')) {
         output = generateVisualAssetOutput(prompt)
         activityType = 'image_generated'
         activitySummary = `GPU Renderer generated visual asset`
         activityAgent = 'Visual & Asset Generator (Side Agent)'
-        toastText = '🎨 Side Agent: Visual asset rendered'
+        toastText = 'Visual asset rendered'
       } else if (
         lower.includes('cari') ||
         lower.includes('search') ||
@@ -239,7 +239,7 @@ export function useChatEngine(
         activityType = 'web_searched'
         activitySummary = `Main Agent executed read-only web search for: "${prompt.slice(0, 40)}"`
         activityAgent = 'ContextForge Core Orchestrator (Read-Only)'
-        toastText = '🌐 Web research synthesized (Read-Only)'
+        toastText = 'Web research synthesized'
       } else {
         output = generateGeneralReasoningOutput(prompt)
       }

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import type { ActivityLogEntry } from '@/shared/types/workspace'
+import type { ActivityLogEntry, ToastNotification, ToastType } from '@/shared/types/workspace'
 import { INITIAL_ACTIVITIES } from './mockData'
 import { WorkspaceContext } from './context'
 import { useCalendarMemory } from './hooks/useCalendarMemory'
@@ -10,18 +10,44 @@ import { useChatEngine } from './hooks/useChatEngine'
 
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activities, setActivities] = useState<ActivityLogEntry[]>(INITIAL_ACTIVITIES)
+  const [toasts, setToasts] = useState<ToastNotification[]>([])
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isAsideOpen, setIsAsideOpen] = useState<boolean>(true)
 
-  const showToast = useCallback((msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => {
-      setToastMessage((prev) => (prev === msg ? null : prev))
-    }, 3500)
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
+
+  const showToast = useCallback((msg: string, type?: ToastType) => {
+    let toastType: ToastType = type || 'success'
+    if (!type) {
+      const lower = msg.toLowerCase()
+      if (lower.includes('error') || lower.includes('failed') || lower.includes('rejected')) {
+        toastType = 'error'
+      } else if (lower.includes('warning') || lower.includes('disabled') || lower.includes('uninstalled')) {
+        toastType = 'warning'
+      } else if (lower.includes('info') || lower.includes('opened') || lower.includes('testing') || lower.includes('synthesized')) {
+        toastType = 'info'
+      }
+    }
+
+    const newToast: ToastNotification = {
+      id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      message: msg,
+      type: toastType,
+    }
+
+    setToastMessage(msg)
+    setToasts((prev) => [newToast, ...prev].slice(0, 3))
+
+    setTimeout(() => {
+      dismissToast(newToast.id)
+    }, 3500)
+  }, [dismissToast])
 
   const clearToast = useCallback(() => {
     setToastMessage(null)
+    setToasts([])
   }, [])
 
   const toggleAside = useCallback(() => {
@@ -111,6 +137,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         toggleKnowledgeSourceConnect: knowledge.toggleKnowledgeSourceConnect,
         addKnowledgeSource: knowledge.addKnowledgeSource,
         testIntegration: ecosystem.testIntegration,
+        toasts,
+        dismissToast,
         showToast,
         clearToast,
       }}

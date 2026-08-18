@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
-import type { Task, Agent } from '@/shared/types/workspace'
+import type { Task, Agent, ToastType } from '@/shared/types/workspace'
 import { INITIAL_TASKS } from '../mockData'
 
-export function useTaskManager(agents: Agent[], showToast: (msg: string) => void) {
+export function useTaskManager(agents: Agent[], showToast: (msg: string, type?: ToastType) => void) {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS)
   const [activeRunningTaskId, setActiveRunningTaskId] = useState<string | null>(null)
 
@@ -56,7 +56,7 @@ export function useTaskManager(agents: Agent[], showToast: (msg: string) => void
       }
 
       setTasks((prev) => [newTask, ...prev])
-      showToast(`⚡ Dispatched Task ${newId}`)
+      showToast(`Dispatched Task ${newId}`, 'success')
       return newTask
     },
     [agents, showToast]
@@ -74,7 +74,7 @@ export function useTaskManager(agents: Agent[], showToast: (msg: string) => void
           }
         })
       )
-      showToast(`✓ Task ${taskId} approved & merged`)
+      showToast(`Task ${taskId} approved and merged`, 'success')
     },
     [showToast]
   )
@@ -84,14 +84,14 @@ export function useTaskManager(agents: Agent[], showToast: (msg: string) => void
       setTasks((prev) =>
         prev.map((task) => (task.id === taskId ? { ...task, status: 'failed' } : task))
       )
-      showToast(`✕ Task ${taskId} rejected: ${reason}`)
+      showToast(`Task ${taskId} rejected: ${reason}`, 'error')
     },
     [showToast]
   )
 
   const advanceTaskStage = useCallback(
     (taskId: string) => {
-      showToast(`Advanced task ${taskId}`)
+      showToast(`Advanced task ${taskId}`, 'info')
     },
     [showToast]
   )
@@ -99,7 +99,7 @@ export function useTaskManager(agents: Agent[], showToast: (msg: string) => void
   const simulateLiveRun = useCallback(
     (taskId: string) => {
       setActiveRunningTaskId(taskId)
-      showToast(`Simulating step for task ${taskId}`)
+      showToast(`Simulating step for task ${taskId}`, 'info')
       setTimeout(() => {
         setActiveRunningTaskId(null)
       }, 1500)

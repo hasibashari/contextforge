@@ -4,9 +4,11 @@ import { CheckCircle2, Plus } from 'lucide-react'
 export interface EcosystemCardProps {
   icon: React.ReactNode
   title: string
+  subtitle?: string
   description: string
   metaLine?: string | React.ReactNode
   badge?: string
+  badgeVariant?: 'primary' | 'success' | 'warning' | 'neutral'
   actionIcon?: React.ReactNode | null
   hideAction?: boolean
   onClick: () => void
@@ -17,15 +19,31 @@ export interface EcosystemCardProps {
 export const EcosystemCard: React.FC<EcosystemCardProps> = ({
   icon,
   title,
+  subtitle,
   description,
   metaLine,
   badge,
+  badgeVariant = 'primary',
   actionIcon,
   hideAction = false,
   onClick,
   onActionClick,
   actionTooltip = 'View details & options',
 }) => {
+  const getBadgeStyle = () => {
+    switch (badgeVariant) {
+      case 'success':
+        return 'bg-semantic-success/10 text-semantic-success border-semantic-success/20'
+      case 'warning':
+        return 'bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/20'
+      case 'neutral':
+        return 'bg-canvas-soft text-muted border-hairline'
+      case 'primary':
+      default:
+        return 'bg-primary/10 text-primary border-primary/20'
+    }
+  }
+
   return (
     <div
       onClick={onClick}
@@ -38,18 +56,25 @@ export const EcosystemCard: React.FC<EcosystemCardProps> = ({
           <div className="shrink-0">{icon}</div>
 
           {/* Title & Badges */}
-          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <h3 className="text-sm sm:text-base font-semibold text-ink leading-tight truncate">
-              {title}
-            </h3>
-            <CheckCircle2
-              size={15}
-              className="text-primary/70 shrink-0 fill-primary/10"
-            />
-            {badge && (
-              <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20 font-semibold">
-                {badge}
-              </span>
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+              <h3 className="text-sm sm:text-base font-semibold text-ink leading-tight truncate">
+                {title}
+              </h3>
+              <CheckCircle2
+                size={15}
+                className="text-primary/70 shrink-0 fill-primary/10"
+              />
+              {badge && (
+                <span className={`text-[10px] font-mono uppercase px-1.5 py-0.2 rounded border font-semibold ${getBadgeStyle()}`}>
+                  {badge}
+                </span>
+              )}
+            </div>
+            {subtitle && (
+              <div className="text-[11px] font-mono text-primary font-medium truncate pt-0.5">
+                {subtitle}
+              </div>
             )}
           </div>
         </div>

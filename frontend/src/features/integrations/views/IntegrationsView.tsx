@@ -105,12 +105,12 @@ export default function IntegrationsView() {
       />
 
       {/* Tabs Navigation & Search Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-hairline pb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-hairline pb-4 min-w-0">
         {/* 3 Main Tabs */}
-        <div className="flex items-center gap-2 p-1 bg-canvas-soft border border-hairline rounded-xl w-fit">
+        <div className="flex items-center gap-1.5 p-1 bg-canvas-soft border border-hairline rounded-xl w-full sm:w-fit overflow-x-auto shrink-0">
           <button
             onClick={() => setActiveTab('plugins')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'plugins'
                 ? 'bg-primary text-canvas shadow-xs'
                 : 'text-muted hover:text-ink'
@@ -131,7 +131,7 @@ export default function IntegrationsView() {
 
           <button
             onClick={() => setActiveTab('connectors')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'connectors'
                 ? 'bg-primary text-canvas shadow-xs'
                 : 'text-muted hover:text-ink'
@@ -152,7 +152,7 @@ export default function IntegrationsView() {
 
           <button
             onClick={() => setActiveTab('skills')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'skills'
                 ? 'bg-primary text-canvas shadow-xs'
                 : 'text-muted hover:text-ink'
@@ -173,8 +173,8 @@ export default function IntegrationsView() {
         </div>
 
         {/* Search & Filter Bar */}
-        <div className="flex items-center gap-2.5">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto min-w-0">
+          <div className="relative flex-1 sm:w-56 md:w-64 min-w-0">
             <Search
               size={14}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
@@ -191,7 +191,7 @@ export default function IntegrationsView() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-1.5 bg-surface-card border border-hairline rounded-lg text-xs text-ink focus:outline-none focus:border-primary cursor-pointer font-mono"
+            className="px-3 py-1.5 bg-surface-card border border-hairline rounded-lg text-xs text-ink focus:outline-none focus:border-primary cursor-pointer font-mono shrink-0"
           >
             <option value="all">All Categories</option>
             <option value="devops">DevOps / Git</option>

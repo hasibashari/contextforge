@@ -324,3 +324,13 @@ export interface ActivityLogEntry {
   details?: Record<string, unknown>
   status: 'info' | 'success' | 'warning' | 'error'
 }
+
+export type ToastType = 'success' | 'info' | 'warning' | 'error'
+
+export interface ToastNotification {
+  id: string
+  message: string
+  type: ToastType
+  duration?: number
+}
+

@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
-import type { KnowledgeSource } from '@/shared/types/workspace'
+import type { KnowledgeSource, ToastType } from '@/shared/types/workspace'
 import { INITIAL_KNOWLEDGE_SOURCES } from '../mockData'
 
-export function useKnowledgeManager(showToast: (msg: string) => void) {
+export function useKnowledgeManager(showToast: (msg: string, type?: ToastType) => void) {
   const [knowledgeSources, setKnowledgeSources] = useState<KnowledgeSource[]>(
     INITIAL_KNOWLEDGE_SOURCES
   )
@@ -27,7 +27,7 @@ export function useKnowledgeManager(showToast: (msg: string) => void) {
           return { ...src, status: newStatus, lastSynced: 'Just now' }
         })
       )
-      showToast(`Data source status updated`)
+      showToast(`Data source status updated`, 'info')
     },
     [showToast]
   )
@@ -42,7 +42,8 @@ export function useKnowledgeManager(showToast: (msg: string) => void) {
           showToast(
             isSynced
               ? `Disconnected knowledge source "${src.name}"`
-              : `✓ Connected & grounded source "${src.name}"`
+              : `Connected & grounded source "${src.name}"`,
+            isSynced ? 'warning' : 'success'
           )
           return { ...src, status: newStatus, lastSynced: isSynced ? src.lastSynced : 'Just now' }
         })
@@ -78,7 +79,7 @@ export function useKnowledgeManager(showToast: (msg: string) => void) {
       }
 
       setKnowledgeSources((prev) => [newSource, ...prev])
-      showToast(`✓ Knowledge source "${data.name}" connected & indexed!`)
+      showToast(`Knowledge source "${data.name}" connected and indexed`, 'success')
     },
     [showToast]
   )

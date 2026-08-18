@@ -19,15 +19,14 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, onInspect }) => {
 
   const skillsCount = agent.assignedSkills?.length || 0
   const toolsCount = agent.assignedTools?.length || 0
-
-  const roleBadge = agent.agentType === 'orchestrator' ? 'Main Orchestrator' : 'Side Agent Worker'
+  const roleSubtitle = agent.role.replace(/^Side Agent:\s*/i, '').replace(/^Main\s*/i, '')
 
   return (
     <EcosystemCard
       icon={icon}
       title={agent.name}
+      subtitle={roleSubtitle}
       description={agent.description}
-      badge={`${roleBadge} · ${agent.role}`}
       metaLine={`${skillsCount} Skills · ${toolsCount} Tools · ${agent.model} · ${agent.successRatePct}% Success`}
       onClick={onInspect}
       hideAction={true}

@@ -12,6 +12,8 @@ import type {
   ActionCardData,
   CalendarEvent,
   UserMemoryItem,
+  ToastNotification,
+  ToastType,
 } from '@/shared/types/workspace'
 
 export interface WorkspaceContextType {
@@ -24,6 +26,7 @@ export interface WorkspaceContextType {
   integrations: Integration[]
   activities: ActivityLogEntry[]
   toastMessage: string | null
+  toasts: ToastNotification[]
   activeRunningTaskId: string | null
 
   // Conversational State
@@ -105,13 +108,17 @@ export interface WorkspaceContextType {
   simulateLiveRun: (taskId: string) => void
   toggleKnowledgeSync: (sourceId: string) => void
   toggleKnowledgeSourceConnect: (sourceId: string) => void
+
+  // Toast System
+  showToast: (message: string, type?: ToastType) => void
+  dismissToast: (id: string) => void
+
   addKnowledgeSource: (data: {
     name: string
     type: KnowledgeSource['type']
     location: string
   }) => void
   testIntegration: (integrationId: string) => Promise<boolean>
-  showToast: (message: string) => void
   clearToast: () => void
 }
 

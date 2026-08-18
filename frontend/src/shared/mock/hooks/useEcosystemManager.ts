@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import type { Agent, Skill, Plugin, Integration, ActivityLogEntry } from '@/shared/types/workspace'
+import type { Agent, Skill, Plugin, Integration, ActivityLogEntry, ToastType } from '@/shared/types/workspace'
 import {
   INITIAL_AGENTS,
   INITIAL_SKILLS,
@@ -8,7 +8,7 @@ import {
 } from '../mockData'
 
 export function useEcosystemManager(
-  showToast: (msg: string) => void,
+  showToast: (msg: string, type?: ToastType) => void,
   setActivities: React.Dispatch<React.SetStateAction<ActivityLogEntry[]>>
 ) {
   const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS)
@@ -22,7 +22,7 @@ export function useEcosystemManager(
         prev.map((skill) => {
           if (skill.id !== skillId) return skill
           const nextState = !skill.enabled
-          showToast(nextState ? `✓ Skill "${skill.name}" enabled` : `Skill "${skill.name}" disabled`)
+          showToast(nextState ? `Skill "${skill.name}" enabled` : `Skill "${skill.name}" disabled`, nextState ? 'success' : 'warning')
           return { ...skill, enabled: nextState }
         })
       )
@@ -57,7 +57,7 @@ export function useEcosystemManager(
         status: 'success',
       }
       setActivities((prev) => [logEntry, ...prev])
-      showToast(`✓ Successfully installed plugin "${plugin.name}"`)
+      showToast(`Successfully installed plugin "${plugin.name}"`, 'success')
     },
     [plugins, setActivities, showToast]
   )
@@ -70,7 +70,7 @@ export function useEcosystemManager(
       setPlugins((prev) =>
         prev.map((p) => (p.id === pluginId ? { ...p, installed: false } : p))
       )
-      showToast(`Uninstalled plugin "${plugin.name}"`)
+      showToast(`Uninstalled plugin "${plugin.name}"`, 'warning')
     },
     [plugins, showToast]
   )
@@ -85,7 +85,8 @@ export function useEcosystemManager(
           showToast(
             isConnected
               ? `Disconnected connector "${intg.name}"`
-              : `✓ Connected connector "${intg.name}"`
+              : `Connected connector "${intg.name}"`,
+            isConnected ? 'warning' : 'success'
           )
           return { ...intg, status: newStatus }
         })
@@ -102,7 +103,7 @@ export function useEcosystemManager(
           return { ...intg, ...updates }
         })
       )
-      showToast('✓ Connector configuration saved successfully')
+      showToast('Connector configuration saved successfully', 'success')
     },
     [showToast]
   )
@@ -137,7 +138,7 @@ export function useEcosystemManager(
         ],
       }
       setIntegrations((prev) => [newConnector, ...prev])
-      showToast(`✓ Added custom MCP connector: "${data.name}"`)
+      showToast(`Added custom MCP connector: "${data.name}"`, 'success')
     },
     [showToast]
   )
@@ -164,7 +165,7 @@ export function useEcosystemManager(
         isCustom: true,
       }
       setSkills((prev) => [newSkill, ...prev])
-      showToast(`✓ Created custom reasoning skill: "${data.name}"`)
+      showToast(`Created custom reasoning skill: "${data.name}"`, 'success')
     },
     [showToast]
   )
@@ -181,7 +182,7 @@ export function useEcosystemManager(
           }
         })
       )
-      showToast(`✓ Updated capabilities for agent`)
+      showToast(`Updated capabilities for agent`, 'success')
     },
     [showToast]
   )
@@ -189,9 +190,9 @@ export function useEcosystemManager(
   const testIntegration = useCallback(
     async (integrationId: string) => {
       const int = integrations.find((i) => i.id === integrationId)
-      showToast(`Testing integration connection for ${int?.name || integrationId}...`)
+      showToast(`Testing integration connection for ${int?.name || integrationId}...`, 'info')
       await new Promise((res) => setTimeout(res, 600))
-      showToast(`✓ Integration connection successful (latency: 12ms)`)
+      showToast(`Integration connection successful (latency: 12ms)`, 'success')
       return true
     },
     [integrations, showToast]

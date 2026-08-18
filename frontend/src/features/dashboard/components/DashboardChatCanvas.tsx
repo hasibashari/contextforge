@@ -263,7 +263,7 @@ export default function DashboardChatCanvas() {
                       onOpen={() => {
                         setActiveArtifact(attachedArtifact)
                         setAsideOpen(true)
-                        showToast('📌 Opened in Workspace Aside')
+                        showToast('Opened in Workspace Aside', 'info')
                       }}
                     />
                   </div>

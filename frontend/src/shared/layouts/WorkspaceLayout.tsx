@@ -1,33 +1,20 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import { motion, AnimatePresence } from 'motion/react'
-import { CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '@/shared/layouts/DashboardLayout'
 import DashboardSidebar from '@/features/dashboard/components/DashboardSidebar'
 import DashboardHeader from '@/features/dashboard/components/DashboardHeader'
 import DashboardContextAside from '@/features/dashboard/components/DashboardContextAside'
+import { GlobalToast } from '@/shared/components'
 import { useWorkspace } from '@/shared/mock'
 
 export default function WorkspaceLayout() {
-  const { toastMessage, isAsideOpen, toggleAside } = useWorkspace()
+  const { toasts, dismissToast, isAsideOpen, toggleAside } = useWorkspace()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   return (
     <>
-      {/* Global Toast Notification */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-5 right-6 z-50 bg-ink text-canvas px-4 py-3 rounded-xl shadow-xl border border-hairline flex items-center gap-2.5 text-xs font-medium max-w-md"
-          >
-            <CheckCircle2 size={16} className="text-semantic-success shrink-0" />
-            <span className="leading-snug">{toastMessage}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Global Toast System */}
+      <GlobalToast toasts={toasts} onDismiss={dismissToast} />
 
       <DashboardLayout
         sidebar={
