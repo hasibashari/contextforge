@@ -1,7 +1,7 @@
 import React from 'react'
 import { Package, Settings, Plus } from 'lucide-react'
-import type { Plugin, Integration, Skill } from '../../../shared/types/workspace'
-import { EcosystemCard } from '../../../shared/components/EcosystemCard'
+import type { Plugin, Integration, Skill } from '@/shared/types/workspace'
+import { EcosystemCard } from '@/shared/components/EcosystemCard'
 
 interface PluginCardProps {
   plugin: Plugin

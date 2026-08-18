@@ -10,7 +10,7 @@ import type {
   Artifact,
   ChatSession,
   ActionCardData,
-} from '../types/workspace'
+} from '@/shared/types/workspace'
 
 export interface WorkspaceContextType {
   // State
@@ -94,6 +94,11 @@ export interface WorkspaceContextType {
   simulateLiveRun: (taskId: string) => void
   toggleKnowledgeSync: (sourceId: string) => void
   toggleKnowledgeSourceConnect: (sourceId: string) => void
+  addKnowledgeSource: (data: {
+    name: string
+    type: KnowledgeSource['type']
+    location: string
+  }) => void
   testIntegration: (integrationId: string) => Promise<boolean>
   showToast: (message: string) => void
   clearToast: () => void

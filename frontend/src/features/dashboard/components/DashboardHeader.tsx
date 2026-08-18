@@ -6,7 +6,7 @@ import {
   BookOpen,
   Globe,
 } from 'lucide-react'
-import { useWorkspace } from '../../../shared/mock'
+import { useWorkspace } from '@/shared/mock'
 
 interface DashboardHeaderProps {
   onOpenMobileMenu: () => void

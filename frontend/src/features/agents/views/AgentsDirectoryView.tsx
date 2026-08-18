@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { useWorkspace } from '../../../shared/mock'
-import type { Agent } from '../../../shared/types/workspace'
-import { AgentCard } from '../components/AgentCard'
-import { AgentInspectorModal } from '../components/AgentInspectorModal'
-import { AgentRosterHeader } from '../components/AgentRosterHeader'
+import { useWorkspace } from '@/shared/mock'
+import type { Agent } from '@/shared/types/workspace'
+import {
+  AgentCard,
+  AgentInspectorModal,
+  AgentRosterHeader,
+} from '@/features/agents'
 
 export default function AgentsDirectoryView() {
   const { agents } = useWorkspace()

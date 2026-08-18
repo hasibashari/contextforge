@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { CheckCircle2 } from 'lucide-react'
-import DashboardLayout from './DashboardLayout'
-import DashboardSidebar from '../../features/dashboard/components/DashboardSidebar'
-import DashboardHeader from '../../features/dashboard/components/DashboardHeader'
-import DashboardContextAside from '../../features/dashboard/components/DashboardContextAside'
-import { useWorkspace } from '../mock'
+import DashboardLayout from '@/shared/layouts/DashboardLayout'
+import DashboardSidebar from '@/features/dashboard/components/DashboardSidebar'
+import DashboardHeader from '@/features/dashboard/components/DashboardHeader'
+import DashboardContextAside from '@/features/dashboard/components/DashboardContextAside'
+import { useWorkspace } from '@/shared/mock'
 
 export default function WorkspaceLayout() {
   const { toastMessage, isAsideOpen, toggleAside } = useWorkspace()

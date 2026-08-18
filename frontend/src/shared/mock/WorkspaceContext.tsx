@@ -11,7 +11,7 @@ import type {
   ChatSession,
   ChatMessage,
   ActionCardData,
-} from '../types/workspace'
+} from '@/shared/types/workspace'
 import {
   INITIAL_AGENTS,
   INITIAL_SKILLS,
@@ -622,6 +622,38 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [showToast]
   )
 
+  const addKnowledgeSource = useCallback(
+    (data: { name: string; type: KnowledgeSource['type']; location: string }) => {
+      const getIconType = (t: KnowledgeSource['type']): KnowledgeSource['iconType'] => {
+        if (t === 'github_repo') return 'terminal'
+        if (t === 'obsidian_vault') return 'book-open'
+        if (t === 'web_search') return 'globe'
+        if (t === 'database_schema') return 'database'
+        if (t === 'notion_workspace') return 'layers'
+        return 'file'
+      }
+
+      const newSource: KnowledgeSource = {
+        id: `source-custom-${Date.now()}`,
+        name: data.name,
+        type: data.type,
+        location: data.location,
+        description: `Connected ${data.type.replace('_', ' ')} grounding knowledge repository.`,
+        meta: '0 files indexed · Just connected',
+        filesCount: 1,
+        chunksCount: 24,
+        lastSynced: 'Just now',
+        status: 'synced',
+        iconType: getIconType(data.type),
+        color: 'text-primary',
+      }
+
+      setKnowledgeSources((prev) => [newSource, ...prev])
+      showToast(`✓ Knowledge source "${data.name}" connected & indexed!`)
+    },
+    [showToast]
+  )
+
   const testIntegration = useCallback(
     async (integrationId: string) => {
       const int = integrations.find((i) => i.id === integrationId)
@@ -860,6 +892,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         simulateLiveRun,
         toggleKnowledgeSync,
         toggleKnowledgeSourceConnect,
+        addKnowledgeSource,
         testIntegration,
         showToast,
         clearToast,

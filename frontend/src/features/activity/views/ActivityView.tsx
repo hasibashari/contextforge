@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
-import { useWorkspace } from '../../../shared/mock'
-import { ActivityHeader } from '../components/ActivityHeader'
-import { ActivityFilterBar } from '../components/ActivityFilterBar'
-import { ActivityList } from '../components/ActivityList'
+import { useWorkspace } from '@/shared/mock'
+import { ActivityHeader } from '@/features/activity/components/ActivityHeader'
+import { ActivityFilterBar } from '@/features/activity/components/ActivityFilterBar'
+import { ActivityList } from '@/features/activity/components/ActivityList'
 
 export default function ActivityView() {
   const { activities } = useWorkspace()

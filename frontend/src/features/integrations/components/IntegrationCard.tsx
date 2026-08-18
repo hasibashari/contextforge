@@ -12,8 +12,8 @@ import {
   Settings,
   Plus,
 } from 'lucide-react'
-import type { Integration } from '../../../shared/types/workspace'
-import { EcosystemCard } from '../../../shared/components/EcosystemCard'
+import type { Integration } from '@/shared/types/workspace'
+import { EcosystemCard } from '@/shared/components/EcosystemCard'
 
 interface IntegrationCardProps {
   integration: Integration

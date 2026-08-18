@@ -1,7 +1,7 @@
 import React from 'react'
 import { Brain } from 'lucide-react'
-import type { Agent } from '../../../shared/types/workspace'
-import { EcosystemCard } from '../../../shared/components/EcosystemCard'
+import type { Agent } from '@/shared/types/workspace'
+import { EcosystemCard } from '@/shared/components/EcosystemCard'
 
 interface AgentCardProps {
   agent: Agent

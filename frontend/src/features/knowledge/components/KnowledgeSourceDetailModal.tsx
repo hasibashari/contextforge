@@ -16,7 +16,7 @@ import {
   Plus,
   Unlink,
 } from 'lucide-react'
-import type { KnowledgeSource } from '../../../shared/types/workspace'
+import type { KnowledgeSource } from '@/shared/types/workspace'
 
 interface KnowledgeSourceDetailModalProps {
   source: KnowledgeSource | null
@@ -37,44 +37,44 @@ export const KnowledgeSourceDetailModal: React.FC<KnowledgeSourceDetailModalProp
     switch (type) {
       case 'obsidian_vault':
         return (
-          <div className="w-12 h-12 rounded-xl bg-[#7c3aed]/10 border border-[#7c3aed]/20 flex items-center justify-center text-[#7c3aed] shadow-2xs shrink-0">
-            <BookOpen size={26} />
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[#7c3aed]/10 border border-[#7c3aed]/20 flex items-center justify-center text-[#7c3aed] shadow-2xs shrink-0">
+            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         )
       case 'web_search':
         return (
-          <div className="w-12 h-12 rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center text-[#3b82f6] shadow-2xs shrink-0">
-            <Globe size={26} />
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center text-[#3b82f6] shadow-2xs shrink-0">
+            <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         )
       case 'github_repo':
         return (
-          <div className="w-12 h-12 rounded-xl bg-ink/10 border border-hairline flex items-center justify-center text-ink shadow-2xs shrink-0">
-            <Terminal size={26} />
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-ink/10 border border-hairline flex items-center justify-center text-ink shadow-2xs shrink-0">
+            <Terminal className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         )
       case 'notion_workspace':
         return (
-          <div className="w-12 h-12 rounded-xl bg-canvas border border-hairline flex items-center justify-center text-ink shadow-2xs shrink-0">
-            <Layers size={26} />
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-canvas border border-hairline flex items-center justify-center text-ink shadow-2xs shrink-0">
+            <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         )
       case 'openapi_spec':
         return (
-          <div className="w-12 h-12 rounded-xl bg-[#06b6d4]/10 border border-[#06b6d4]/20 flex items-center justify-center text-[#06b6d4] shadow-2xs shrink-0">
-            <Globe size={26} />
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[#06b6d4]/10 border border-[#06b6d4]/20 flex items-center justify-center text-[#06b6d4] shadow-2xs shrink-0">
+            <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         )
       case 'database_schema':
         return (
-          <div className="w-12 h-12 rounded-xl bg-semantic-success/10 border border-semantic-success/20 flex items-center justify-center text-semantic-success shadow-2xs shrink-0">
-            <Database size={26} />
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-semantic-success/10 border border-semantic-success/20 flex items-center justify-center text-semantic-success shadow-2xs shrink-0">
+            <Database className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         )
       default:
         return (
-          <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs shrink-0">
-            <FileText size={26} />
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs shrink-0">
+            <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         )
     }
@@ -84,23 +84,23 @@ export const KnowledgeSourceDetailModal: React.FC<KnowledgeSourceDetailModalProp
   const isSyncing = source.status === 'syncing'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs">
-      <div className="bg-surface-card border border-hairline rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink/40 backdrop-blur-xs">
+      <div className="bg-surface-card border border-hairline rounded-xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150">
         {/* Header with Top-Right Action Controls */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
             {getSourceIcon(source.type)}
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-ink leading-tight">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-ink leading-snug truncate">
                   {source.name}
                 </h2>
                 <CheckCircle2
-                  size={16}
+                  size={15}
                   className="text-primary shrink-0 fill-primary/10"
                 />
               </div>
-              <div className="flex items-center gap-2 text-xs font-mono text-muted mt-1">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-mono text-muted mt-0.5">
                 <span className="capitalize">{source.type.replace('_', ' ')}</span>
                 <span>·</span>
                 <span
@@ -122,22 +122,22 @@ export const KnowledgeSourceDetailModal: React.FC<KnowledgeSourceDetailModalProp
                     }`}
                   />
                   {isSyncing
-                    ? 'Indexing in progress...'
+                    ? 'Indexing...'
                     : isSynced
                     ? 'Vector Synced'
                     : 'Disconnected'}
                 </span>
-                <span>·</span>
-                <span>{source.lastSynced}</span>
+                <span className="hidden xs:inline sm:inline">·</span>
+                <span className="hidden xs:inline sm:inline">{source.lastSynced}</span>
               </div>
             </div>
           </div>
 
           {/* Top-Right Lifecycle Action Controls (Connect / Disconnect + Close) */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {isSynced ? (
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-mono text-semantic-success font-semibold px-2 py-1 rounded-lg bg-semantic-success/10 border border-semantic-success/20 hidden sm:flex items-center gap-1">
+                <span className="text-[10px] sm:text-[11px] font-mono text-semantic-success font-semibold px-2 py-0.5 sm:py-1 rounded-lg bg-semantic-success/10 border border-semantic-success/20 hidden md:flex items-center gap-1">
                   <CheckCircle2 size={12} />
                   <span>Synced</span>
                 </span>
@@ -145,11 +145,11 @@ export const KnowledgeSourceDetailModal: React.FC<KnowledgeSourceDetailModalProp
                   <button
                     type="button"
                     onClick={() => onToggleConnect(source.id)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-semantic-error hover:bg-semantic-error/10 border border-semantic-error/30 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold text-semantic-error hover:bg-semantic-error/10 border border-semantic-error/30 transition-colors cursor-pointer"
                     title="Disconnect knowledge source"
                   >
                     <Unlink size={13} />
-                    <span>Disconnect</span>
+                    <span className="hidden xs:inline sm:inline">Disconnect</span>
                   </button>
                 )}
               </div>
@@ -158,11 +158,11 @@ export const KnowledgeSourceDetailModal: React.FC<KnowledgeSourceDetailModalProp
                 <button
                   type="button"
                   onClick={() => onToggleConnect(source.id)}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-canvas text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 bg-primary hover:bg-primary/90 text-canvas text-[11px] sm:text-xs font-semibold rounded-lg sm:rounded-xl shadow-xs transition-colors cursor-pointer"
                   title="Connect & Index Knowledge Source"
                 >
                   <Plus size={14} />
-                  <span>Connect Source</span>
+                  <span>Connect</span>
                 </button>
               )
             )}

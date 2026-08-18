@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Menu, X, Terminal, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { cn } from '../utils/cn'
+import { cn } from '@/shared/utils/cn'
 
 function GithubIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   return (

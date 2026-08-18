@@ -1,4 +1,4 @@
-import DashboardChatCanvas from '../components/DashboardChatCanvas'
+import DashboardChatCanvas from '@/features/dashboard/components/DashboardChatCanvas'
 
 export default function DashboardView() {
   return <DashboardChatCanvas />

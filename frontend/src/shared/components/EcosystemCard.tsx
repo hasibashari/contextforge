@@ -37,7 +37,7 @@ export const EcosystemCard: React.FC<EcosystemCardProps> = ({
 
           {/* Title & Badges */}
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <h3 className="text-sm sm:text-base font-bold text-ink leading-tight truncate">
+            <h3 className="text-sm sm:text-base font-semibold text-ink leading-tight truncate">
               {title}
             </h3>
             <CheckCircle2

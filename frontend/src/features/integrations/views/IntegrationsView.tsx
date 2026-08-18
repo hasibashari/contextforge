@@ -6,17 +6,19 @@ import {
   Search,
   Plus,
 } from 'lucide-react'
-import { useWorkspace } from '../../../shared/mock'
-import type { Skill, Integration, Plugin } from '../../../shared/types/workspace'
-import { IntegrationsHeader } from '../components/IntegrationsHeader'
-import { IntegrationCard } from '../components/IntegrationCard'
-import { PluginCard } from '../components/PluginCard'
-import { SkillCard } from '../components/SkillCard'
-import { SkillDetailDrawer } from '../components/SkillDetailDrawer'
-import { ConnectorDetailModal } from '../components/ConnectorDetailModal'
-import { PluginDetailModal } from '../components/PluginDetailModal'
-import { AddConnectorModal } from '../components/AddConnectorModal'
-import { AddSkillModal } from '../components/AddSkillModal'
+import { useWorkspace } from '@/shared/mock'
+import type { Skill, Integration, Plugin } from '@/shared/types/workspace'
+import {
+  IntegrationsHeader,
+  IntegrationCard,
+  PluginCard,
+  SkillCard,
+  SkillDetailDrawer,
+  ConnectorDetailModal,
+  PluginDetailModal,
+  AddConnectorModal,
+  AddSkillModal,
+} from '@/features/integrations'
 
 type TabType = 'plugins' | 'connectors' | 'skills'
 

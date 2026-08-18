@@ -8,7 +8,7 @@ import type {
   ActivityLogEntry,
   Artifact,
   ChatSession,
-} from '../types/workspace'
+} from '@/shared/types/workspace'
 
 export const INITIAL_AGENTS: Agent[] = [
   {

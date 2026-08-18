@@ -11,8 +11,8 @@ import {
   Zap,
   Cpu,
 } from 'lucide-react'
-import { useWorkspace } from '../../../shared/mock'
-import type { ActionCardData, ChatMessage } from '../../../shared/types/workspace'
+import { useWorkspace } from '@/shared/mock'
+import type { ActionCardData, ChatMessage } from '@/shared/types/workspace'
 
 export default function DashboardChatCanvas() {
   const {

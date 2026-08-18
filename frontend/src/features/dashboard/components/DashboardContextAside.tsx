@@ -13,8 +13,8 @@ import {
   Database,
   Terminal,
 } from 'lucide-react'
-import { useWorkspace } from '../../../shared/mock'
-import type { Artifact } from '../../../shared/types/workspace'
+import { useWorkspace } from '@/shared/mock'
+import type { Artifact } from '@/shared/types/workspace'
 
 export default function DashboardContextAside() {
   const {

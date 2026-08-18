@@ -1,23 +1,29 @@
 import { useState } from 'react'
-import { useWorkspace } from '../../../shared/mock'
-import type { KnowledgeSource } from '../../../shared/types/workspace'
-import { KnowledgeHeader } from '../components/KnowledgeHeader'
-import { KnowledgeSourceCard } from '../components/KnowledgeSourceCard'
-import { KnowledgeSourceDetailModal } from '../components/KnowledgeSourceDetailModal'
-import { AddSourceModal } from '../components/AddSourceModal'
+import { useWorkspace } from '@/shared/mock'
+import type { KnowledgeSource } from '@/shared/types/workspace'
+import {
+  KnowledgeHeader,
+  KnowledgeSourceCard,
+  KnowledgeSourceDetailModal,
+  AddSourceModal,
+} from '@/features/knowledge'
 
 export default function KnowledgeSourcesView() {
   const {
     knowledgeSources,
     toggleKnowledgeSync,
     toggleKnowledgeSourceConnect,
-    showToast,
+    addKnowledgeSource,
   } = useWorkspace()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedSource, setSelectedSource] = useState<KnowledgeSource | null>(null)
 
-  const handleAddSource = () => {
-    showToast('✓ Knowledge source connected & chunking scheduled!')
+  const handleAddSource = (data: {
+    name: string
+    type: KnowledgeSource['type']
+    location: string
+  }) => {
+    addKnowledgeSource(data)
   }
 
   return (

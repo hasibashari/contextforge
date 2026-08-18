@@ -5,7 +5,7 @@ import {
   Save,
   Sparkles,
 } from 'lucide-react'
-import { useWorkspace } from '../../../shared/mock'
+import { useWorkspace } from '@/shared/mock'
 
 export default function SettingsView() {
   const { showToast } = useWorkspace()

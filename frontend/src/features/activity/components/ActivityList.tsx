@@ -1,7 +1,7 @@
 import React from 'react'
 import { Activity } from 'lucide-react'
-import type { ActivityLogEntry } from '../../../shared/types/workspace'
-import { ActivityItemRow } from './ActivityItemRow'
+import type { ActivityLogEntry } from '@/shared/types/workspace'
+import { ActivityItemRow } from '@/features/activity/components/ActivityItemRow'
 
 interface ActivityListProps {
   activities: ActivityLogEntry[]

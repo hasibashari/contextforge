@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { X, Sparkles, Check } from 'lucide-react'
-import type { Skill } from '../../../shared/types/workspace'
+import type { Skill } from '@/shared/types/workspace'
 
 interface AddSkillModalProps {
   isOpen: boolean
@@ -55,21 +55,26 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs">
-      <div className="bg-surface-card border border-hairline rounded-xl max-w-lg w-full p-6 space-y-5 shadow-xl max-h-[90vh] overflow-y-auto overscroll-contain">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-sm">
-              <Sparkles size={20} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink/40 backdrop-blur-xs">
+      <div className="bg-surface-card border border-hairline rounded-xl sm:rounded-2xl max-w-lg w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-ink">Author Custom Skill Playbook</h2>
-              <p className="text-xs text-muted">Teach agents procedural SOPs & reasoning instructions</p>
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-ink leading-snug truncate">
+                Author Custom Skill Playbook
+              </h2>
+              <p className="text-[11px] sm:text-xs text-muted mt-0.5 leading-relaxed truncate">
+                Teach agents procedural SOPs & reasoning instructions
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md hover:bg-canvas-soft text-muted hover:text-ink cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-canvas-soft text-muted hover:text-ink cursor-pointer transition-colors shrink-0"
+            title="Close modal"
           >
             <X size={18} />
           </button>

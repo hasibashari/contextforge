@@ -10,7 +10,7 @@ import {
   Calendar,
   Globe,
 } from 'lucide-react'
-import type { ActivityLogEntry } from '../../../shared/types/workspace'
+import type { ActivityLogEntry } from '@/shared/types/workspace'
 
 interface ActivityItemRowProps {
   activity: ActivityLogEntry

@@ -9,7 +9,7 @@ import {
   PowerOff,
   Check,
 } from 'lucide-react'
-import type { Skill } from '../../../shared/types/workspace'
+import type { Skill } from '@/shared/types/workspace'
 
 interface SkillDetailDrawerProps {
   skill: Skill | null
@@ -27,25 +27,25 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
   const isEnabled = skill.enabled
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs">
-      <div className="bg-surface-card border border-hairline rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink/40 backdrop-blur-xs">
+      <div className="bg-surface-card border border-hairline rounded-xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150">
         {/* Header with Top-Right Actions */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-base shadow-2xs shrink-0">
-              <Sparkles size={26} />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-base shadow-2xs shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-ink leading-tight">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-ink leading-snug truncate">
                   {skill.name}
                 </h2>
                 <CheckCircle2
-                  size={16}
+                  size={15}
                   className="text-primary shrink-0 fill-primary/10"
                 />
               </div>
-              <div className="flex items-center gap-2 text-xs font-mono text-muted mt-1">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-mono text-muted mt-0.5">
                 <span className="capitalize">{skill.category.replace('_', ' ')}</span>
                 <span>·</span>
                 <span
@@ -58,7 +58,7 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
                       isEnabled ? 'bg-semantic-success' : 'bg-muted'
                     }`}
                   />
-                  {isEnabled ? 'Active SOP Playbook' : 'Disabled'}
+                  {isEnabled ? 'Active Playbook' : 'Disabled'}
                 </span>
                 {skill.isCustom && (
                   <>
@@ -71,32 +71,32 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
           </div>
 
           {/* Top-Right Action Controls (Enable / Disable + Close) */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {isEnabled ? (
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-mono text-semantic-success font-semibold px-2 py-1 rounded-lg bg-semantic-success/10 border border-semantic-success/20 hidden sm:flex items-center gap-1">
+                <span className="text-[10px] sm:text-[11px] font-mono text-semantic-success font-semibold px-2 py-0.5 sm:py-1 rounded-lg bg-semantic-success/10 border border-semantic-success/20 hidden md:flex items-center gap-1">
                   <CheckCircle2 size={12} />
                   <span>Enabled</span>
                 </span>
                 <button
                   type="button"
                   onClick={onToggle}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-semantic-error hover:bg-semantic-error/10 border border-semantic-error/30 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold text-semantic-error hover:bg-semantic-error/10 border border-semantic-error/30 transition-colors cursor-pointer"
                   title="Disable reasoning skill"
                 >
                   <PowerOff size={13} />
-                  <span>Disable</span>
+                  <span className="hidden xs:inline sm:inline">Disable</span>
                 </button>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={onToggle}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-canvas text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 bg-primary hover:bg-primary/90 text-canvas text-[11px] sm:text-xs font-semibold rounded-lg sm:rounded-xl shadow-xs transition-colors cursor-pointer"
                 title="Enable reasoning skill"
               >
                 <Plus size={14} />
-                <span>Enable Skill</span>
+                <span>Enable</span>
               </button>
             )}
 

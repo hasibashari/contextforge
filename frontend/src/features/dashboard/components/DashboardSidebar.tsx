@@ -12,7 +12,7 @@ import {
   BookOpen,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
-import { useWorkspace } from '../../../shared/mock'
+import { useWorkspace } from '@/shared/mock'
 
 interface DashboardSidebarProps {
   isMobileOpen?: boolean

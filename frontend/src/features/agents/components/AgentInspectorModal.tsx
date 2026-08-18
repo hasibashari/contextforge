@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Brain, Terminal, X, Sparkles, Check, Settings2 } from 'lucide-react'
-import type { Agent } from '../../../shared/types/workspace'
-import { useWorkspace } from '../../../shared/mock'
+import type { Agent } from '@/shared/types/workspace'
+import { useWorkspace } from '@/shared/mock'
 
 interface AgentInspectorModalProps {
   agent: Agent | null
@@ -60,36 +60,40 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs">
-      <div className="bg-surface-card border border-hairline rounded-xl max-w-2xl w-full p-6 space-y-5 shadow-xl max-h-[90vh] overflow-y-auto overscroll-contain">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink/40 backdrop-blur-xs">
+      <div className="bg-surface-card border border-hairline rounded-xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div
-              className={`w-10 h-10 rounded-xl ${agent.avatarColor} text-canvas flex items-center justify-center font-mono font-bold text-sm shadow-xs`}
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl ${agent.avatarColor} text-canvas flex items-center justify-center font-mono font-bold text-sm shadow-xs shrink-0`}
             >
-              <Brain size={20} />
+              <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-ink">{agent.name}</h2>
-              <div className="text-xs text-primary font-medium">{agent.role}</div>
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-ink leading-snug truncate">
+                {agent.name}
+              </h2>
+              <div className="text-[11px] sm:text-xs text-primary font-medium truncate">{agent.role}</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={isEditing ? handleCancelEdit : handleStartEdit}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold border transition-colors cursor-pointer ${
                 isEditing
                   ? 'bg-primary text-canvas border-primary'
                   : 'bg-canvas-soft hover:bg-canvas text-ink border-hairline'
               }`}
             >
               <Settings2 size={13} />
-              <span>{isEditing ? 'Cancel Edit' : 'Edit Capabilities'}</span>
+              <span className="hidden xs:inline sm:inline">{isEditing ? 'Cancel Edit' : 'Edit Capabilities'}</span>
+              <span className="xs:hidden sm:hidden">{isEditing ? 'Cancel' : 'Edit'}</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1 rounded-md hover:bg-canvas-soft text-muted hover:text-ink cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-canvas-soft text-muted hover:text-ink cursor-pointer transition-colors"
+              title="Close modal"
             >
               <X size={18} />
             </button>

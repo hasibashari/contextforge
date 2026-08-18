@@ -9,8 +9,8 @@ import {
   Settings,
   Plus,
 } from 'lucide-react'
-import type { Skill } from '../../../shared/types/workspace'
-import { EcosystemCard } from '../../../shared/components/EcosystemCard'
+import type { Skill } from '@/shared/types/workspace'
+import { EcosystemCard } from '@/shared/components/EcosystemCard'
 
 interface SkillCardProps {
   skill: Skill

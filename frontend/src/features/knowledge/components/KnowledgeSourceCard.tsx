@@ -9,8 +9,8 @@ import {
   Settings,
   Plus,
 } from 'lucide-react'
-import type { KnowledgeSource } from '../../../shared/types/workspace'
-import { EcosystemCard } from '../../../shared/components/EcosystemCard'
+import type { KnowledgeSource } from '@/shared/types/workspace'
+import { EcosystemCard } from '@/shared/components/EcosystemCard'
 
 interface KnowledgeSourceCardProps {
   source: KnowledgeSource
