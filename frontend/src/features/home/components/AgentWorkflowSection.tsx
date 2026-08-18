@@ -48,7 +48,7 @@ const STEPS = [
   },
 ]
 
-export default function AgentWorkflow() {
+export default function AgentWorkflowSection() {
   return (
     <section id="workflow" className="py-20 md:py-28 bg-canvas border-t border-hairline">
       <div className="container mx-auto px-4 sm:px-6 max-w-6xl">

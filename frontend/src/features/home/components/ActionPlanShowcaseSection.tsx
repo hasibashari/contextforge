@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import { XCircle, CheckCircle2, ArrowRight, ShieldCheck, Clock, FileText } from 'lucide-react'
 
-export default function ActionPlanShowcase() {
+export default function ActionPlanShowcaseSection() {
   return (
     <section id="action-plans" className="py-20 md:py-28 bg-canvas border-t border-hairline">
       <div className="container mx-auto px-4 sm:px-6 max-w-6xl">

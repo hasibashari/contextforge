@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import { ArrowRight, Terminal } from 'lucide-react'
 
-export default function CTA() {
+export default function CTASection() {
   return (
     <section className="py-24 md:py-32 bg-canvas border-t border-hairline relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 max-w-4xl text-center">

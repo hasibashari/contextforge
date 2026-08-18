@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import { GitBranch, BookOpen, Globe, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react'
 
-export default function SourcesBento() {
+export default function SourcesBentoSection() {
   return (
     <section id="sources" className="py-20 md:py-28 bg-canvas border-t border-hairline">
       <div className="container mx-auto px-4 sm:px-6 max-w-6xl">

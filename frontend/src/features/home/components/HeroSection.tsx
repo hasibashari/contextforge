@@ -100,7 +100,7 @@ const STAGES: StageInfo[] = [
   },
 ]
 
-export default function Hero() {
+export default function HeroSection() {
   const [activeStage, setActiveStage] = useState<StageKey>('thinking')
   const [isPlaying, setIsPlaying] = useState<boolean>(true)
   const [checklist, setChecklist] = useState<{ [key: string]: boolean }>({

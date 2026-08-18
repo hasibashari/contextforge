@@ -71,7 +71,7 @@ export const securityAgent = defineAgent({
   outputFormat: 'action-plan',
 })`
 
-export default function Extensibility() {
+export default function ExtensibilitySection() {
   const [activeTab, setActiveTab] = useState<'visual' | 'code'>('visual')
   const [copied, setCopied] = useState(false)
 

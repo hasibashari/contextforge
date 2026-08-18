@@ -30,7 +30,7 @@ const FAQS = [
   },
 ]
 
-export default function FAQ() {
+export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   const toggle = (idx: number) => {
