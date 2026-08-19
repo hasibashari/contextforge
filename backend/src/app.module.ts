@@ -12,6 +12,7 @@ import { PersonalHubModule } from './modules/personal-hub/personal-hub.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { EcosystemModule } from './modules/ecosystem/ecosystem.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -30,5 +31,6 @@ import { EcosystemModule } from './modules/ecosystem/ecosystem.module';
     ActivityModule,
     EcosystemModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

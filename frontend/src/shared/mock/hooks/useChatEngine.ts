@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import type {
   ChatSession,
   ChatMessage,
@@ -6,66 +6,126 @@ import type {
   ActionCardData,
   ActivityLogEntry,
   CalendarEvent,
-} from '@/shared/types/workspace'
-import { INITIAL_CHAT_SESSIONS, INITIAL_ARTIFACTS } from '../mockData'
-import {
-  generateObsidianNoteOutput,
-  generateCodeMutationOutput,
-  generateWebResearchOutput,
-  generateCalendarScheduleOutput,
-  generateVisualAssetOutput,
-  generateGeneralReasoningOutput,
-} from '../generators/responseGenerators'
+} from '@/shared/types/workspace';
+import { INITIAL_CHAT_SESSIONS, INITIAL_ARTIFACTS } from '../mockData';
+import { chatApi } from '@/shared/api/chatApi';
+import { artifactsApi } from '@/shared/api/artifactsApi';
+import { generateGeneralReasoningOutput } from '../generators/responseGenerators';
 
 export function useChatEngine(
   calendarEvents: CalendarEvent[],
   showToast: (msg: string) => void,
   setActivities: React.Dispatch<React.SetStateAction<ActivityLogEntry[]>>,
-  setIsAsideOpen: (open: boolean) => void
+  setIsAsideOpen: (open: boolean) => void,
 ) {
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>(INITIAL_CHAT_SESSIONS)
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>(INITIAL_CHAT_SESSIONS);
   const [activeSessionId, setActiveSessionId] = useState<string>(
-    INITIAL_CHAT_SESSIONS[0]?.id || 'session-sprint-planning'
-  )
-  const [artifacts, setArtifacts] = useState<Artifact[]>(INITIAL_ARTIFACTS)
-  const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(INITIAL_ARTIFACTS[0] || null)
-  const [isGeneratingResponse, setIsGeneratingResponse] = useState<boolean>(false)
-  const [selectedAgentMode, setSelectedAgentMode] = useState<string>('auto')
+    INITIAL_CHAT_SESSIONS[0]?.id || 'session-sprint-planning',
+  );
+  const [artifacts, setArtifacts] = useState<Artifact[]>(INITIAL_ARTIFACTS);
+  const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(INITIAL_ARTIFACTS[0] || null);
+  const [isGeneratingResponse, setIsGeneratingResponse] = useState<boolean>(false);
+  const [selectedAgentMode, setSelectedAgentMode] = useState<string>('auto');
 
-  const activeSession = useMemo(() => {
-    return chatSessions.find((s) => s.id === activeSessionId) || chatSessions[0]
-  }, [chatSessions, activeSessionId])
+  // Load initial sessions and artifacts from backend on mount
+  useEffect(() => {
+    let isMounted = true;
 
-  const createNewChatSession = useCallback(() => {
-    const newSessionId = `session-${Date.now()}`
-    const newSession: ChatSession = {
-      id: newSessionId,
-      title: 'New Chat',
-      createdAt: 'Just now',
-      messages: [],
+    async function loadInitialData() {
+      try {
+        const [backendSessions, backendArtifacts] = await Promise.all([
+          chatApi.getSessions().catch(() => null),
+          artifactsApi.getAll().catch(() => null),
+        ]);
+
+        if (!isMounted) return;
+
+        if (backendArtifacts && backendArtifacts.length > 0) {
+          setArtifacts(backendArtifacts);
+          setActiveArtifact(backendArtifacts[0]);
+        }
+
+        if (backendSessions && backendSessions.length > 0) {
+          setChatSessions(backendSessions);
+          setActiveSessionId(backendSessions[0].id);
+
+          // Fetch full message history of first session
+          const details = await chatApi.getSessionDetails(backendSessions[0].id).catch(() => null);
+          if (details && isMounted) {
+            setChatSessions((prev) =>
+              prev.map((s) => (s.id === details.session.id ? { ...s, messages: details.messages } : s)),
+            );
+          }
+        }
+      } catch {
+        // gracefully keep initial mock data if backend is offline
+      }
     }
 
-    setChatSessions((prev) => [newSession, ...prev])
-    setActiveSessionId(newSessionId)
-    setActiveArtifact(null)
-    showToast('✨ New chat session started')
-    return newSessionId
-  }, [showToast])
+    void loadInitialData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const activeSession = useMemo(() => {
+    return chatSessions.find((s) => s.id === activeSessionId) || chatSessions[0];
+  }, [chatSessions, activeSessionId]);
+
+  const createNewChatSession = useCallback(async () => {
+    try {
+      const newSession = await chatApi.createSession('New Investigation');
+      setChatSessions((prev) => [newSession, ...prev]);
+      setActiveSessionId(newSession.id);
+      setActiveArtifact(null);
+      showToast('✨ New chat session started');
+      return newSession.id;
+    } catch {
+      // Fallback local UUID
+      const newSessionId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
+      const fallbackSession: ChatSession = {
+        id: newSessionId,
+        title: 'New Chat',
+        createdAt: 'Just now',
+        messages: [],
+      };
+      setChatSessions((prev) => [fallbackSession, ...prev]);
+      setActiveSessionId(newSessionId);
+      setActiveArtifact(null);
+      showToast('✨ New chat session started (local)');
+      return newSessionId;
+    }
+  }, [showToast]);
 
   const switchChatSession = useCallback(
-    (sessionId: string) => {
-      setActiveSessionId(sessionId)
-      const targetSession = chatSessions.find((s) => s.id === sessionId)
+    async (sessionId: string) => {
+      setActiveSessionId(sessionId);
+
+      // Check if session messages need to be fetched from backend
+      const targetSession = chatSessions.find((s) => s.id === sessionId);
+      if (targetSession && targetSession.messages.length === 0) {
+        try {
+          const details = await chatApi.getSessionDetails(sessionId);
+          setChatSessions((prev) =>
+            prev.map((s) => (s.id === sessionId ? { ...s, messages: details.messages } : s)),
+          );
+        } catch {
+          // ignore error
+        }
+      }
+
       if (targetSession?.activeArtifactId) {
-        const art = artifacts.find((a) => a.id === targetSession.activeArtifactId)
-        if (art) setActiveArtifact(art)
+        const art = artifacts.find((a) => a.id === targetSession.activeArtifactId);
+        if (art) setActiveArtifact(art);
       }
     },
-    [chatSessions, artifacts]
-  )
+    [chatSessions, artifacts],
+  );
 
   const saveArtifactContent = useCallback(
-    (artifactId: string, newContent: string) => {
+    async (artifactId: string, newContent: string) => {
+      // Optimistic update
       setArtifacts((prev) =>
         prev.map((art) => {
           if (art.id === artifactId) {
@@ -74,226 +134,292 @@ export function useChatEngine(
               content: newContent,
               updatedAt: 'Just now',
               wordCount: newContent.split(/\s+/).filter(Boolean).length,
-            }
+            };
             if (activeArtifact?.id === artifactId) {
-              setActiveArtifact(updated)
+              setActiveArtifact(updated);
             }
-            return updated
+            return updated;
           }
-          return art
-        })
-      )
-      showToast('✓ Document changes synced to Obsidian')
+          return art;
+        }),
+      );
+
+      try {
+        await artifactsApi.updateContent(artifactId, newContent);
+        showToast('✓ Document changes synced to database & Obsidian');
+      } catch {
+        showToast('✓ Document changes synced locally');
+      }
     },
-    [activeArtifact, showToast]
-  )
+    [activeArtifact, showToast],
+  );
 
   const executeCardAction = useCallback(
     (actionKey: string, card: ActionCardData) => {
       if (actionKey === 'open_aside' || actionKey === 'open_schedule') {
-        setIsAsideOpen(true)
-        showToast('📌 Opened in Workspace Aside')
+        setIsAsideOpen(true);
+        showToast('📌 Opened in Workspace Aside');
       } else if (actionKey === 'copy_content' || actionKey === 'copy_citations') {
-        showToast('📋 Copied content to clipboard')
+        showToast('📋 Copied content to clipboard');
       } else {
-        showToast(`Action "${actionKey}" executed on ${card.title}`)
+        showToast(`Action "${actionKey}" executed on ${card.title}`);
       }
     },
-    [setIsAsideOpen, showToast]
-  )
+    [setIsAsideOpen, showToast],
+  );
 
-  const triggerMorningBriefing = useCallback(() => {
-    const briefingMsgId = `msg-asst-briefing-${Date.now()}`
-    const upcomingEvents = calendarEvents.filter((e) => e.status !== 'completed')
-    const eventsListText =
-      upcomingEvents.length > 0
-        ? upcomingEvents
-            .map((e) => `• **${e.time}** - ${e.title} *(${e.duration})*`)
-            .join('\n')
-        : '• *No upcoming meetings scheduled for the rest of today.*'
+  const triggerMorningBriefing = useCallback(async () => {
+    setIsGeneratingResponse(true);
+    const briefingAssistantId = `msg-asst-briefing-${Date.now()}`;
 
-    const greetingContent = `🌅 **Good morning, Alex!** Here is your automated daily executive briefing:\n\n### 📅 Today's Schedule Overview\n${eventsListText}\n\n### ⚡ Priority Action Items\n1. **PR #104 (Token Compliance)** is awaiting your human approval checkpoint.\n2. **Obsidian Sprint 35 Notes** have been synchronized to your local vault.\n\nWould you like me to draft meeting agendas or prepare technical discussion points for your team sync?`
-
-    const assistantMsg: ChatMessage = {
-      id: briefingMsgId,
+    const placeholderAssistantMsg: ChatMessage = {
+      id: briefingAssistantId,
       role: 'assistant',
-      content: greetingContent,
+      content: '',
       timestamp: 'Just now',
-      intent: {
-        toolName: 'proactive_morning_briefing',
-        service: 'briefing',
-        status: 'completed',
-        summaryText: `Morning Briefing: ${upcomingEvents.length} events, 1 pending PR`,
-      },
-    }
+    };
 
     setChatSessions((prev) =>
       prev.map((session) =>
         session.id === activeSessionId
-          ? {
-              ...session,
-              messages: [...session.messages, assistantMsg],
-            }
-          : session
-      )
-    )
+          ? { ...session, messages: [...session.messages, placeholderAssistantMsg] }
+          : session,
+      ),
+    );
 
-    const newAct: ActivityLogEntry = {
-      id: `act-briefing-${Date.now()}`,
-      timestamp: 'Just now',
-      agentId: 'agent-sec-docs',
-      agentName: 'ContextForge Proactive Assistant',
-      actionType: 'morning_briefing',
-      summary: `Dispatched automated morning briefing with ${upcomingEvents.length} agenda items`,
-      status: 'success',
+    try {
+      await chatApi.triggerMorningBriefing(activeSessionId, {
+        onSessionCreated: ({ id, title, previousId }) => {
+          setActiveSessionId(id);
+          setChatSessions((prev) =>
+            prev.map((s) => (s.id === previousId || s.id === activeSessionId ? { ...s, id, title } : s)),
+          );
+        },
+        onChatChunk: ({ delta }) => {
+          setChatSessions((prev) =>
+            prev.map((session) =>
+              session.id === activeSessionId
+                ? {
+                    ...session,
+                    messages: session.messages.map((m) =>
+                      m.id === briefingAssistantId ? { ...m, content: m.content + delta } : m,
+                    ),
+                  }
+                : session,
+            ),
+          );
+        },
+        onAssistantMessage: (msg) => {
+          setChatSessions((prev) =>
+            prev.map((session) =>
+              session.id === activeSessionId
+                ? {
+                    ...session,
+                    messages: session.messages.map((m) => (m.id === briefingAssistantId ? { ...m, ...msg } : m)),
+                  }
+                : session,
+            ),
+          );
+        },
+        onExecutionDone: () => {
+          setIsGeneratingResponse(false);
+          showToast('🌅 Automated Morning Briefing completed!');
+        },
+        onError: (err) => {
+          setIsGeneratingResponse(false);
+          showToast(`Briefing notice: ${err.message}`);
+        },
+      });
+    } catch {
+      // Fallback local briefing
+      const upcomingEvents = calendarEvents.filter((e) => e.status !== 'completed');
+      const eventsListText =
+        upcomingEvents.length > 0
+          ? upcomingEvents.map((e) => `• **${e.time}** - ${e.title} *(${e.duration})*`).join('\n')
+          : '• *No upcoming meetings scheduled for the rest of today.*';
+
+      const greetingContent = `🌅 **Good morning!** Here is your automated daily executive briefing:\n\n### 📅 Today's Schedule Overview\n${eventsListText}\n\n### ⚡ Priority Action Items\n1. **PR #104 (Token Compliance)** is awaiting your human approval checkpoint.\n2. **Obsidian Sprint Notes** have been synchronized.\n\nWould you like me to draft meeting agendas or prepare technical discussion points for your team sync?`;
+
+      setChatSessions((prev) =>
+        prev.map((session) =>
+          session.id === activeSessionId
+            ? {
+                ...session,
+                messages: session.messages.map((m) =>
+                  m.id === briefingAssistantId
+                    ? {
+                        ...m,
+                        content: greetingContent,
+                        intent: undefined,
+                      }
+                    : m,
+                ),
+              }
+            : session,
+        ),
+      );
+      setIsGeneratingResponse(false);
+      showToast('🌅 Morning Briefing ready');
     }
-    setActivities((prev) => [newAct, ...prev])
-    showToast('🌅 Automated Morning Briefing triggered successfully!')
-  }, [activeSessionId, calendarEvents, setActivities, showToast])
+  }, [activeSessionId, calendarEvents, showToast]);
 
   const sendChatMessage = useCallback(
     async (prompt: string, customOptions?: { agentId?: string; sources?: string[] }) => {
-      if (!prompt.trim() || isGeneratingResponse) return
+      if (!prompt.trim() || isGeneratingResponse) return;
 
-      const targetAgentId = customOptions?.agentId || selectedAgentMode
-      void targetAgentId
+      void customOptions;
 
-      const userMsgId = `msg-user-${Date.now()}`
+      const userMsgId = `msg-user-${Date.now()}`;
+      const assistantMsgId = `msg-asst-${Date.now()}`;
+
       const userMessage: ChatMessage = {
         id: userMsgId,
         role: 'user',
         content: prompt.trim(),
         timestamp: 'Just now',
-      }
+      };
 
-      // Add user message immediately
-      setChatSessions((prev) =>
-        prev.map((session) =>
-          session.id === activeSessionId
-            ? {
-                ...session,
-                messages: [...session.messages, userMessage],
-              }
-            : session
-        )
-      )
-
-      setIsGeneratingResponse(true)
-
-      // Simulate streaming latency
-      await new Promise((resolve) => setTimeout(resolve, 800))
-
-      const lower = prompt.toLowerCase()
-
-      // Route to pure generators
-      let output
-      let activityType: ActivityLogEntry['actionType'] = 'tool_invoked'
-      let activitySummary = ''
-      let activityAgent = 'ContextForge Core Orchestrator'
-      let toastText = ''
-
-      if (lower.includes('obsidian') || lower.includes('sprint') || lower.includes('catat') || lower.includes('note')) {
-        output = generateObsidianNoteOutput(prompt)
-        activityType = 'obsidian_note_created'
-        activitySummary = `Obsidian Vault Worker wrote note: "${output.artifact?.locationPath}"`
-        activityAgent = 'Obsidian Vault Worker (Side Agent)'
-        toastText = 'Obsidian note saved to vault'
-      } else if (
-        lower.includes('middleware') ||
-        lower.includes('file') ||
-        lower.includes('code') ||
-        lower.includes('auth.ts') ||
-        lower.includes('buatkan') ||
-        lower.includes('edit')
-      ) {
-        output = generateCodeMutationOutput(prompt)
-        activityType = 'ast_verified'
-        activitySummary = `CLI Sandbox Runner created verified code for: "${output.artifact?.locationPath}"`
-        activityAgent = 'CLI & Code Sandbox Runner (Side Agent)'
-        toastText = 'Source code created and verified'
-      } else if (lower.includes('remind') || lower.includes('jadwal') || lower.includes('calendar') || lower.includes('meeting')) {
-        output = generateCalendarScheduleOutput(prompt)
-        activityType = 'reminder_created'
-        activitySummary = `Calendar Worker created scheduled event`
-        activityAgent = 'Calendar & Workflow Worker (Side Agent)'
-        toastText = 'Calendar event scheduled'
-      } else if (lower.includes('gambar') || lower.includes('diagram') || lower.includes('visual') || lower.includes('desain')) {
-        output = generateVisualAssetOutput(prompt)
-        activityType = 'image_generated'
-        activitySummary = `GPU Renderer generated visual asset`
-        activityAgent = 'Visual & Asset Generator (Side Agent)'
-        toastText = 'Visual asset rendered'
-      } else if (
-        lower.includes('cari') ||
-        lower.includes('search') ||
-        lower.includes('web') ||
-        lower.includes('internet') ||
-        lower.includes('berita') ||
-        lower.includes('news') ||
-        lower.includes('tren') ||
-        lower.includes('trend') ||
-        lower.includes('update') ||
-        lower.includes('ai')
-      ) {
-        output = generateWebResearchOutput(prompt)
-        activityType = 'web_searched'
-        activitySummary = `Main Agent executed read-only web search for: "${prompt.slice(0, 40)}"`
-        activityAgent = 'ContextForge Core Orchestrator (Read-Only)'
-        toastText = 'Web research synthesized'
-      } else {
-        output = generateGeneralReasoningOutput(prompt)
-      }
-
-      const assistantMsg: ChatMessage = {
-        id: `msg-asst-${Date.now()}`,
+      const placeholderAssistantMsg: ChatMessage = {
+        id: assistantMsgId,
         role: 'assistant',
-        content: output.textContent,
+        content: '',
         timestamp: 'Just now',
-        intent: output.intent,
-        sideAgent: output.sideAgent,
-        artifactId: output.artifact?.id,
-        sourceDomains: output.sourceDomains,
-      }
+      };
 
-      if (output.artifact) {
-        setArtifacts((prev) => [output.artifact!, ...prev])
-        setActiveArtifact(output.artifact)
-        setIsAsideOpen(true)
-      }
-
+      // Add user message & placeholder assistant immediately
       setChatSessions((prev) =>
         prev.map((session) =>
           session.id === activeSessionId
             ? {
                 ...session,
-                activeArtifactId: output.artifact?.id || session.activeArtifactId,
-                messages: [...session.messages, assistantMsg],
+                messages: [...session.messages, userMessage, placeholderAssistantMsg],
               }
-            : session
-        )
-      )
+            : session,
+        ),
+      );
 
-      if (activitySummary) {
-        const newAct: ActivityLogEntry = {
-          id: `act-${Date.now()}`,
-          timestamp: 'Just now',
-          agentId: output.sideAgent?.agentId || 'agent-sec-docs',
-          agentName: activityAgent,
-          actionType: activityType,
-          summary: activitySummary,
-          status: 'success',
-        }
-        setActivities((prev) => [newAct, ...prev])
+      setIsGeneratingResponse(true);
+
+      try {
+        await chatApi.sendMessageStream(activeSessionId, prompt.trim(), {
+          onSessionCreated: ({ id, title, previousId }) => {
+            setActiveSessionId(id);
+            setChatSessions((prev) =>
+              prev.map((s) =>
+                s.id === previousId || s.id === activeSessionId ? { ...s, id, title: s.title || title } : s,
+              ),
+            );
+          },
+          onSessionTitleUpdated: ({ title }) => {
+            setChatSessions((prev) =>
+              prev.map((s) => (s.id === activeSessionId ? { ...s, title } : s)),
+            );
+          },
+          onChatChunk: ({ delta }) => {
+            setChatSessions((prev) =>
+              prev.map((session) =>
+                session.id === activeSessionId
+                  ? {
+                      ...session,
+                      messages: session.messages.map((m) =>
+                        m.id === assistantMsgId ? { ...m, content: m.content + delta } : m,
+                      ),
+                    }
+                  : session,
+              ),
+            );
+          },
+          onSideAgentLog: ({ sideAgentId, log, riskLevel }) => {
+            const newAct: ActivityLogEntry = {
+              id: `act-${Date.now()}`,
+              timestamp: 'Just now',
+              agentId: sideAgentId,
+              agentName: sideAgentId.includes('doc')
+                ? 'Obsidian Vault Worker'
+                : sideAgentId.includes('code')
+                  ? 'CLI & Code Sandbox Runner'
+                  : 'Calendar Worker',
+              actionType: 'tool_invoked',
+              summary: log,
+              status: riskLevel === 'high_risk' ? 'warning' : 'success',
+            };
+            setActivities((prev) => [newAct, ...prev]);
+          },
+          onArtifactCreated: (createdArtifact) => {
+            setArtifacts((prev) => [createdArtifact, ...prev.filter((a) => a.id !== createdArtifact.id)]);
+            setActiveArtifact(createdArtifact);
+            setIsAsideOpen(true);
+            showToast(`📦 Artifact Created: ${createdArtifact.title}`);
+          },
+          onAssistantMessage: (backendMsg) => {
+            setChatSessions((prev) =>
+              prev.map((session) =>
+                session.id === activeSessionId
+                  ? {
+                      ...session,
+                      activeArtifactId: backendMsg.artifactId || session.activeArtifactId,
+                      messages: session.messages.map((m) =>
+                        m.id === assistantMsgId ? { ...m, ...backendMsg } : m,
+                      ),
+                    }
+                  : session,
+              ),
+            );
+          },
+          onExecutionDone: () => {
+            setIsGeneratingResponse(false);
+          },
+          onError: (streamErr) => {
+            console.error('SSE Stream Error:', streamErr);
+            // Fallback gracefully
+            const fallback = generateGeneralReasoningOutput(prompt);
+            setChatSessions((prev) =>
+              prev.map((session) =>
+                session.id === activeSessionId
+                  ? {
+                      ...session,
+                      messages: session.messages.map((m) =>
+                        m.id === assistantMsgId
+                          ? {
+                              ...m,
+                              content: m.content || fallback.textContent,
+                              intent: fallback.intent,
+                            }
+                          : m,
+                      ),
+                    }
+                  : session,
+              ),
+            );
+            setIsGeneratingResponse(false);
+          },
+        });
+      } catch (err: unknown) {
+        console.error('Failed to send message stream:', err);
+        const fallback = generateGeneralReasoningOutput(prompt);
+        setChatSessions((prev) =>
+          prev.map((session) =>
+            session.id === activeSessionId
+              ? {
+                  ...session,
+                  messages: session.messages.map((m) =>
+                    m.id === assistantMsgId
+                      ? {
+                          ...m,
+                          content: fallback.textContent,
+                          intent: fallback.intent,
+                        }
+                      : m,
+                  ),
+                }
+              : session,
+          ),
+        );
+        setIsGeneratingResponse(false);
       }
-
-      if (toastText) {
-        showToast(toastText)
-      }
-
-      setIsGeneratingResponse(false)
     },
-    [activeSessionId, isGeneratingResponse, selectedAgentMode, setActivities, showToast, setIsAsideOpen]
-  )
+    [activeSessionId, isGeneratingResponse, setActivities, setIsAsideOpen, showToast],
+  );
 
   return {
     chatSessions,
@@ -311,5 +437,5 @@ export function useChatEngine(
     sendChatMessage,
     createNewChatSession,
     switchChatSession,
-  }
+  };
 }

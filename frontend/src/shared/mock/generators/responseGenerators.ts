@@ -2,7 +2,7 @@ import type { Artifact, SideAgentExecution } from '@/shared/types/workspace'
 
 export interface GeneratedAssistantOutput {
   textContent: string
-  intent: {
+  intent?: {
     toolName: string
     service: 'obsidian' | 'web' | 'calendar' | 'github' | 'database' | 'imagen' | 'briefing'
     status: 'executing' | 'completed'
@@ -240,12 +240,6 @@ Berdasarkan analisis live search dari beberapa sumber terverifikasi di tahun 202
 
   return {
     textContent,
-    intent: {
-      toolName: 'web_search',
-      service: 'web',
-      status: 'completed',
-      summaryText: 'Web Grounding (4 sources cited · Read-Only)',
-    },
     sourceDomains,
   }
 }
@@ -367,11 +361,5 @@ Mulai dengan **Modular Monolith** terlebih dahulu. Pisahkan domain code (Chat, A
 
   return {
     textContent: analysis,
-    intent: {
-      toolName: 'conversational_reasoning',
-      service: 'obsidian',
-      status: 'completed',
-      summaryText: 'Direct Reasoning (Read-Only Mode)',
-    },
   }
 }

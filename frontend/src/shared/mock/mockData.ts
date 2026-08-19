@@ -692,16 +692,10 @@ Based on recent live web crawling across technical specifications and engineerin
 3. **Dual-Agent Privilege Separation:**
    High-performance systems use a **Main Orchestrator** in read-only mode for reasoning and web synthesis, while delegating mutating operations (file writes, CLI commands) to isolated, ephemeral **Side Agents**.`,
         timestamp: '10:15 AM',
-        intent: {
-          toolName: 'web_search',
-          service: 'web',
-          status: 'completed',
-          summaryText: 'Web Grounding (3 sources cited · Read-Only)',
-        },
         sourceDomains: [
           'Google DeepMind Paper (2026)',
           'Anthropic MCP Spec v2.0',
-          'O\'Reilly AI Architecture Guidelines',
+          "O'Reilly AI Architecture Guidelines",
         ],
       },
     ],

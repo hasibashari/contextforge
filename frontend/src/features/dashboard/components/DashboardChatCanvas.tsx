@@ -3,7 +3,7 @@ import {
   Send,
   Sparkles,
   BookOpen,
-  Calendar,
+  Terminal,
   Globe,
   RefreshCw,
   Zap,
@@ -11,8 +11,6 @@ import {
   Mic,
   MicOff,
   Sun,
-  Image as ImageIcon,
-  Terminal,
   ExternalLink,
   FileText,
 } from 'lucide-react'
@@ -280,28 +278,21 @@ export default function DashboardChatCanvas() {
                   </div>
                 )}
 
-                {/* Micro-status intent badge (When no side agent) */}
-                {msg.intent && !msg.sideAgent && (
-                  <div className="flex items-center gap-1.5 text-[11px] font-mono text-muted bg-canvas-soft px-2.5 py-1 rounded-lg border border-hairline w-fit">
-                    {msg.intent.service === 'obsidian' && (
-                      <BookOpen size={12} className="text-primary" />
-                    )}
-                    {msg.intent.service === 'web' && (
+                {/* Clean Source Citations Pill (When web search / grounded) */}
+                {msg.sourceDomains && msg.sourceDomains.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[11px] font-mono text-muted flex items-center gap-1 mr-1">
                       <Globe size={12} className="text-[#3b6ea5]" />
-                    )}
-                    {msg.intent.service === 'calendar' && (
-                      <Calendar size={12} className="text-semantic-success" />
-                    )}
-                    {msg.intent.service === 'briefing' && (
-                      <Sun size={12} className="text-primary" />
-                    )}
-                    {msg.intent.service === 'imagen' && (
-                      <ImageIcon size={12} className="text-[#ff5e00]" />
-                    )}
-                    {msg.intent.service === 'github' && (
-                      <Terminal size={12} className="text-ink" />
-                    )}
-                    <span>{msg.intent.summaryText}</span>
+                      <span>Citations ({msg.sourceDomains.length}):</span>
+                    </span>
+                    {msg.sourceDomains.map((domain, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] font-mono bg-canvas-soft border border-hairline px-2 py-0.5 rounded-md text-muted hover:text-ink transition-colors"
+                      >
+                        {domain}
+                      </span>
+                    ))}
                   </div>
                 )}
 

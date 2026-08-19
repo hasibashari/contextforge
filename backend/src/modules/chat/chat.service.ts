@@ -10,6 +10,9 @@ import {
 } from '../../agentic-core/orchestrator/core-orchestrator.service';
 import type { Response } from 'express';
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -26,6 +29,9 @@ export class ChatService {
   async getSessionById(
     id: string,
   ): Promise<{ session: ChatSessionRow; messages: ChatMessageRow[] }> {
+    if (!UUID_REGEX.test(id)) {
+      throw new NotFoundException(`Chat session ${id} is not a valid UUID`);
+    }
     const session = await this.chatRepo.getSessionById(id);
     if (!session) {
       throw new NotFoundException(`Chat session ${id} not found`);
@@ -39,7 +45,9 @@ export class ChatService {
   }
 
   async deleteSession(id: string): Promise<{ success: boolean }> {
-    await this.chatRepo.deleteSession(id);
+    if (UUID_REGEX.test(id)) {
+      await this.chatRepo.deleteSession(id);
+    }
     return { success: true };
   }
 
@@ -61,9 +69,30 @@ export class ChatService {
     };
 
     try {
-      // 1. Save user message to database
+      // 1. Ensure valid UUID session in database
+      let targetSessionId = sessionId;
+      const isValidUuid = UUID_REGEX.test(sessionId);
+
+      let existingSession: ChatSessionRow | null = null;
+      if (isValidUuid) {
+        existingSession = await this.chatRepo.getSessionById(sessionId);
+      }
+
+      if (!existingSession) {
+        const autoTitle =
+          prompt.length > 35 ? prompt.slice(0, 35) + '...' : prompt;
+        const newSession = await this.chatRepo.createSession(autoTitle);
+        targetSessionId = newSession.id;
+        sendSse('session_created', {
+          id: newSession.id,
+          title: newSession.title,
+          previousId: sessionId,
+        });
+      }
+
+      // 2. Save user message to database
       const userMsg = await this.chatRepo.createMessage({
-        sessionId,
+        sessionId: targetSessionId,
         role: 'user',
         content: prompt,
       });
@@ -71,15 +100,19 @@ export class ChatService {
       sendSse('user_message', userMsg);
 
       // Auto-update session title if it's the first message
-      const messages = await this.chatRepo.getMessagesBySessionId(sessionId);
+      const messages =
+        await this.chatRepo.getMessagesBySessionId(targetSessionId);
       if (messages.length <= 2) {
         const autoTitle =
           prompt.length > 35 ? prompt.slice(0, 35) + '...' : prompt;
-        await this.chatRepo.updateSessionTitle(sessionId, autoTitle);
-        sendSse('session_title_updated', { title: autoTitle });
+        await this.chatRepo.updateSessionTitle(targetSessionId, autoTitle);
+        sendSse('session_title_updated', {
+          sessionId: targetSessionId,
+          title: autoTitle,
+        });
       }
 
-      // 2. Prepare conversation history for Gemini
+      // 3. Prepare conversation history for Gemini
       const history = messages
         .filter((m) => m.id !== userMsg.id)
         .map((m) => ({
@@ -87,7 +120,7 @@ export class ChatService {
           parts: [{ text: m.content }],
         }));
 
-      // 3. Delegate to Core Orchestrator
+      // 4. Delegate to Core Orchestrator
       const result = await this.orchestrator.processPromptStream(
         prompt,
         history,
@@ -96,9 +129,9 @@ export class ChatService {
         },
       );
 
-      // 4. Save assistant response to DB
+      // 5. Save assistant response to DB
       const assistantMsg = await this.chatRepo.createMessage({
-        sessionId,
+        sessionId: targetSessionId,
         role: 'assistant',
         content: result.textContent,
         intent: result.intent,
@@ -108,12 +141,16 @@ export class ChatService {
       });
 
       if (result.artifact?.id) {
-        await this.chatRepo.updateActiveArtifact(sessionId, result.artifact.id);
+        await this.chatRepo.updateActiveArtifact(
+          targetSessionId,
+          result.artifact.id,
+        );
       }
 
       sendSse('assistant_message', assistantMsg);
       sendSse('execution_done', {
         messageId: assistantMsg.id,
+        sessionId: targetSessionId,
         status: 'completed',
       });
     } catch (err: unknown) {
