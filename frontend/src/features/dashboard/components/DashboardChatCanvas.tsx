@@ -50,6 +50,7 @@ export default function DashboardChatCanvas() {
   } = useWorkspace()
 
   const [inputPrompt, setInputPrompt] = useState('')
+  const [isMultiline, setIsMultiline] = useState(false)
   const [isVoiceListening, setIsVoiceListening] = useState(false)
   const [voiceTranscriptText, setVoiceTranscriptText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -88,6 +89,7 @@ export default function DashboardChatCanvas() {
       setInputPrompt(
         'Schedule a review meeting with Sarah tomorrow at 3 PM and note the discussion points in Obsidian.',
       )
+      setIsMultiline(true)
       setIsVoiceListening(false)
       setVoiceTranscriptText('')
       if (textareaRef.current) {
@@ -102,6 +104,7 @@ export default function DashboardChatCanvas() {
 
     const message = inputPrompt.trim()
     setInputPrompt('')
+    setIsMultiline(false)
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
@@ -116,10 +119,37 @@ export default function DashboardChatCanvas() {
     }
   }
 
+  // Automatically adjust textarea height whenever prompt or mode changes
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      if (isMultiline || inputPrompt.includes('\n')) {
+        textareaRef.current.style.height = `${Math.min(
+          textareaRef.current.scrollHeight,
+          200,
+        )}px`
+      }
+    }
+  }, [inputPrompt, isMultiline])
+
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputPrompt(e.target.value)
-    e.target.style.height = 'auto'
-    e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`
+    const val = e.target.value
+    setInputPrompt(val)
+
+    const hasNewline = val.includes('\n')
+    const isOverflow = e.target.scrollHeight >= 38
+
+    if (!isMultiline) {
+      // Switch to 2-row mode when text touches the right elements or user presses Shift+Enter
+      if (hasNewline || isOverflow) {
+        setIsMultiline(true)
+      }
+    } else {
+      // In 2-row mode: STAY in 2-row mode until text is completely deleted down to empty (val === '')
+      if (val === '') {
+        setIsMultiline(false)
+      }
+    }
   }
 
   const handleSelectSkill = (skillCommand: string) => {
@@ -139,8 +169,7 @@ export default function DashboardChatCanvas() {
   const dynamicGreeting = getGreetingForSession(activeSession?.id)
 
   const renderInputForm = (isCentered: boolean) => {
-    const isMultiline =
-      inputPrompt.includes('\n') || inputPrompt.length > 80
+    const shouldShowMultiline = isMultiline || inputPrompt.includes('\n')
 
     return (
       <div
@@ -237,27 +266,37 @@ export default function DashboardChatCanvas() {
           </div>
         )}
 
-        {/* Adaptive Morphing Form with Fixed Constant Corner Radius */}
-        {!isMultiline ? (
-          /* 1-Row Centered Form (Fixed Corner Radius rounded-2xl sm:rounded-3xl) */
-          <form
-            onSubmit={handleSend}
-            className="w-full min-h-11 bg-surface-card hover:bg-surface-card/90 focus-within:border-primary/60 border border-hairline-strong rounded-2xl sm:rounded-3xl px-3.5 py-1.5 sm:py-2 shadow-md transition-all duration-200 flex items-center gap-2"
+        {/* Single Unified Adaptive Form (Never unmounts textarea -> Typing focus is 100% uninterrupted) */}
+        <form
+          onSubmit={handleSend}
+          className={`w-full bg-surface-card hover:bg-surface-card/90 focus-within:border-primary/60 border border-hairline-strong rounded-2xl sm:rounded-3xl shadow-md transition-all duration-200 flex flex-col justify-between ${
+            shouldShowMultiline
+              ? 'pt-2.5 pb-2 px-3 sm:px-3.5 gap-1'
+              : 'min-h-11 px-3.5 py-1.5 sm:py-2 justify-center'
+          }`}
+        >
+          {/* Main Content Row */}
+          <div
+            className={`w-full flex ${
+              shouldShowMultiline ? 'flex-col' : 'items-center gap-2'
+            }`}
           >
-            {/* Left Plus Action Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setInputPrompt((prev) => (prev ? prev : '/'))
-                textareaRef.current?.focus()
-              }}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer shrink-0"
-              title="Add skill or connector (/ or @)"
-            >
-              <Plus size={16} />
-            </button>
+            {/* Inline Left Plus button (Only in 1-line mode) */}
+            {!shouldShowMultiline && (
+              <button
+                type="button"
+                onClick={() => {
+                  setInputPrompt((prev) => (prev ? prev : '/'))
+                  textareaRef.current?.focus()
+                }}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer shrink-0"
+                title="Add skill or connector (/ or @)"
+              >
+                <Plus size={16} />
+              </button>
+            )}
 
-            {/* Textarea Input (Centered in single row) */}
+            {/* Unified Textarea (NEVER unmounted -> Cursor/Focus is never lost!) */}
             <textarea
               ref={textareaRef}
               rows={1}
@@ -265,68 +304,59 @@ export default function DashboardChatCanvas() {
               onChange={handleTextareaInput}
               onKeyDown={handleKeyDown}
               placeholder="Ask anything..."
-              className="flex-1 bg-transparent border-0 resize-none text-xs sm:text-sm text-ink placeholder:text-muted focus:outline-none py-1 max-h-32 leading-relaxed"
+              className={`bg-transparent border-0 resize-none text-xs sm:text-sm text-ink placeholder:text-muted focus:outline-none leading-relaxed transition-all duration-200 ${
+                shouldShowMultiline
+                  ? 'w-full max-h-48 p-0 overflow-y-auto'
+                  : 'flex-1 py-1 max-h-32'
+              }`}
             />
 
-            {/* Right Action Icons Group */}
-            <div className="flex items-center gap-1 shrink-0">
-              {/* Think / Reasoning Badge Button */}
-              <div
-                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-canvas-soft text-[11px] font-mono text-muted border border-hairline select-none"
-                title="Reasoning Engine Active"
-              >
-                <Sparkles size={11} className="text-primary" />
-                <span>Think</span>
+            {/* Inline Right Action Buttons (Only in 1-line mode) */}
+            {!shouldShowMultiline && (
+              <div className="flex items-center gap-1 shrink-0">
+                {/* Think / Reasoning Badge Button */}
+                <div
+                  className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-canvas-soft text-[11px] font-mono text-muted border border-hairline select-none"
+                  title="Reasoning Engine Active"
+                >
+                  <Sparkles size={11} className="text-primary" />
+                  <span>Think</span>
+                </div>
+
+                {/* Voice Mic Simulator Button */}
+                <button
+                  type="button"
+                  onClick={handleToggleVoice}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                    isVoiceListening
+                      ? 'bg-semantic-error text-white shadow-xs animate-pulse'
+                      : 'text-muted hover:text-ink hover:bg-canvas-soft'
+                  }`}
+                  title={
+                    isVoiceListening
+                      ? 'Stop Listening'
+                      : 'Voice Input (Simulate Speech-to-Text)'
+                  }
+                >
+                  {isVoiceListening ? <MicOff size={14} /> : <Mic size={14} />}
+                </button>
+
+                {/* Send / Action Button */}
+                <button
+                  type="submit"
+                  disabled={!inputPrompt.trim() || isGeneratingResponse}
+                  className="w-7 h-7 rounded-full bg-primary hover:bg-primary-active text-on-primary disabled:opacity-30 transition-all flex items-center justify-center shadow-xs cursor-pointer shrink-0"
+                  title="Send Message"
+                >
+                  <Send size={13} />
+                </button>
               </div>
+            )}
+          </div>
 
-              {/* Voice Mic Simulator Button */}
-              <button
-                type="button"
-                onClick={handleToggleVoice}
-                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                  isVoiceListening
-                    ? 'bg-semantic-error text-white shadow-xs animate-pulse'
-                    : 'text-muted hover:text-ink hover:bg-canvas-soft'
-                }`}
-                title={
-                  isVoiceListening
-                    ? 'Stop Listening'
-                    : 'Voice Input (Simulate Speech-to-Text)'
-                }
-              >
-                {isVoiceListening ? <MicOff size={14} /> : <Mic size={14} />}
-              </button>
-
-              {/* Send / Action Button */}
-              <button
-                type="submit"
-                disabled={!inputPrompt.trim() || isGeneratingResponse}
-                className="w-7 h-7 rounded-full bg-primary hover:bg-primary-active text-on-primary disabled:opacity-30 transition-all flex items-center justify-center shadow-xs cursor-pointer shrink-0"
-                title="Send Message"
-              >
-                <Send size={13} />
-              </button>
-            </div>
-          </form>
-        ) : (
-          /* 2-Row Expanded Card Toolbar Form (Identical Fixed Corner Radius rounded-2xl sm:rounded-3xl) */
-          <form
-            onSubmit={handleSend}
-            className="w-full bg-surface-card hover:bg-surface-card/90 focus-within:border-primary/60 border border-hairline-strong rounded-2xl sm:rounded-3xl p-3 sm:p-3.5 shadow-md transition-all duration-200 flex flex-col justify-between gap-2.5"
-          >
-            {/* Top: Full-Width Textarea (Grows upwards without divider line) */}
-            <textarea
-              ref={textareaRef}
-              rows={2}
-              value={inputPrompt}
-              onChange={handleTextareaInput}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask anything..."
-              className="w-full bg-transparent border-0 resize-none text-xs sm:text-sm text-ink placeholder:text-muted focus:outline-none min-h-12 max-h-48 leading-relaxed overflow-y-auto"
-            />
-
-            {/* Bottom: Stationary Action Toolbar (Clean without divider line) */}
-            <div className="flex items-center justify-between pt-0.5">
+          {/* Bottom Toolbar (Only in 2-line mode) */}
+          {shouldShowMultiline && (
+            <div className="flex items-center justify-between animate-in fade-in duration-200">
               {/* Left Action Buttons */}
               <div className="flex items-center gap-1.5">
                 <button
@@ -382,8 +412,8 @@ export default function DashboardChatCanvas() {
                 </button>
               </div>
             </div>
-          </form>
-        )}
+          )}
+        </form>
       </div>
     )
   }
