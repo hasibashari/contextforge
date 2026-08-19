@@ -12,8 +12,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [activities, setActivities] = useState<ActivityLogEntry[]>(INITIAL_ACTIVITIES)
   const [toasts, setToasts] = useState<ToastNotification[]>([])
   const [toastMessage, setToastMessage] = useState<string | null>(null)
-  const [isAsideOpen, setIsAsideOpen] = useState<boolean>(true)
-
+  const [isAsideOpen, setIsAsideOpen] = useState<boolean>(false)
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
@@ -118,6 +117,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         sendChatMessage: chatEngine.sendChatMessage,
         createNewChatSession: chatEngine.createNewChatSession,
         switchChatSession: chatEngine.switchChatSession,
+        deleteChatSession: chatEngine.deleteChatSession,
         setActiveArtifact: chatEngine.setActiveArtifact,
         saveArtifactContent: chatEngine.saveArtifactContent,
         executeCardAction: chatEngine.executeCardAction,

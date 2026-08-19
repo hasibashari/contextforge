@@ -73,10 +73,7 @@ export class CoreOrchestratorService {
         config: {
           systemInstruction: CORE_ORCHESTRATOR_SYSTEM_PROMPT,
           temperature,
-          tools: [
-            { googleSearch: {} },
-            { functionDeclarations: BUILTIN_FUNCTION_DECLARATIONS },
-          ],
+          tools: [{ functionDeclarations: BUILTIN_FUNCTION_DECLARATIONS }],
         },
       });
 

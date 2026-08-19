@@ -123,6 +123,43 @@ export function useChatEngine(
     [chatSessions, artifacts],
   );
 
+  const deleteChatSession = useCallback(
+    async (sessionId: string) => {
+      setChatSessions((prev) => {
+        const remaining = prev.filter((s) => s.id !== sessionId);
+        if (activeSessionId === sessionId) {
+          if (remaining.length > 0) {
+            setActiveSessionId(remaining[0].id);
+          } else {
+            const newId =
+              typeof crypto !== 'undefined' && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `session-${Date.now()}`;
+            const fallbackSession: ChatSession = {
+              id: newId,
+              title: 'New Chat',
+              createdAt: 'Just now',
+              messages: [],
+            };
+            setActiveSessionId(newId);
+            return [fallbackSession];
+          }
+        }
+        return remaining;
+      });
+
+      setActiveArtifact(null);
+
+      try {
+        await chatApi.deleteSession(sessionId);
+        showToast('🗑️ Chat session deleted');
+      } catch {
+        showToast('Session removed from view');
+      }
+    },
+    [activeSessionId, showToast],
+  );
+
   const saveArtifactContent = useCallback(
     async (artifactId: string, newContent: string) => {
       // Optimistic update
@@ -437,5 +474,6 @@ export function useChatEngine(
     sendChatMessage,
     createNewChatSession,
     switchChatSession,
+    deleteChatSession,
   };
 }

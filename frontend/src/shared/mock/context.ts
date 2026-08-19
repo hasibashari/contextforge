@@ -44,7 +44,7 @@ export interface WorkspaceContextType {
   calendarEvents: CalendarEvent[]
   userMemories: UserMemoryItem[]
   triggerMorningBriefing: () => void
-  addCalendarEvent: (event: Omit<CalendarEvent, 'id'>) => CalendarEvent
+  addCalendarEvent: (event: Omit<CalendarEvent, 'id'>) => Promise<CalendarEvent> | CalendarEvent
   updateCalendarEventStatus: (id: string, status: CalendarEvent['status']) => void
   addUserMemory: (memory: Omit<UserMemoryItem, 'id' | 'lastUpdated'>) => void
   deleteUserMemory: (id: string) => void
@@ -84,8 +84,9 @@ export interface WorkspaceContextType {
     prompt: string,
     customOptions?: { agentId?: string; sources?: string[] }
   ) => Promise<void>
-  createNewChatSession: () => string
+  createNewChatSession: () => Promise<string> | string
   switchChatSession: (sessionId: string) => void
+  deleteChatSession: (sessionId: string) => Promise<void>
   setActiveArtifact: (artifact: Artifact | null) => void
   saveArtifactContent: (artifactId: string, newContent: string) => void
   executeCardAction: (actionKey: string, card: ActionCardData) => void

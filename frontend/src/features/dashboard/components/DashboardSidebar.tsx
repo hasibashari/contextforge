@@ -10,6 +10,7 @@ import {
   Sparkles,
   Plus,
   BookOpen,
+  Trash2,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWorkspace } from '@/shared/mock'
@@ -33,6 +34,7 @@ export default function DashboardSidebar({
     activeSessionId,
     switchChatSession,
     createNewChatSession,
+    deleteChatSession,
   } = useWorkspace()
 
   const NAV_ITEMS = [
@@ -156,27 +158,50 @@ export default function DashboardSidebar({
 
             <div className="space-y-1">
               {chatSessions.map((session) => {
-                const isCurrent = session.id === activeSessionId && location.pathname === '/dashboard'
+                const isCurrent =
+                  session.id === activeSessionId &&
+                  location.pathname === '/dashboard'
 
                 return (
-                  <Link
+                  <div
                     key={session.id}
-                    to="/dashboard"
-                    onClick={() => {
-                      switchChatSession(session.id)
-                      onCloseMobile?.()
-                    }}
-                    className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                    className={`group relative w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
                       isCurrent
                         ? 'bg-surface-card text-ink font-semibold border border-hairline shadow-2xs'
                         : 'text-muted hover:text-ink hover:bg-surface-card'
                     }`}
                   >
-                    <div className="flex items-center gap-2 truncate">
-                      <MessageSquare size={13} className={isCurrent ? 'text-primary' : 'text-muted'} />
+                    <Link
+                      to="/dashboard"
+                      onClick={() => {
+                        switchChatSession(session.id)
+                        onCloseMobile?.()
+                      }}
+                      className="flex items-center gap-2 truncate flex-1 min-w-0 py-0.5"
+                    >
+                      <MessageSquare
+                        size={13}
+                        className={`shrink-0 ${
+                          isCurrent ? 'text-primary' : 'text-muted'
+                        }`}
+                      />
                       <span className="truncate">{session.title}</span>
-                    </div>
-                  </Link>
+                    </Link>
+
+                    {/* Delete Session Button on Hover */}
+                    <button
+                      type="button"
+                      title="Delete chat session"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        deleteChatSession(session.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted hover:text-semantic-error hover:bg-semantic-error/15 transition-all shrink-0 focus:opacity-100"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 )
               })}
             </div>
