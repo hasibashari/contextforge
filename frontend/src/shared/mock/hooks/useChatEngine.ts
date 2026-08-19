@@ -7,7 +7,6 @@ import type {
   ActivityLogEntry,
   CalendarEvent,
 } from '@/shared/types/workspace';
-import { INITIAL_CHAT_SESSIONS, INITIAL_ARTIFACTS } from '../mockData';
 import { chatApi } from '@/shared/api/chatApi';
 import { artifactsApi } from '@/shared/api/artifactsApi';
 import { generateGeneralReasoningOutput } from '../generators/responseGenerators';
@@ -18,12 +17,10 @@ export function useChatEngine(
   setActivities: React.Dispatch<React.SetStateAction<ActivityLogEntry[]>>,
   setIsAsideOpen: (open: boolean) => void,
 ) {
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>(INITIAL_CHAT_SESSIONS);
-  const [activeSessionId, setActiveSessionId] = useState<string>(
-    INITIAL_CHAT_SESSIONS[0]?.id || 'session-sprint-planning',
-  );
-  const [artifacts, setArtifacts] = useState<Artifact[]>(INITIAL_ARTIFACTS);
-  const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(INITIAL_ARTIFACTS[0] || null);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string>('');
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState<boolean>(false);
   const [selectedAgentMode, setSelectedAgentMode] = useState<string>('auto');
 
@@ -56,9 +53,34 @@ export function useChatEngine(
               prev.map((s) => (s.id === details.session.id ? { ...s, messages: details.messages } : s)),
             );
           }
+        } else {
+          // If no sessions exist in database yet, create a fresh one
+          try {
+            const firstSession = await chatApi.createSession('New Investigation');
+            if (isMounted) {
+              setChatSessions([firstSession]);
+              setActiveSessionId(firstSession.id);
+            }
+          } catch {
+            const fallbackId =
+              typeof crypto !== 'undefined' && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `session-${Date.now()}`;
+            if (isMounted) {
+              setChatSessions([
+                {
+                  id: fallbackId,
+                  title: 'New Investigation',
+                  createdAt: 'Just now',
+                  messages: [],
+                },
+              ]);
+              setActiveSessionId(fallbackId);
+            }
+          }
         }
       } catch {
-        // gracefully keep initial mock data if backend is offline
+        // gracefully handle network errors
       }
     }
 

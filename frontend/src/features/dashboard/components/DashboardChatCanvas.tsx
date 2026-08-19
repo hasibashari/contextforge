@@ -2,28 +2,45 @@ import React, { useState, useRef, useEffect } from 'react'
 import {
   Send,
   Sparkles,
-  BookOpen,
-  Terminal,
   Globe,
   RefreshCw,
   Zap,
   Cpu,
   Mic,
   MicOff,
-  Sun,
   ExternalLink,
   FileText,
+  Plus,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
 import { MarkdownRenderer } from '@/shared/components'
 import type { ChatMessage, Artifact } from '@/shared/types/workspace'
+
+const DYNAMIC_GREETINGS = [
+  "What's on the agenda today?",
+  'What should we focus on today?',
+  'What are we building next?',
+  'Where should we begin our investigation?',
+  'Ready to design, code, or delegate a task?',
+  'How can ContextForge accelerate your workflow?',
+]
+
+function getGreetingForSession(sessionId?: string): string {
+  if (!sessionId) return DYNAMIC_GREETINGS[0]
+  let hash = 0
+  for (let i = 0; i < sessionId.length; i++) {
+    hash = (hash << 5) - hash + sessionId.charCodeAt(i)
+    hash |= 0
+  }
+  const index = Math.abs(hash) % DYNAMIC_GREETINGS.length
+  return DYNAMIC_GREETINGS[index]
+}
 
 export default function DashboardChatCanvas() {
   const {
     activeSession,
     isGeneratingResponse,
     sendChatMessage,
-    triggerMorningBriefing,
     agents,
     skills,
     setAsideOpen,
@@ -62,11 +79,15 @@ export default function DashboardChatCanvas() {
 
     // Simulated Real-Time Speech-to-Text streaming
     setTimeout(() => {
-      setVoiceTranscriptText('"Hey ContextForge, schedule a review meeting tomorrow at 3 PM and note the details in Obsidian"')
+      setVoiceTranscriptText(
+        '"Hey ContextForge, schedule a review meeting tomorrow at 3 PM and note the details in Obsidian"',
+      )
     }, 1200)
 
     setTimeout(() => {
-      setInputPrompt('Schedule a review meeting with Sarah tomorrow at 3 PM and note the discussion points in Obsidian.')
+      setInputPrompt(
+        'Schedule a review meeting with Sarah tomorrow at 3 PM and note the discussion points in Obsidian.',
+      )
       setIsVoiceListening(false)
       setVoiceTranscriptText('')
       if (textareaRef.current) {
@@ -98,7 +119,7 @@ export default function DashboardChatCanvas() {
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputPrompt(e.target.value)
     e.target.style.height = 'auto'
-    e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`
   }
 
   const handleSelectSkill = (skillCommand: string) => {
@@ -111,101 +132,285 @@ export default function DashboardChatCanvas() {
     textareaRef.current?.focus()
   }
 
-  const quickPrompts = [
-    {
-      label: 'Draft Sprint Plan to Obsidian',
-      icon: BookOpen,
-      category: 'Side Agent (Write)',
-      prompt: 'Draft a Sprint 35 plan for our new architecture, then save it to the `/Work/Sprints` folder in Obsidian.',
-      desc: 'Dispatches Obsidian Vault Worker to write structured markdown note.',
-    },
-    {
-      label: 'Create Auth Middleware & Test',
-      icon: Terminal,
-      category: 'Side Agent (CLI)',
-      prompt: 'Buatkan file middleware auth.ts dengan TypeScript dan jalankan verifikasi.',
-      desc: 'Dispatches CLI & Code Sandbox Runner to write code and run test suite.',
-    },
-    {
-      label: 'Research 2026 AI Trends',
-      icon: Globe,
-      category: 'Main Agent (Read-Only)',
-      prompt: 'Cari informasi terbaru tentang tren arsitektur dual-agent dan Model Context Protocol di tahun 2026.',
-      desc: 'Main Agent executes live web search with grounded citations.',
-    },
-    {
-      label: 'Analyze Microservices vs Monolith',
-      icon: Sparkles,
-      category: 'Main Agent (Reasoning)',
-      prompt: 'Analisis kelebihan dan kekurangan arsitektur Microservices vs Modular Monolith untuk ContextForge.',
-      desc: 'Direct architectural reasoning without side-effects or mutations.',
-    },
-  ]
+  const isInitialState =
+    !activeSession?.messages || activeSession.messages.length === 0
 
-  const isInitialState = !activeSession?.messages || activeSession.messages.length === 0
+  // Dynamically select a greeting based on current active session
+  const dynamicGreeting = getGreetingForSession(activeSession?.id)
 
+  const renderInputForm = (isCentered: boolean) => {
+    const isMultiline =
+      inputPrompt.includes('\n') || inputPrompt.length > 80
+
+    return (
+      <div
+        className={`w-full max-w-188 mx-auto relative space-y-1.5 ${
+          isCentered ? 'px-2 sm:px-4' : 'px-0'
+        }`}
+      >
+        {/* Small Disclaimer Text (Only shown during active conversation) */}
+        {!isCentered && (
+          <p className="text-[11px] text-muted/65 text-center select-none font-sans tracking-tight">
+            ContextForge can make mistakes. Check important info.
+          </p>
+        )}
+
+        {/* Animated Voice Waveform Simulator Banner */}
+        {isVoiceListening && (
+          <div className="bg-surface-card border border-primary/40 rounded-2xl p-3 shadow-lg flex items-center justify-between gap-3 mb-2 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-semantic-error/15 text-semantic-error flex items-center justify-center animate-pulse shrink-0">
+                <Mic size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+                  <span>Voice Input Streaming</span>
+                  <span className="inline-block w-2 h-2 rounded-full bg-semantic-error animate-ping" />
+                </div>
+                <p className="text-[11px] font-mono text-primary truncate">
+                  {voiceTranscriptText}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0 px-2">
+              <span className="w-1 h-3 bg-primary rounded-full animate-pulse" />
+              <span className="w-1 h-6 bg-primary rounded-full animate-pulse" />
+              <span className="w-1 h-4 bg-primary rounded-full animate-pulse" />
+              <span className="w-1 h-7 bg-primary rounded-full animate-pulse" />
+              <span className="w-1 h-3 bg-primary rounded-full animate-pulse" />
+            </div>
+          </div>
+        )}
+
+        {/* Slash Commands Popover */}
+        {showSlashMenu && (
+          <div className="absolute bottom-full left-0 right-0 mb-2 bg-surface-card border border-hairline rounded-xl p-2 shadow-xl space-y-1 text-xs font-mono max-h-48 overflow-y-auto z-20">
+            <div className="text-[10px] uppercase text-muted px-2 py-1 flex items-center gap-1">
+              <Zap size={11} className="text-primary" />
+              <span>Available Reasoning Skills:</span>
+            </div>
+            {skills.map((skill) => (
+              <button
+                key={skill.id}
+                type="button"
+                onClick={() => handleSelectSkill(skill.id.replace('skill-', ''))}
+                className="w-full px-2.5 py-1.5 rounded-lg hover:bg-canvas-soft text-left flex items-center justify-between text-ink transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-primary">
+                    /{skill.id.replace('skill-', '')}
+                  </span>
+                  <span className="text-muted truncate">{skill.name}</span>
+                </div>
+                <span className="text-[10px] text-muted">{skill.category}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Mention Agent/Connector Popover */}
+        {showMentionMenu && (
+          <div className="absolute bottom-full left-0 right-0 mb-2 bg-surface-card border border-hairline rounded-xl p-2 shadow-xl space-y-1 text-xs font-mono max-h-48 overflow-y-auto z-20">
+            <div className="text-[10px] uppercase text-muted px-2 py-1 flex items-center gap-1">
+              <Cpu size={11} className="text-primary" />
+              <span>Route to Specialized Agent:</span>
+            </div>
+            {agents.map((ag) => (
+              <button
+                key={ag.id}
+                type="button"
+                onClick={() =>
+                  handleSelectAgentOrConnector(ag.id.replace('agent-', ''))
+                }
+                className="w-full px-2.5 py-1.5 rounded-lg hover:bg-canvas-soft text-left flex items-center justify-between text-ink transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-primary">
+                    @{ag.id.replace('agent-', '')}
+                  </span>
+                  <span className="text-muted truncate">{ag.name}</span>
+                </div>
+                <span className="text-[10px] text-muted">{ag.role}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Adaptive Morphing Form with Fixed Constant Corner Radius */}
+        {!isMultiline ? (
+          /* 1-Row Centered Form (Fixed Corner Radius rounded-2xl sm:rounded-3xl) */
+          <form
+            onSubmit={handleSend}
+            className="w-full min-h-11 bg-surface-card hover:bg-surface-card/90 focus-within:border-primary/60 border border-hairline-strong rounded-2xl sm:rounded-3xl px-3.5 py-1.5 sm:py-2 shadow-md transition-all duration-200 flex items-center gap-2"
+          >
+            {/* Left Plus Action Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setInputPrompt((prev) => (prev ? prev : '/'))
+                textareaRef.current?.focus()
+              }}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer shrink-0"
+              title="Add skill or connector (/ or @)"
+            >
+              <Plus size={16} />
+            </button>
+
+            {/* Textarea Input (Centered in single row) */}
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={inputPrompt}
+              onChange={handleTextareaInput}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask anything..."
+              className="flex-1 bg-transparent border-0 resize-none text-xs sm:text-sm text-ink placeholder:text-muted focus:outline-none py-1 max-h-32 leading-relaxed"
+            />
+
+            {/* Right Action Icons Group */}
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Think / Reasoning Badge Button */}
+              <div
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-canvas-soft text-[11px] font-mono text-muted border border-hairline select-none"
+                title="Reasoning Engine Active"
+              >
+                <Sparkles size={11} className="text-primary" />
+                <span>Think</span>
+              </div>
+
+              {/* Voice Mic Simulator Button */}
+              <button
+                type="button"
+                onClick={handleToggleVoice}
+                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                  isVoiceListening
+                    ? 'bg-semantic-error text-white shadow-xs animate-pulse'
+                    : 'text-muted hover:text-ink hover:bg-canvas-soft'
+                }`}
+                title={
+                  isVoiceListening
+                    ? 'Stop Listening'
+                    : 'Voice Input (Simulate Speech-to-Text)'
+                }
+              >
+                {isVoiceListening ? <MicOff size={14} /> : <Mic size={14} />}
+              </button>
+
+              {/* Send / Action Button */}
+              <button
+                type="submit"
+                disabled={!inputPrompt.trim() || isGeneratingResponse}
+                className="w-7 h-7 rounded-full bg-primary hover:bg-primary-active text-on-primary disabled:opacity-30 transition-all flex items-center justify-center shadow-xs cursor-pointer shrink-0"
+                title="Send Message"
+              >
+                <Send size={13} />
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* 2-Row Expanded Card Toolbar Form (Identical Fixed Corner Radius rounded-2xl sm:rounded-3xl) */
+          <form
+            onSubmit={handleSend}
+            className="w-full bg-surface-card hover:bg-surface-card/90 focus-within:border-primary/60 border border-hairline-strong rounded-2xl sm:rounded-3xl p-3 sm:p-3.5 shadow-md transition-all duration-200 flex flex-col justify-between gap-2.5"
+          >
+            {/* Top: Full-Width Textarea (Grows upwards without divider line) */}
+            <textarea
+              ref={textareaRef}
+              rows={2}
+              value={inputPrompt}
+              onChange={handleTextareaInput}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask anything..."
+              className="w-full bg-transparent border-0 resize-none text-xs sm:text-sm text-ink placeholder:text-muted focus:outline-none min-h-12 max-h-48 leading-relaxed overflow-y-auto"
+            />
+
+            {/* Bottom: Stationary Action Toolbar (Clean without divider line) */}
+            <div className="flex items-center justify-between pt-0.5">
+              {/* Left Action Buttons */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInputPrompt((prev) => (prev ? prev : '/'))
+                    textareaRef.current?.focus()
+                  }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer shrink-0"
+                  title="Add skill or connector (/ or @)"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+
+              {/* Right Action Icons Group */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Think / Reasoning Badge Button */}
+                <div
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-canvas-soft text-[11px] font-mono text-muted border border-hairline select-none"
+                  title="Reasoning Engine Active"
+                >
+                  <Sparkles size={11} className="text-primary" />
+                  <span>Think</span>
+                </div>
+
+                {/* Voice Mic Simulator Button */}
+                <button
+                  type="button"
+                  onClick={handleToggleVoice}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                    isVoiceListening
+                      ? 'bg-semantic-error text-white shadow-xs animate-pulse'
+                      : 'text-muted hover:text-ink hover:bg-canvas-soft'
+                  }`}
+                  title={
+                    isVoiceListening
+                      ? 'Stop Listening'
+                      : 'Voice Input (Simulate Speech-to-Text)'
+                  }
+                >
+                  {isVoiceListening ? <MicOff size={14} /> : <Mic size={14} />}
+                </button>
+
+                {/* Send / Action Button */}
+                <button
+                  type="submit"
+                  disabled={!inputPrompt.trim() || isGeneratingResponse}
+                  className="w-7 h-7 rounded-full bg-primary hover:bg-primary-active text-on-primary disabled:opacity-30 transition-all flex items-center justify-center shadow-xs cursor-pointer shrink-0"
+                  title="Send Message"
+                >
+                  <Send size={13} />
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
+    )
+  }
+
+  // Empty State: Centered View (Headline + Capsule Input with natural optical center)
+  if (isInitialState) {
+    return (
+      <div className="flex-1 h-full min-h-0 flex flex-col items-center justify-center bg-canvas text-ink px-4 sm:px-6 relative overflow-hidden">
+        <div className="w-full max-w-188 mx-auto flex flex-col items-center text-center space-y-5 sm:space-y-6 -mt-20 sm:-mt-28">
+          {/* Dynamic Greeting Headline */}
+          <h1 className="text-xl sm:text-2xl font-normal tracking-tight text-ink">
+            {dynamicGreeting}
+          </h1>
+
+          {/* Centered Capsule Input Form */}
+          {renderInputForm(true)}
+        </div>
+      </div>
+    )
+  }
+
+  // Active Chat State: Feed in scroll area, Input pinned at bottom
   return (
     <div className="flex-1 h-full min-h-0 flex flex-col bg-canvas text-ink overflow-hidden relative">
       {/* Main Chat Scroll Area */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="max-w-4xl mx-auto w-full space-y-6 pb-8">
-          {/* Welcome State when Session is Empty */}
-          {isInitialState && (
-            <div className="max-w-2xl mx-auto py-8 sm:py-12 space-y-6 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-primary mx-auto flex items-center justify-center shadow-xs">
-                <Sparkles size={24} />
-              </div>
-
-              <div className="space-y-2">
-                <h2 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
-                  ContextForge Conversational Workspace
-                </h2>
-                <p className="text-xs sm:text-sm text-body max-w-lg mx-auto leading-relaxed">
-                  <strong>Main Agent</strong> handles conversation, analysis, and web search in read-only mode. When file edits, Obsidian writes, or CLI executions are needed, isolated <strong>Side Agents</strong> are safely dispatched.
-                </p>
-                <div className="pt-2 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={triggerMorningBriefing}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-mono font-semibold transition-all shadow-2xs cursor-pointer"
-                  >
-                    <Sun size={14} className="text-primary animate-pulse" />
-                    <span>Trigger Proactive Morning Briefing</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Quick Prompts Grid */}
-              <div className="pt-2 text-left space-y-2.5 max-w-xl mx-auto">
-                <div className="text-[11px] font-mono uppercase tracking-caption text-muted text-center">
-                  Try quick workflows or type <code className="text-primary bg-canvas-soft px-1 rounded">/</code> for skills:
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {quickPrompts.map((qp, idx) => {
-                    const Icon = qp.icon
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => setInputPrompt(qp.prompt)}
-                        className="p-3 rounded-xl bg-canvas-soft hover:bg-surface-strong border border-hairline transition-all text-left group cursor-pointer shadow-2xs"
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-ink group-hover:text-primary transition-colors">
-                            <Icon size={14} className="text-primary shrink-0" />
-                            <span>{qp.label}</span>
-                          </div>
-                          <span className="text-[10px] font-mono text-muted">{qp.category}</span>
-                        </div>
-                        <p className="text-[11px] text-body line-clamp-1">{qp.desc}</p>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
+        <div className="w-full max-w-188 mx-auto space-y-6 pb-8">
           {/* Message Feed */}
           {activeSession?.messages.map((msg: ChatMessage) => {
             const isUser = msg.role === 'user'
@@ -316,135 +521,8 @@ export default function DashboardChatCanvas() {
       </div>
 
       {/* Bottom Floating Prompt Area (Pinned at Bottom) */}
-      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 bg-linear-to-t from-canvas via-canvas/95 to-transparent shrink-0 sticky bottom-0 z-10 w-full backdrop-blur-xs">
-        <div className="max-w-4xl mx-auto w-full space-y-2">
-          {/* Animated Voice Waveform Simulator Banner */}
-          {isVoiceListening && (
-            <div className="bg-surface-card border border-primary/40 rounded-2xl p-3.5 shadow-lg flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-semantic-error/15 text-semantic-error flex items-center justify-center animate-pulse shrink-0">
-                  <Mic size={16} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
-                    <span>Voice Input Streaming</span>
-                    <span className="inline-block w-2 h-2 rounded-full bg-semantic-error animate-ping" />
-                  </div>
-                  <p className="text-[11px] font-mono text-primary truncate">
-                    {voiceTranscriptText}
-                  </p>
-                </div>
-              </div>
-
-              {/* Animated Waveform Bars */}
-              <div className="flex items-center gap-1 shrink-0 px-2">
-                <span className="w-1 h-3 bg-primary rounded-full animate-pulse" />
-                <span className="w-1 h-6 bg-primary rounded-full animate-pulse" />
-                <span className="w-1 h-4 bg-primary rounded-full animate-pulse" />
-                <span className="w-1 h-7 bg-primary rounded-full animate-pulse" />
-                <span className="w-1 h-3 bg-primary rounded-full animate-pulse" />
-              </div>
-            </div>
-          )}
-
-          {/* Slash Commands Popover */}
-          {showSlashMenu && (
-            <div className="bg-surface-card border border-hairline rounded-xl p-2 shadow-xl space-y-1 text-xs font-mono max-h-48 overflow-y-auto">
-              <div className="text-[10px] uppercase text-muted px-2 py-1 flex items-center gap-1">
-                <Zap size={11} className="text-primary" />
-                <span>Available Reasoning Skills (Type to filter):</span>
-              </div>
-              {skills.map((skill) => (
-                <button
-                  key={skill.id}
-                  type="button"
-                  onClick={() => handleSelectSkill(skill.id.replace('skill-', ''))}
-                  className="w-full px-2.5 py-1.5 rounded-lg hover:bg-canvas-soft text-left flex items-center justify-between text-ink transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-primary">/{skill.id.replace('skill-', '')}</span>
-                    <span className="text-muted truncate">{skill.name}</span>
-                  </div>
-                  <span className="text-[10px] text-muted">{skill.category}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Mention Agent/Connector Popover */}
-          {showMentionMenu && (
-            <div className="bg-surface-card border border-hairline rounded-xl p-2 shadow-xl space-y-1 text-xs font-mono max-h-48 overflow-y-auto">
-              <div className="text-[10px] uppercase text-muted px-2 py-1 flex items-center gap-1">
-                <Cpu size={11} className="text-primary" />
-                <span>Route to Specialized Agent or Connector:</span>
-              </div>
-              {agents.map((ag) => (
-                <button
-                  key={ag.id}
-                  type="button"
-                  onClick={() => handleSelectAgentOrConnector(ag.id.replace('agent-', ''))}
-                  className="w-full px-2.5 py-1.5 rounded-lg hover:bg-canvas-soft text-left flex items-center justify-between text-ink transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-primary">@{ag.id.replace('agent-', '')}</span>
-                    <span className="text-muted truncate">{ag.name}</span>
-                  </div>
-                  <span className="text-[10px] text-muted">{ag.role}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Main Input Field */}
-          <form
-            onSubmit={handleSend}
-            className="bg-surface-card border border-hairline-strong focus-within:border-primary rounded-2xl p-2.5 sm:p-3 shadow-md transition-all space-y-2"
-          >
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={inputPrompt}
-              onChange={handleTextareaInput}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask, delegate a task, schedule meetings, or type / for skills, @ for agents..."
-              className="w-full bg-transparent border-0 resize-none text-xs sm:text-sm text-ink placeholder:text-muted focus:outline-none px-2 py-1 max-h-40 leading-relaxed"
-            />
-
-            <div className="flex items-center justify-between pt-2 px-2 border-t border-hairline/60 text-[11px] text-muted font-mono">
-              <div className="flex items-center gap-2">
-                <span className="hidden sm:inline">
-                  ⚡ Auto-Routing MCP Active (Obsidian, Calendar, Web, GitHub, Imagen)
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* Voice Mic Simulator Button */}
-                <button
-                  type="button"
-                  onClick={handleToggleVoice}
-                  className={`inline-flex items-center justify-center w-7 h-7 rounded-lg transition-all cursor-pointer ${
-                    isVoiceListening
-                      ? 'bg-semantic-error text-canvas shadow-xs animate-pulse'
-                      : 'bg-canvas-soft hover:bg-surface-strong text-muted hover:text-ink border border-hairline'
-                  }`}
-                  title={isVoiceListening ? 'Stop Listening' : 'Voice Input (Simulate Speech-to-Text)'}
-                >
-                  {isVoiceListening ? <MicOff size={13} /> : <Mic size={13} />}
-                </button>
-
-                <span className="text-[10px] hidden md:inline">Shift + Enter for new line</span>
-                <button
-                  type="submit"
-                  disabled={!inputPrompt.trim() || isGeneratingResponse}
-                  className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary hover:bg-primary-active text-on-primary disabled:opacity-40 transition-colors shadow-xs cursor-pointer shrink-0"
-                  title="Send Message"
-                >
-                  <Send size={13} />
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
+      <div className="px-4 sm:px-6 lg:px-8 py-4 bg-linear-to-t from-canvas via-canvas/95 to-transparent shrink-0 sticky bottom-0 z-10 w-full backdrop-blur-xs">
+        {renderInputForm(false)}
       </div>
     </div>
   )

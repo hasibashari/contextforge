@@ -1,11 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { CalendarEvent, UserMemoryItem, ToastType } from '@/shared/types/workspace';
-import { INITIAL_CALENDAR_EVENTS, INITIAL_USER_MEMORIES } from '../mockData';
 import { personalHubApi } from '@/shared/api/personalHubApi';
 
 export function useCalendarMemory(showToast: (msg: string, type?: ToastType) => void) {
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(INITIAL_CALENDAR_EVENTS);
-  const [userMemories, setUserMemories] = useState<UserMemoryItem[]>(INITIAL_USER_MEMORIES);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [userMemories, setUserMemories] = useState<UserMemoryItem[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -19,14 +18,14 @@ export function useCalendarMemory(showToast: (msg: string, type?: ToastType) => 
 
         if (!isMounted) return;
 
-        if (events && events.length > 0) {
+        if (events) {
           setCalendarEvents(events);
         }
-        if (memories && memories.length > 0) {
+        if (memories) {
           setUserMemories(memories);
         }
       } catch {
-        // keep fallback
+        // gracefully handle network errors
       }
     }
 
