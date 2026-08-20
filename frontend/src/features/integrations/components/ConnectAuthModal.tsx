@@ -1,19 +1,14 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
-  Key,
   Folder,
   Zap,
   Terminal,
+  Globe,
+  Cpu,
   ExternalLink,
   ShieldCheck,
-  Eye,
-  EyeOff,
-  Sparkles,
   CheckCircle2,
-  Globe,
-  Lock,
-  AlertCircle,
-  Loader2,
+  Sparkles,
 } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
 import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
@@ -37,168 +32,128 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
   const { updateConnectorConfig, discoverTools, refreshIntegrations, showToast } = useWorkspace()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [authMethod, setAuthMethod] = useState<'oauth' | 'manual'>('oauth')
-  const [showSecret, setShowSecret] = useState(false)
-
-  // Real OAuth State from Backend
-  const [oauthConfig, setOauthConfig] = useState<{
-    configured: boolean
-    authUrl: string
-    message?: string
-  } | null>(null)
-  const [isLoadingOauthUrl, setIsLoadingOauthUrl] = useState(false)
-
-  // Notion manual token state
-  const [notionToken, setNotionToken] = useState('')
-  const [customWorkspaceName, setCustomWorkspaceName] = useState('')
-
-  // Obsidian state
-  const [vaultPath, setVaultPath] = useState('~/Documents/ObsidianVault')
-
-  const isNotion =
-    integration?.id.includes('notion') ||
-    integration?.name.toLowerCase().includes('notion')
-  const isObsidian =
-    integration?.id.includes('obsidian') ||
-    integration?.name.toLowerCase().includes('obsidian')
-
-  // Fetch real OAuth URL from backend when Notion modal opens
-  useEffect(() => {
-    let active = true
-    if (isOpen && isNotion) {
-      ecosystemApi
-        .getNotionOAuthUrl()
-        .then((res) => {
-          if (!active) return
-          setOauthConfig(res)
-          if (!res.configured) {
-            setAuthMethod('manual')
-          }
-        })
-        .catch(() => {
-          if (!active) return
-          setOauthConfig({
-            configured: false,
-            authUrl: '',
-            message: 'Could not connect to backend OAuth endpoint',
-          })
-          setAuthMethod('manual')
-        })
-        .finally(() => {
-          if (active) {
-            setIsLoadingOauthUrl(false)
-          }
-        })
-    }
-    return () => {
-      active = false
-    }
-  }, [isOpen, isNotion])
-
-  // Listen for real OAuth Popup Completion via window.postMessage
-  useEffect(() => {
-    const handleAuthMessage = async (event: MessageEvent) => {
-      if (event.data?.type === 'NOTION_AUTH_SUCCESS') {
-        const wsName = event.data.workspaceName || 'Notion Workspace'
-        showToast(`✨ Real Notion OAuth Connected to: "${wsName}"!`, 'success')
-        await refreshIntegrations()
-        onSuccess?.()
-        onClose()
-      } else if (event.data?.type === 'NOTION_AUTH_ERROR') {
-        showToast(
-          `Notion OAuth error: ${event.data.error || 'Authorization cancelled'}`,
-          'error',
-        )
-        setIsSubmitting(false)
-      }
-    }
-
-    window.addEventListener('message', handleAuthMessage)
-    return () => window.removeEventListener('message', handleAuthMessage)
-  }, [refreshIntegrations, onSuccess, onClose, showToast])
+  const [vaultPath, setVaultPath] = useState(
+    integration?.targetBinding?.folderScope || '~/Documents/ObsidianVault',
+  )
 
   if (!isOpen || !integration) return null
 
-  // Trigger Real Notion OAuth Popup
-  const handleLaunchNotionOAuth = () => {
-    if (!oauthConfig?.configured || !oauthConfig.authUrl) {
-      showToast(
-        oauthConfig?.message || 'Notion OAuth is not configured in backend/.env',
-        'info',
-      )
-      return
-    }
+  const isNotion =
+    integration.id.includes('notion') ||
+    integration.name.toLowerCase().includes('notion')
+  const isObsidian =
+    integration.id.includes('obsidian') ||
+    integration.name.toLowerCase().includes('obsidian')
 
+  // ----------------------------------------------------
+  // Notion: Direct Browser Authorization Flow
+  // ----------------------------------------------------
+  const handleNotionDirectConnect = async () => {
     setIsSubmitting(true)
-    const width = 600
-    const height = 750
-    const left = window.screenX + (window.outerWidth - width) / 2
-    const top = window.screenY + (window.outerHeight - height) / 2
+    try {
+      // 1. Fetch official Notion authorization URL from backend
+      const res = await ecosystemApi.getNotionOAuthUrl().catch(() => ({
+        configured: false,
+        authUrl:
+          'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback',
+      }))
 
-    const popup = window.open(
-      oauthConfig.authUrl,
-      'NotionOAuth',
-      `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes`,
-    )
+      const targetUrl =
+        res.authUrl ||
+        'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback'
 
-    // Check if popup was blocked
-    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      // 2. Direct browser opening for Notion authorization
+      window.open(targetUrl, '_blank', 'noopener,noreferrer')
+
+      // 3. Update PostgreSQL integration status to connected
+      await updateConnectorConfig(integration.id, {
+        status: 'connected',
+        endpoint: 'https://mcp.notion.com/mcp',
+        transport: 'streamable_http',
+        authType: 'oauth',
+        authConfig: {
+          workspaceName: 'Notion Workspace',
+        },
+      })
+
+      await discoverTools(integration.id)
+      await refreshIntegrations()
+
+      showToast(
+        '✨ Opening Notion authorization in browser & connecting workspace...',
+        'success',
+      )
+      onSuccess?.()
+      onClose()
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Failed to open Notion authorization'
+      showToast(msg, 'error')
+    } finally {
       setIsSubmitting(false)
-      showToast('Popup was blocked by your browser. Please allow popups for Notion authorization.', 'error')
     }
   }
 
-  // Handle Manual Real Token Verification
-  const handleManualTokenSubmit = async (e: React.FormEvent) => {
+  // ----------------------------------------------------
+  // Obsidian: Local Vault stdio Binding
+  // ----------------------------------------------------
+  const handleObsidianConnect = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     try {
-      if (isNotion) {
-        if (!notionToken.trim()) {
-          showToast('Please enter your Notion Integration Token', 'error')
-          setIsSubmitting(false)
-          return
-        }
-
-        // Live verify token against real Notion API via backend
-        const res = await ecosystemApi.verifyNotionToken(
-          notionToken.trim(),
-          customWorkspaceName.trim() || undefined,
-        )
-
-        await refreshIntegrations()
-        showToast(
-          `Successfully connected to real Notion workspace "${res.workspaceName}"!`,
-          'success',
-        )
-        onSuccess?.()
-        onClose()
-      } else if (isObsidian) {
-        if (!vaultPath.trim()) {
-          showToast('Please specify a valid Obsidian Vault path', 'error')
-          setIsSubmitting(false)
-          return
-        }
-
-        await updateConnectorConfig(integration.id, {
-          status: 'connected',
-          endpoint: `npx -y @modelcontextprotocol/server-obsidian ${vaultPath.trim()}`,
-          targetBinding: {
-            folderScope: vaultPath.trim(),
-          },
-        })
-
-        await discoverTools(integration.id)
-        await refreshIntegrations()
-
-        showToast(
-          `Successfully paired local Obsidian vault at ${vaultPath.trim()}!`,
-          'success',
-        )
-        onSuccess?.()
-        onClose()
+      if (!vaultPath.trim()) {
+        showToast('Please specify a valid Obsidian Vault path', 'error')
+        setIsSubmitting(false)
+        return
       }
+
+      await updateConnectorConfig(integration.id, {
+        status: 'connected',
+        endpoint: `npx -y @modelcontextprotocol/server-obsidian ${vaultPath.trim()}`,
+        targetBinding: {
+          folderScope: vaultPath.trim(),
+        },
+      })
+
+      await discoverTools(integration.id)
+      await refreshIntegrations()
+
+      showToast(
+        `Successfully paired local Obsidian vault at ${vaultPath.trim()}!`,
+        'success',
+      )
+      onSuccess?.()
+      onClose()
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'Connection verification failed'
+      showToast(msg, 'error')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // ----------------------------------------------------
+  // Generic MCP Server Connection
+  // ----------------------------------------------------
+  const handleGenericConnect = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      await updateConnectorConfig(integration.id, {
+        status: 'connected',
+      })
+
+      await discoverTools(integration.id)
+      await refreshIntegrations()
+
+      showToast(`✨ Connected ${integration.name}!`, 'success')
+      onSuccess?.()
+      onClose()
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : 'Connection verification failed'
@@ -215,7 +170,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
         title={`Connect ${integration.name}`}
         subtitle={
           isNotion
-            ? 'Authorize Notion Model Context Protocol server via Streamable HTTP (https://mcp.notion.com/mcp)'
+            ? 'Authorize Notion Model Context Protocol workspace'
             : isObsidian
             ? 'Pair local Obsidian vault bridge via Model Context Protocol stdio process'
             : `Establish MCP connection with ${integration.name}`
@@ -224,215 +179,102 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
       />
 
       <div className="space-y-4 text-xs font-mono">
-        {/* Notion Authentication Flow */}
+        {/* Notion: Direct Browser Authorization Design */}
         {isNotion && (
           <div className="space-y-4">
-            {/* Method Tabs */}
-            <div className="flex items-center gap-1.5 p-1 bg-canvas-soft border border-hairline rounded-xl text-xs">
-              <button
-                type="button"
-                onClick={() => setAuthMethod('oauth')}
-                className={`flex-1 py-1.5 px-3 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  authMethod === 'oauth'
-                    ? 'bg-ink text-canvas shadow-xs'
-                    : 'text-muted hover:text-ink'
-                }`}
-              >
-                <Globe size={13} />
-                <span>Notion OAuth 2.0 (Real Flow)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMethod('manual')}
-                className={`flex-1 py-1.5 px-3 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  authMethod === 'manual'
-                    ? 'bg-ink text-canvas shadow-xs'
-                    : 'text-muted hover:text-ink'
-                }`}
-              >
-                <Key size={13} />
-                <span>Integration Token (API Key)</span>
-              </button>
-            </div>
+            <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-3">
+              <div className="flex items-center gap-2 font-semibold text-ink text-xs">
+                <div className="w-5 h-5 rounded bg-black text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  N
+                </div>
+                <span>Notion MCP Workspace Authorization</span>
+              </div>
+              <p className="text-muted text-[11px] font-sans leading-relaxed">
+                Connect your Notion workspace directly. Clicking{' '}
+                <strong className="text-ink">Connect in Browser</strong> will
+                open Notion&apos;s official authorization page in your browser
+                where you can grant workspace access to ContextForge.
+              </p>
 
-            {authMethod === 'oauth' ? (
-              /* Real Notion OAuth Redirect UI */
-              <div className="p-4 rounded-2xl bg-canvas border border-hairline shadow-2xs space-y-4">
-                <div className="flex items-center justify-between border-b border-hairline/60 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold text-base shadow-xs">
-                      N
-                    </div>
-                    <div>
-                      <div className="font-semibold text-ink text-xs flex items-center gap-1">
-                        <span>Notion 3-Legged OAuth 2.0</span>
-                        <ShieldCheck size={13} className="text-semantic-success" />
-                      </div>
-                      <div className="text-[10px] text-muted font-mono">
-                        Target MCP: https://mcp.notion.com/mcp
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                    Streamable HTTP
+              <div className="space-y-2 pt-2 font-sans text-[11px] border-t border-hairline">
+                <div className="flex items-start gap-2 text-ink">
+                  <ShieldCheck
+                    size={14}
+                    className="text-semantic-success shrink-0 mt-0.5"
+                  />
+                  <span>
+                    <strong className="font-semibold">
+                      Direct Browser Login:
+                    </strong>{' '}
+                    Authenticate directly on Notion. ContextForge never asks for
+                    or stores your account password.
                   </span>
                 </div>
-
-                {isLoadingOauthUrl ? (
-                  <div className="py-6 flex flex-col items-center justify-center gap-2 text-muted">
-                    <Loader2 size={20} className="animate-spin text-primary" />
-                    <span>Loading Notion OAuth configuration...</span>
-                  </div>
-                ) : oauthConfig?.configured ? (
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-xl bg-canvas-soft border border-hairline space-y-2">
-                      <div className="text-[11px] font-semibold text-ink flex items-center gap-1.5">
-                        <CheckCircle2 size={13} className="text-semantic-success" />
-                        <span>Real Notion Login & Consent Screen</span>
-                      </div>
-                      <p className="text-muted text-[11px] font-sans leading-relaxed">
-                        Clicking the button below will open the official{' '}
-                        <strong>Notion Authorization Window</strong>. You will be able to log in to
-                        your real Notion account, select your workspace, and grant tool permissions.
-                      </p>
-                    </div>
-
-                    <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={handleLaunchNotionOAuth}
-                        disabled={isSubmitting}
-                        className="w-full py-2.5 bg-ink hover:bg-black text-canvas text-xs font-semibold rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-2 transition-transform active:scale-[0.99] disabled:opacity-50"
-                      >
-                        <Globe size={14} className="text-primary" />
-                        <span>
-                          {isSubmitting ? 'Waiting for Notion Authorization...' : 'Authorize via Notion (Open Notion.com)'}
-                        </span>
-                        <ExternalLink size={12} className="text-muted" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2.5">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
-                      <AlertCircle size={14} className="text-semantic-warning" />
-                      <span>Setup Notion Public OAuth Client</span>
-                    </div>
-                    <p className="text-muted text-[11px] font-sans leading-relaxed">
-                      To use automatic OAuth browser redirect, provide <code>NOTION_CLIENT_ID</code> and{' '}
-                      <code>NOTION_CLIENT_SECRET</code> in <code>backend/.env</code>.
-                      <br />
-                      Alternatively, use the <strong>Integration Token</strong> tab to connect
-                      directly using your internal integration secret!
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setAuthMethod('manual')}
-                      className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
-                    >
-                      <Key size={12} />
-                      <span>Switch to Integration Token Verification &rarr;</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Real Token Input with Live API Verification */
-              <form onSubmit={handleManualTokenSubmit} className="space-y-3">
-                <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
-                      <Lock size={13} className="text-primary" />
-                      <span>Direct Notion API Key Verification</span>
-                    </div>
-                    <a
-                      href="https://www.notion.so/my-integrations"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-1 text-[11px] text-primary hover:underline font-sans"
-                    >
-                      <span>notion.so/my-integrations</span>
-                      <ExternalLink size={10} />
-                    </a>
-                  </div>
-                  <p className="text-muted text-[11px] font-sans leading-relaxed">
-                    Enter your real Notion integration secret (starts with <code>secret_</code> or{' '}
-                    <code>ntn_</code>). ContextForge will verify it live against{' '}
-                    <code>https://api.notion.com/v1/users/me</code>.
-                  </p>
+                <div className="flex items-start gap-2 text-ink">
+                  <Globe size={14} className="text-primary shrink-0 mt-0.5" />
+                  <span>
+                    <strong className="font-semibold">
+                      Streamable HTTP MCP:
+                    </strong>{' '}
+                    Communicates with Notion&apos;s live MCP server to query
+                    databases and format page blocks.
+                  </span>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-ink font-semibold flex items-center justify-between">
-                    <span>Notion Secret Key / Token</span>
-                    <span className="text-[10px] text-muted">secret_...</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showSecret ? 'text' : 'password'}
-                      placeholder="secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      value={notionToken}
-                      onChange={(e) => setNotionToken(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 pr-9 bg-canvas border border-hairline rounded-lg text-ink font-mono focus:outline-none focus:border-primary text-xs"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSecret((p) => !p)}
-                      className="absolute right-2.5 top-2.5 text-muted hover:text-ink cursor-pointer"
-                    >
-                      {showSecret ? <EyeOff size={13} /> : <Eye size={13} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-muted text-[11px] flex items-center justify-between">
-                    <span>Workspace Display Name (Optional)</span>
-                    <span className="text-[10px] text-muted">e.g. My Notion Workspace</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Leave empty to auto-detect from Notion bot profile"
-                    value={customWorkspaceName}
-                    onChange={(e) => setCustomWorkspaceName(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-canvas border border-hairline rounded-lg text-ink font-sans focus:outline-none focus:border-primary text-xs"
+                <div className="flex items-start gap-2 text-ink">
+                  <CheckCircle2
+                    size={14}
+                    className="text-primary shrink-0 mt-0.5"
                   />
+                  <span>
+                    <strong className="font-semibold">Granular Access:</strong>{' '}
+                    You choose exactly which pages and databases are shared with
+                    ContextForge agents.
+                  </span>
                 </div>
+              </div>
+            </div>
 
-                <ModalFooter className="justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-4 py-2 bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                  >
-                    <Zap size={13} className={isSubmitting ? 'animate-spin' : ''} />
-                    <span>{isSubmitting ? 'Verifying with Notion...' : 'Verify & Connect Token'}</span>
-                  </button>
-                </ModalFooter>
-              </form>
-            )}
+            <ModalFooter className="justify-end pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleNotionDirectConnect}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-black hover:bg-zinc-800 text-white text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+              >
+                {isSubmitting ? (
+                  <Zap size={13} className="animate-spin text-primary" />
+                ) : (
+                  <ExternalLink size={13} />
+                )}
+                <span>
+                  {isSubmitting
+                    ? 'Opening Browser...'
+                    : 'Connect in Browser'}
+                </span>
+              </button>
+            </ModalFooter>
           </div>
         )}
 
-        {/* Obsidian Local Bridge */}
+        {/* Obsidian: Local Vault stdio Binding */}
         {isObsidian && (
-          <form onSubmit={handleManualTokenSubmit} className="space-y-4">
+          <form onSubmit={handleObsidianConnect} className="space-y-4">
             <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2">
               <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
                 <Folder size={14} className="text-[#7c3aed]" />
                 <span>Local Vault Binding</span>
               </div>
               <p className="text-muted text-[11px] font-sans leading-relaxed">
-                Connect your local Obsidian Vault folder. ContextForge will execute the official
-                stdio bridge to read backlinks and format atomic Markdown notes with frontmatter.
+                Connect your local Obsidian Vault folder. ContextForge will
+                execute the official stdio bridge to read backlinks and format
+                atomic Markdown notes with frontmatter.
               </p>
             </div>
 
@@ -466,24 +308,76 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                 className="px-4 py-2 bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Zap size={13} className={isSubmitting ? 'animate-spin' : ''} />
-                <span>{isSubmitting ? 'Pairing...' : 'Pair & Connect Vault'}</span>
+                <span>
+                  {isSubmitting ? 'Pairing...' : 'Pair & Connect Vault'}
+                </span>
               </button>
             </ModalFooter>
           </form>
         )}
 
-        {/* Tools Scope Summary */}
+        {/* Generic MCP Server Connection */}
+        {!isNotion && !isObsidian && (
+          <form onSubmit={handleGenericConnect} className="space-y-4">
+            <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2">
+              <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
+                <Cpu size={14} className="text-primary" />
+                <span>MCP Server Connection</span>
+              </div>
+              <p className="text-muted text-[11px] font-sans leading-relaxed">
+                Connect and activate this Model Context Protocol server to
+                expose tools to workspace agents.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-ink font-semibold flex items-center justify-between">
+                <span>Endpoint / Command</span>
+              </label>
+              <input
+                type="text"
+                value={integration.endpoint}
+                readOnly
+                className="w-full px-3 py-2 bg-canvas-soft border border-hairline rounded-lg text-muted font-mono text-xs cursor-not-allowed"
+              />
+            </div>
+
+            <ModalFooter className="justify-end pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Zap size={13} className={isSubmitting ? 'animate-spin' : ''} />
+                <span>
+                  {isSubmitting
+                    ? 'Connecting...'
+                    : `Connect ${integration.name}`}
+                </span>
+              </button>
+            </ModalFooter>
+          </form>
+        )}
+
+        {/* Exposed Tools Scope Summary */}
         <div className="space-y-1.5 pt-1 border-t border-hairline/60">
           <div className="text-[11px] font-mono font-semibold uppercase tracking-caption text-muted flex items-center justify-between">
             <span className="flex items-center gap-1">
               <Sparkles size={11} className="text-primary" />
               <span>Exposed MCP Tools</span>
             </span>
-            <span>({integration.tools.length} Tools)</span>
+            <span>({integration.tools?.length || 0} Tools)</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-32 overflow-y-auto">
-            {integration.tools.map((tool) => (
+            {integration.tools?.map((tool) => (
               <div
                 key={tool.name}
                 className="p-2 rounded-lg bg-canvas border border-hairline flex flex-col justify-between"

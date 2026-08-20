@@ -1,8 +1,5 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../common/database/database.service';
-import agentsSeed from '../../../database/seeds/agents.json';
-import skillsSeed from '../../../database/seeds/skills.json';
-import integrationsSeed from '../../../database/seeds/integrations.json';
 
 export interface WorkspaceAgentRow {
   id: string;
@@ -75,12 +72,11 @@ export class EcosystemRepository implements OnModuleInit {
   constructor(private readonly db: DatabaseService) {}
 
   async onModuleInit() {
-    await this.ensureTablesAndSeed();
+    await this.ensureTables();
   }
 
-  async ensureTablesAndSeed() {
+  async ensureTables() {
     try {
-      // 1. Create tables & drop legacy constraints
       await this.db.query(`
         CREATE TABLE IF NOT EXISTS workspace_agents (
           id VARCHAR(100) PRIMARY KEY,
@@ -102,6 +98,9 @@ export class EcosystemRepository implements OnModuleInit {
           created_at TIMESTAMPTZ DEFAULT NOW(),
           updated_at TIMESTAMPTZ DEFAULT NOW()
         );
+        ALTER TABLE workspace_agents DROP CONSTRAINT IF EXISTS workspace_agents_status_check;
+        ALTER TABLE workspace_agents DROP CONSTRAINT IF EXISTS workspace_agents_agent_type_check;
+        ALTER TABLE workspace_agents DROP CONSTRAINT IF EXISTS workspace_agents_permissions_check;
       `);
 
       await this.db.query(`
@@ -147,145 +146,9 @@ export class EcosystemRepository implements OnModuleInit {
         ALTER TABLE workspace_integrations ADD COLUMN IF NOT EXISTS auth_config JSONB DEFAULT '{}';
       `);
 
-      // 2. Seed Default Agents from JSON
-      interface AgentSeedItem {
-        id: string;
-        name: string;
-        role: string;
-        agentType: string;
-        permissions: string;
-        description: string;
-        avatarColor: string;
-        model: string;
-        temperature: number;
-        systemPrompt: string;
-        capabilities: any[];
-        assignedTools: string[];
-        assignedSkills: string[];
-        status: string;
-        totalTasksCompleted: number;
-        successRatePct: number;
-      }
-      const typedAgents = agentsSeed as unknown as AgentSeedItem[];
-      for (const agent of typedAgents) {
-        await this.db.query(
-          `INSERT INTO workspace_agents (
-            id, name, role, agent_type, permissions, description, avatar_color, model, temperature, system_prompt, capabilities, assigned_tools, assigned_skills, status, total_tasks_completed, success_rate_pct
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-          ON CONFLICT (id) DO NOTHING;`,
-          [
-            agent.id,
-            agent.name,
-            agent.role,
-            agent.agentType,
-            agent.permissions,
-            agent.description,
-            agent.avatarColor,
-            agent.model,
-            agent.temperature,
-            agent.systemPrompt,
-            JSON.stringify(agent.capabilities),
-            agent.assignedTools,
-            agent.assignedSkills,
-            agent.status,
-            agent.totalTasksCompleted,
-            agent.successRatePct,
-          ],
-        );
-      }
-
-      // 3. Seed Default Skills from JSON
-      interface SkillSeedItem {
-        id: string;
-        name: string;
-        description: string;
-        category: string;
-        icon: string;
-        sopSummary: string;
-        instructions: string;
-        assignedTools: string[];
-        enabled: boolean;
-        isCustom: boolean;
-      }
-      const typedSkills = skillsSeed as unknown as SkillSeedItem[];
-      for (const skill of typedSkills) {
-        await this.db.query(
-          `INSERT INTO workspace_skills (
-            id, name, description, category, icon, sop_summary, instructions, assigned_tools, enabled, is_custom
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-          ON CONFLICT (id) DO NOTHING;`,
-          [
-            skill.id,
-            skill.name,
-            skill.description,
-            skill.category,
-            skill.icon,
-            skill.sopSummary,
-            skill.instructions,
-            skill.assignedTools,
-            skill.enabled,
-            skill.isCustom,
-          ],
-        );
-      }
-
-      // 4. Seed Default Integrations (MCP Connectors) from JSON
-      interface IntegrationSeedItem {
-        id: string;
-        name: string;
-        category: string;
-        status: string;
-        endpoint: string;
-        version: string;
-        transport: string;
-        auth_type: string;
-        auth_config: Record<string, any>;
-        description: string;
-        tools: any[];
-        last_ping_ms: number;
-        latency_ms: number;
-      }
-      const typedIntegrations =
-        integrationsSeed as unknown as IntegrationSeedItem[];
-      const defaultIds = typedIntegrations.map((i) => i.id);
-      await this.db.query(
-        `DELETE FROM workspace_integrations WHERE id NOT IN (${defaultIds.map((_, i) => `$${i + 1}`).join(',')}) AND (is_custom IS NOT TRUE OR is_custom IS NULL);`,
-        defaultIds,
-      );
-
-      for (const intg of typedIntegrations) {
-        await this.db.query(
-          `INSERT INTO workspace_integrations (
-            id, name, category, status, endpoint, version, transport, auth_type, auth_config, description, tools, last_ping_ms, latency_ms, is_custom
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-          ON CONFLICT (id) DO NOTHING;`,
-          [
-            intg.id,
-            intg.name,
-            intg.category,
-            intg.status,
-            intg.endpoint,
-            intg.version,
-            intg.transport,
-            intg.auth_type,
-            JSON.stringify(intg.auth_config),
-            intg.description,
-            JSON.stringify(intg.tools),
-            intg.last_ping_ms,
-            intg.latency_ms,
-            false,
-          ],
-        );
-      }
-
-      this.logger.log(
-        '✨ Ecosystem tables and seeds verified in PostgreSQL via JSON seed files',
-      );
+      this.logger.log('✨ Ecosystem database tables verified in PostgreSQL');
     } catch (err: unknown) {
-      this.logger.error(
-        'Failed to initialize ecosystem tables or seed data',
-        err,
-      );
+      this.logger.error('Failed to initialize ecosystem tables', err);
     }
   }
 
@@ -294,15 +157,9 @@ export class EcosystemRepository implements OnModuleInit {
   // ==========================================
 
   async getAgents(): Promise<WorkspaceAgentRow[]> {
-    let res = await this.db.query<WorkspaceAgentRow>(
+    const res = await this.db.query<WorkspaceAgentRow>(
       `SELECT * FROM workspace_agents ORDER BY created_at ASC;`,
     );
-    if (res.rows.length === 0) {
-      await this.ensureTablesAndSeed();
-      res = await this.db.query<WorkspaceAgentRow>(
-        `SELECT * FROM workspace_agents ORDER BY created_at ASC;`,
-      );
-    }
     return res.rows;
   }
 
@@ -371,15 +228,9 @@ export class EcosystemRepository implements OnModuleInit {
   // ==========================================
 
   async getSkills(): Promise<WorkspaceSkillRow[]> {
-    let res = await this.db.query<WorkspaceSkillRow>(
+    const res = await this.db.query<WorkspaceSkillRow>(
       `SELECT * FROM workspace_skills ORDER BY created_at ASC;`,
     );
-    if (res.rows.length === 0) {
-      await this.ensureTablesAndSeed();
-      res = await this.db.query<WorkspaceSkillRow>(
-        `SELECT * FROM workspace_skills ORDER BY created_at ASC;`,
-      );
-    }
     return res.rows;
   }
 
@@ -395,41 +246,40 @@ export class EcosystemRepository implements OnModuleInit {
     id?: string;
     name: string;
     description: string;
-    category: WorkspaceSkillRow['category'];
+    category: string;
+    icon?: string;
     sopSummary: string;
     instructions: string;
-    assignedTools: string[];
-    icon?: string;
+    assignedTools?: string[];
   }): Promise<WorkspaceSkillRow> {
     const id =
-      data.id || `skill-${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-    const icon = data.icon || 'sparkles';
+      data.id ||
+      `skill-${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString().slice(-4)}`;
 
     const res = await this.db.query<WorkspaceSkillRow>(
-      `INSERT INTO workspace_skills (id, name, description, category, icon, sop_summary, instructions, assigned_tools, enabled, is_custom)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true)
-       RETURNING *;`,
+      `INSERT INTO workspace_skills (
+        id, name, description, category, icon, sop_summary, instructions, assigned_tools, enabled, is_custom
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true)
+      RETURNING *;`,
       [
         id,
         data.name,
         data.description,
         data.category,
-        icon,
+        data.icon || 'sparkles',
         data.sopSummary,
         data.instructions,
-        data.assignedTools,
+        data.assignedTools || [],
       ],
     );
     return res.rows[0];
   }
 
   async toggleSkill(id: string): Promise<WorkspaceSkillRow | null> {
-    const skill = await this.getSkillById(id);
-    if (!skill) return null;
-
     const res = await this.db.query<WorkspaceSkillRow>(
       `UPDATE workspace_skills
-       SET enabled = NOT enabled, updated_at = NOW()
+       SET enabled = NOT enabled,
+           updated_at = NOW()
        WHERE id = $1
        RETURNING *;`,
       [id],
@@ -437,42 +287,14 @@ export class EcosystemRepository implements OnModuleInit {
     return res.rows[0] || null;
   }
 
-  async setSkillEnabled(
-    id: string,
-    enabled: boolean,
-  ): Promise<WorkspaceSkillRow | null> {
-    const res = await this.db.query<WorkspaceSkillRow>(
-      `UPDATE workspace_skills
-       SET enabled = $1,
-           updated_at = NOW()
-       WHERE id = $2
-       RETURNING *;`,
-      [enabled, id],
-    );
-    return res.rows[0] || null;
-  }
-
   // ==========================================
-  // MCP INTEGRATIONS CRUD
+  // INTEGRATIONS (MCP CONNECTORS) CRUD
   // ==========================================
 
   async getIntegrations(): Promise<WorkspaceIntegrationRow[]> {
-    // Purge any legacy un-customized integrations except Obsidian MCP
-    await this.db.query(`
-      DELETE FROM workspace_integrations 
-      WHERE id != 'int-obsidian-vault-mcp' 
-        AND (is_custom IS NOT TRUE OR is_custom IS NULL);
-    `);
-
-    let res = await this.db.query<WorkspaceIntegrationRow>(
+    const res = await this.db.query<WorkspaceIntegrationRow>(
       `SELECT * FROM workspace_integrations ORDER BY created_at ASC;`,
     );
-    if (res.rows.length === 0) {
-      await this.ensureTablesAndSeed();
-      res = await this.db.query<WorkspaceIntegrationRow>(
-        `SELECT * FROM workspace_integrations ORDER BY created_at ASC;`,
-      );
-    }
     return res.rows;
   }
 

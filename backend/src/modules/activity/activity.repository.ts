@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../common/database/database.service';
 
 export interface ActivityLogRow {
@@ -16,8 +16,38 @@ export interface ActivityLogRow {
 }
 
 @Injectable()
-export class ActivityRepository {
+export class ActivityRepository implements OnModuleInit {
+  private readonly logger = new Logger(ActivityRepository.name);
+
   constructor(private readonly db: DatabaseService) {}
+
+  async onModuleInit() {
+    await this.ensureTables();
+  }
+
+  async ensureTables() {
+    try {
+      await this.db.query(`
+        CREATE TABLE IF NOT EXISTS activity_logs (
+          id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+          user_id UUID,
+          timestamp TIMESTAMPTZ DEFAULT NOW(),
+          task_id VARCHAR(100),
+          task_title VARCHAR(255),
+          agent_id VARCHAR(100) NOT NULL,
+          agent_name VARCHAR(150) NOT NULL,
+          action_type VARCHAR(50) NOT NULL,
+          summary TEXT NOT NULL,
+          details JSONB,
+          status VARCHAR(20) DEFAULT 'info'
+        );
+      `);
+
+      this.logger.log('✨ Activity logs table verified in PostgreSQL');
+    } catch (err: unknown) {
+      this.logger.error('Failed to initialize activity logs table', err);
+    }
+  }
 
   async getAllLogs(limit = 100): Promise<ActivityLogRow[]> {
     const res = await this.db.query<ActivityLogRow>(

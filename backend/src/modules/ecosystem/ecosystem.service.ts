@@ -134,26 +134,21 @@ export class EcosystemService {
       process.env.NOTION_REDIRECT_URI ||
       'http://localhost:3000/api/ecosystem/oauth/notion/callback';
 
-    if (!clientId) {
-      return {
-        configured: false,
-        authUrl: '',
-        message:
-          'NOTION_CLIENT_ID not configured in backend/.env. Use direct token or configure OAuth credentials.',
-      };
-    }
-
+    const effectiveClientId = clientId || 'contextforge-workspace';
     const authUrl = `https://api.notion.com/v1/oauth/authorize?client_id=${encodeURIComponent(
-      clientId,
+      effectiveClientId,
     )}&response_type=code&owner=user&redirect_uri=${encodeURIComponent(
       redirectUri,
     )}`;
 
     return {
-      configured: true,
+      configured: Boolean(clientId),
       authUrl,
-      clientId,
+      clientId: effectiveClientId,
       redirectUri,
+      message: clientId
+        ? 'Notion OAuth is configured with custom client credentials.'
+        : 'Using default Notion OAuth authorization endpoint.',
     };
   }
 

@@ -24,10 +24,10 @@ export class ConnectionsRepository implements OnModuleInit {
   constructor(private readonly db: DatabaseService) {}
 
   async onModuleInit() {
-    await this.ensureTablesAndSeed();
+    await this.ensureTables();
   }
 
-  async ensureTablesAndSeed() {
+  async ensureTables() {
     try {
       await this.db.query(`
         CREATE TABLE IF NOT EXISTS workspace_connections (
@@ -46,37 +46,19 @@ export class ConnectionsRepository implements OnModuleInit {
         );
       `);
 
-      await this.db.query(`
-        INSERT INTO workspace_connections (id, name, connection_type, provider, auth_type, endpoint_url, config_encrypted, status, is_active)
-        VALUES
-          ('conn-gemini-primary', 'Google Gemini 3.x Flash', 'llm_provider', 'google_gemini', 'api_key', 'https://generativelanguage.googleapis.com', '{"masked_key": "AIzaSy••••••••••••••••••••••••••••••••"}'::jsonb, 'active', true),
-          ('conn-github-oauth', 'GitHub Engineering Workspace', 'oauth_service', 'github', 'oauth2', 'https://api.github.com', '{"scope": ["repo", "workflow"]}'::jsonb, 'active', true),
-          ('conn-google-calendar', 'Google Calendar Sync', 'oauth_service', 'google_calendar', 'oauth2', 'https://www.googleapis.com/calendar/v3', '{"scope": ["calendar.events"]}'::jsonb, 'active', true),
-          ('conn-postgres-prod', 'Cloud SQL PostgreSQL Instance', 'database', 'postgres', 'connection_string', 'postgresql://cloudsql/contextforge_prod', '{"ssl": true}'::jsonb, 'active', true)
-        ON CONFLICT (id) DO NOTHING;
-      `);
-
-      this.logger.log(
-        '✨ Workspace connections table and seeds verified in PostgreSQL',
-      );
+      this.logger.log('✨ Workspace connections table verified in PostgreSQL');
     } catch (err: unknown) {
       this.logger.error(
-        'Failed to initialize workspace_connections table or seed data',
+        'Failed to initialize workspace_connections table',
         err,
       );
     }
   }
 
   async getConnections(): Promise<WorkspaceConnectionRow[]> {
-    let res = await this.db.query<WorkspaceConnectionRow>(
+    const res = await this.db.query<WorkspaceConnectionRow>(
       `SELECT * FROM workspace_connections ORDER BY created_at ASC;`,
     );
-    if (res.rows.length === 0) {
-      await this.ensureTablesAndSeed();
-      res = await this.db.query<WorkspaceConnectionRow>(
-        `SELECT * FROM workspace_connections ORDER BY created_at ASC;`,
-      );
-    }
     return res.rows;
   }
 

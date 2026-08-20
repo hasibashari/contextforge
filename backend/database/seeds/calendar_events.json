@@ -1,0 +1,35 @@
+[
+  {
+    "id": "83c07248-2834-4554-ba79-11c778401314",
+    "title": "ContextForge Architecture Sync",
+    "eventDate": "CURRENT_DATE",
+    "eventTime": "10:00 AM",
+    "duration": "45m",
+    "location": "Google Meet",
+    "status": "upcoming",
+    "category": "meeting",
+    "attendees": ["Sarah (Architect)", "Dev Team"]
+  },
+  {
+    "id": "26d4ca91-d309-482a-a92c-5ae713374828",
+    "title": "Review Security & CVE Threat Model",
+    "eventDate": "CURRENT_DATE",
+    "eventTime": "02:00 PM",
+    "duration": "30m",
+    "location": "Engineering Room A",
+    "status": "upcoming",
+    "category": "review",
+    "attendees": ["Security Lead"]
+  },
+  {
+    "id": "fa7bc652-e9c5-4ca2-8a9d-b63118cf1859",
+    "title": "Ship Agentic Dual-Privilege RFC",
+    "eventDate": "CURRENT_DATE + 1",
+    "eventTime": "09:00 AM",
+    "duration": "1h",
+    "location": "Obsidian Vault",
+    "status": "upcoming",
+    "category": "task",
+    "attendees": ["Self"]
+  }
+]

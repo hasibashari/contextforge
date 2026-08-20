@@ -1,0 +1,41 @@
+[
+  {
+    "id": "c5881477-8df2-4217-a068-d069a319f390",
+    "type": "obsidian_vault",
+    "name": "Engineering HQ Vault",
+    "description": "Team architecture decision records, RFC drafts, and system guidelines",
+    "location": "obsidian://vault/Engineering-HQ",
+    "meta": "Markdown · 142 notes",
+    "filesCount": 142,
+    "chunksCount": 580,
+    "status": "synced",
+    "iconType": "book-open",
+    "color": "text-[#9fbbe0]"
+  },
+  {
+    "id": "50b297b8-2bfa-4c6e-8260-26463eb4c7e8",
+    "type": "github_repo",
+    "name": "contextforge-core",
+    "description": "Core orchestrator and worker execution engine repository",
+    "location": "github.com/contextforge/core",
+    "meta": "TypeScript · main branch",
+    "filesCount": 86,
+    "chunksCount": 320,
+    "status": "synced",
+    "iconType": "terminal",
+    "color": "text-[#c0a8dd]"
+  },
+  {
+    "id": "36bcbb30-4e31-419b-a36c-9418a096c4be",
+    "type": "database_schema",
+    "name": "Cloud SQL PostgreSQL",
+    "description": "Production relational schema and telemetry data catalog",
+    "location": "postgresql://cloudsql/contextforge_prod",
+    "meta": "PostgreSQL 16 · 14 tables",
+    "filesCount": 14,
+    "chunksCount": 45,
+    "status": "synced",
+    "iconType": "database",
+    "color": "text-[#9fc9a2]"
+  }
+]

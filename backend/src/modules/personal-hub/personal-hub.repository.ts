@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../common/database/database.service';
 
 export interface CalendarEventRow {
@@ -26,8 +26,53 @@ export interface UserMemoryRow {
 }
 
 @Injectable()
-export class PersonalHubRepository {
+export class PersonalHubRepository implements OnModuleInit {
+  private readonly logger = new Logger(PersonalHubRepository.name);
+
   constructor(private readonly db: DatabaseService) {}
+
+  async onModuleInit() {
+    await this.ensureTables();
+  }
+
+  async ensureTables() {
+    try {
+      await this.db.query(`
+        CREATE TABLE IF NOT EXISTS calendar_events (
+          id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+          user_id UUID,
+          title VARCHAR(255) NOT NULL,
+          event_date DATE NOT NULL DEFAULT CURRENT_DATE,
+          event_time VARCHAR(20) NOT NULL,
+          duration VARCHAR(30) DEFAULT '30m',
+          location VARCHAR(255),
+          status VARCHAR(30) DEFAULT 'upcoming',
+          category VARCHAR(50) DEFAULT 'task',
+          attendees TEXT[] DEFAULT '{}',
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS user_memories (
+          id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+          user_id UUID,
+          category VARCHAR(50) NOT NULL,
+          key VARCHAR(100) NOT NULL,
+          value TEXT NOT NULL,
+          embedding JSONB,
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+      `);
+
+      this.logger.log(
+        '✨ Calendar events and user memories tables verified in PostgreSQL',
+      );
+    } catch (err: unknown) {
+      this.logger.error(
+        'Failed to initialize calendar or memories tables',
+        err,
+      );
+    }
+  }
 
   // Calendar queries
   async getCalendarEvents(): Promise<CalendarEventRow[]> {

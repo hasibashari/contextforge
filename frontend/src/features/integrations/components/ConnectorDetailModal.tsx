@@ -379,6 +379,35 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
             </div>
           )}
 
+          {/* Sleek Workspace Banner for Notion */}
+          {integration.id.includes('notion') && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20 gap-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-5 h-5 rounded bg-black text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  N
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-ink text-xs truncate">
+                    Workspace: 🌐 {currentIntegration.authConfig?.workspaceName || 'Notion MCP Workspace'}
+                  </div>
+                  <div className="text-[11px] text-muted font-mono">
+                    Endpoint: {currentIntegration.endpoint || 'https://mcp.notion.com/mcp'}
+                  </div>
+                </div>
+              </div>
+
+              <a
+                href="https://www.notion.so"
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 bg-black hover:bg-zinc-800 text-white font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-xs shadow-2xs shrink-0 self-start sm:self-auto"
+              >
+                <ExternalLink size={12} />
+                <span>Open in Notion</span>
+              </a>
+            </div>
+          )}
+
           {/* Compact Connection Info Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono text-[11px] text-muted">
             <div className="flex items-center gap-1.5 min-w-0">

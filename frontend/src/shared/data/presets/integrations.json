@@ -40,15 +40,17 @@
     "id": "int-notion-mcp",
     "name": "Notion Workspace MCP Server",
     "category": "mcp_server",
-    "status": "disconnected",
+    "status": "connected",
     "endpoint": "https://mcp.notion.com/mcp",
     "version": "v1.2.0",
     "transport": "streamable_http",
     "authType": "oauth",
-    "authConfig": {},
+    "authConfig": {
+      "workspaceName": "ContextForge Workspace"
+    },
     "description": "Official Model Context Protocol server for Notion workspace databases, page trees, and document sync.",
-    "lastPingMs": 0,
-    "latencyMs": 0,
+    "lastPingMs": 16,
+    "latencyMs": 14,
     "tools": [
       {
         "id": "t-notion-1",

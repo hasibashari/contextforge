@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../common/database/database.service';
 
 export interface KnowledgeSourceRow {
@@ -35,8 +35,53 @@ export interface SearchResultChunk extends KnowledgeChunkRow {
 }
 
 @Injectable()
-export class KnowledgeRepository {
+export class KnowledgeRepository implements OnModuleInit {
+  private readonly logger = new Logger(KnowledgeRepository.name);
+
   constructor(private readonly db: DatabaseService) {}
+
+  async onModuleInit() {
+    await this.ensureTables();
+  }
+
+  async ensureTables() {
+    try {
+      await this.db.query(`
+        CREATE TABLE IF NOT EXISTS knowledge_sources (
+          id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+          user_id UUID,
+          type VARCHAR(50) NOT NULL,
+          name VARCHAR(150) NOT NULL,
+          description TEXT,
+          location TEXT NOT NULL,
+          meta TEXT,
+          files_count INTEGER DEFAULT 0,
+          chunks_count INTEGER DEFAULT 0,
+          status VARCHAR(30) DEFAULT 'synced',
+          icon_type VARCHAR(50) DEFAULT 'file',
+          color VARCHAR(50) DEFAULT 'text-primary',
+          last_synced TIMESTAMPTZ DEFAULT NOW(),
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS knowledge_chunks (
+          id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+          source_id VARCHAR(100) REFERENCES knowledge_sources(id) ON DELETE CASCADE,
+          file_path TEXT NOT NULL,
+          chunk_index INTEGER NOT NULL,
+          chunk_content TEXT NOT NULL,
+          embedding JSONB,
+          metadata JSONB DEFAULT '{}',
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+      `);
+
+      this.logger.log('✨ Knowledge sources table verified in PostgreSQL');
+    } catch (err: unknown) {
+      this.logger.error('Failed to initialize knowledge tables', err);
+    }
+  }
 
   async getAllSources(): Promise<KnowledgeSourceRow[]> {
     const res = await this.db.query<KnowledgeSourceRow>(
