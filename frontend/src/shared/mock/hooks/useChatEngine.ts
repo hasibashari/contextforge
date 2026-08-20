@@ -9,6 +9,7 @@ import type {
 } from '@/shared/types/workspace';
 import { chatApi } from '@/shared/api/chatApi';
 import { artifactsApi } from '@/shared/api/artifactsApi';
+import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service';
 import { generateGeneralReasoningOutput } from '../generators/responseGenerators';
 
 export function useChatEngine(
@@ -408,7 +409,21 @@ export function useChatEngine(
             setArtifacts((prev) => [createdArtifact, ...prev.filter((a) => a.id !== createdArtifact.id)]);
             setActiveArtifact(createdArtifact);
             setIsAsideOpen(true);
-            showToast(`📦 Artifact Created: ${createdArtifact.title}`);
+
+            // Direct Disk Write-Back to laptop folder (Scenario B)
+            const pathName = createdArtifact.locationPath || `${createdArtifact.title}.md`;
+            browserStorageBridge
+              .writeDocument(pathName, pathName, createdArtifact.content)
+              .then((writeRes) => {
+                if (writeRes.success) {
+                  showToast(`✅ Written to laptop disk: /${writeRes.folderName}/${writeRes.relativePath}`);
+                } else {
+                  showToast(`📦 Artifact Created: ${createdArtifact.title}`);
+                }
+              })
+              .catch(() => {
+                showToast(`📦 Artifact Created: ${createdArtifact.title}`);
+              });
           },
           onAssistantMessage: (backendMsg) => {
             setChatSessions((prev) =>

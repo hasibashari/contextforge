@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
+import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service'
 import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
 import { IconBox, KnowledgeIconBox } from '@/shared/components/ui/IconBox'
 
@@ -88,6 +89,13 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
           if (!sourceName) {
             setSourceName(formatDefaultName(result.rootName))
           }
+
+          // Persist directory handle for direct disk write-back & delta sync
+          await browserStorageBridge.storeDirectoryHandle(
+            result.rootName,
+            result.rootName,
+            result.handle
+          )
         }
       } catch (err) {
         console.error('Folder pick error:', err)

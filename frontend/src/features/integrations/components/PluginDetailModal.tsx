@@ -7,8 +7,15 @@ import {
   Terminal,
   Plus,
   Check,
+  Folder,
+  BookOpen,
+  ExternalLink,
+  ShieldCheck,
+  CheckCircle2,
 } from 'lucide-react'
 import type { Plugin, Integration, Skill } from '@/shared/types/workspace'
+import { useWorkspace } from '@/shared/mock'
+import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
 import { StatusPill } from '@/shared/components/ui/StatusPill'
 import { IconBox } from '@/shared/components/ui/IconBox'
@@ -31,7 +38,11 @@ export const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
   onInstall,
   onUninstall,
 }) => {
+  const { knowledgeSources } = useWorkspace()
   const [showUninstallModal, setShowUninstallModal] = useState(false)
+  const [selectedSourceId, setSelectedSourceId] = useState<string>(
+    knowledgeSources[0]?.id || ''
+  )
 
   if (!plugin) return null
 
@@ -48,6 +59,15 @@ export const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
   )
 
   const isInstalled = plugin.installed
+  const selectedSource =
+    knowledgeSources.find((s) => s.id === selectedSourceId) ||
+    knowledgeSources[0] ||
+    null
+
+  const isKnowledgeRelated =
+    plugin.category === 'knowledge' ||
+    plugin.id.includes('obsidian') ||
+    plugin.bundledConnectorIds.some((id) => id.includes('filesystem') || id.includes('obsidian'))
 
   const handleConfirmUninstall = () => {
     onUninstall(plugin.id)
@@ -57,7 +77,9 @@ export const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
 
   const renderSubtitle = () => (
     <>
-      <span className="truncate">by <strong className="text-body font-medium">{plugin.author}</strong></span>
+      <span className="truncate">
+        by <strong className="text-body font-medium">{plugin.author}</strong>
+      </span>
       <span>·</span>
       <span>{plugin.version}</span>
       <span>·</span>
@@ -109,9 +131,9 @@ export const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
           actions={renderActions()}
         />
 
-        <div className="space-y-3.5 text-xs">
+        <div className="space-y-3.5 text-xs font-sans">
           {/* Description */}
-          <p className="text-body leading-relaxed text-xs">
+          <p className="text-body leading-relaxed text-xs font-sans">
             {plugin.description}
           </p>
 
@@ -131,8 +153,81 @@ export const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
             </div>
           </div>
 
+          {/* Target Knowledge Source Binding (Dynamic Web Mount Linkage) */}
+          {isKnowledgeRelated && (
+            <div className="p-3 bg-canvas-soft rounded-xl border border-hairline space-y-2 font-sans">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-mono uppercase tracking-caption text-primary flex items-center gap-1.5">
+                  <BookOpen size={12} />
+                  <span>Target Knowledge Base Binding:</span>
+                </div>
+                <span className="text-[10px] font-mono text-semantic-success flex items-center gap-1">
+                  <ShieldCheck size={11} />
+                  <span>Mounted via Web</span>
+                </span>
+              </div>
+
+              {knowledgeSources.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedSourceId || (selectedSource?.id ?? '')}
+                      onChange={(e) => setSelectedSourceId(e.target.value)}
+                      className="flex-1 px-3 py-1.5 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs font-mono cursor-pointer"
+                    >
+                      {knowledgeSources.map((ks) => (
+                        <option key={ks.id} value={ks.id}>
+                          📚 {ks.name} ({ks.filesCount} files) · {ks.type.replace('_', ' ')}
+                        </option>
+                      ))}
+                    </select>
+
+                    {selectedSource?.type === 'obsidian_vault' && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          obsidianBridgeService.openInObsidianApp(
+                            selectedSource.subfolderScope || selectedSource.name,
+                            ''
+                          )
+                        }
+                        className="px-2.5 py-1.5 bg-[#7c3aed] hover:bg-[#7c3aed]/90 text-white font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] shrink-0"
+                        title="Open this vault in Obsidian Desktop"
+                      >
+                        <ExternalLink size={11} />
+                        <span>Open Vault</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {selectedSource && (
+                    <div className="flex items-center justify-between text-[11px] text-muted font-mono bg-canvas px-2.5 py-1.5 rounded-lg border border-hairline">
+                      <span className="truncate flex items-center gap-1.5">
+                        <CheckCircle2 size={11} className="text-semantic-success shrink-0" />
+                        <span>Active Route: {selectedSource.location}</span>
+                      </span>
+                      <span className="text-[10px] text-primary shrink-0">
+                        {selectedSource.filesCount} Documents
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-2.5 bg-canvas rounded-lg border border-dashed border-hairline text-center space-y-1">
+                  <div className="text-[11px] text-ink font-semibold flex items-center justify-center gap-1">
+                    <Folder size={12} className="text-muted" />
+                    <span>No Knowledge Sources Mounted Yet</span>
+                  </div>
+                  <p className="text-[10px] text-muted">
+                    Connect an Obsidian Vault or Folder in the <strong>Knowledge Base</strong> tab to bind it here.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Bundled Connectors List */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 font-sans">
             <div className="text-[11px] font-mono uppercase tracking-caption text-primary flex items-center gap-1.5">
               <Cpu size={12} />
               <span>Bundled MCP Connectors:</span>
@@ -148,7 +243,7 @@ export const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
                     <div className="font-bold text-ink text-xs truncate">{c.name}</div>
                     <div className="text-[11px] text-body mt-0.5 line-clamp-1">{c.description}</div>
                   </div>
-                  <span className="text-[10px] text-muted shrink-0">
+                  <span className="text-[10px] text-muted shrink-0 font-sans">
                     {c.tools.length} Tools
                   </span>
                 </div>
@@ -157,7 +252,7 @@ export const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
           </div>
 
           {/* Bundled Skills List */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 font-sans">
             <div className="text-[11px] font-mono uppercase tracking-caption text-[#8c52ff] flex items-center gap-1.5">
               <Sparkles size={12} />
               <span>Bundled Reasoning Skills:</span>
@@ -173,7 +268,7 @@ export const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
                     <div className="font-bold text-ink text-xs truncate">{s.name}</div>
                     <div className="text-[11px] text-muted mt-0.5 line-clamp-1">{s.sopSummary}</div>
                   </div>
-                  <span className="text-[10px] uppercase text-primary shrink-0">
+                  <span className="text-[10px] uppercase text-primary shrink-0 font-sans">
                     {s.category.replace('_', ' ')}
                   </span>
                 </div>
@@ -182,8 +277,9 @@ export const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
           </div>
 
           {/* Footer */}
-          <ModalFooter className="justify-end">
+          <ModalFooter className="justify-end font-sans">
             <button
+              type="button"
               onClick={onClose}
               className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer transition-colors flex items-center gap-1"
             >

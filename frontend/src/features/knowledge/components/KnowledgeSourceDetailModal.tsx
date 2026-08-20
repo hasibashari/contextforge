@@ -19,6 +19,7 @@ import {
   knowledgeApi,
   type BackendKnowledgeChunk,
 } from '@/shared/api/knowledgeApi'
+import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service'
 import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
 import { StatusPill } from '@/shared/components/ui/StatusPill'
 import { KnowledgeIconBox } from '@/shared/components/ui/IconBox'
@@ -41,10 +42,12 @@ export const KnowledgeSourceDetailModal: React.FC<
   const [isCopied, setIsCopied] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isUploadingMore, setIsUploadingMore] = useState(false)
+  const [hasLocalHandle, setHasLocalHandle] = useState(false)
 
   const uploadMoreInputRef = useRef<HTMLInputElement>(null)
 
   const sourceId = source?.id
+  const sourceName = source?.name
   const sourceStatus = source?.status
   const sourceLastSynced = source?.lastSynced
 
@@ -52,6 +55,14 @@ export const KnowledgeSourceDetailModal: React.FC<
     if (!sourceId) return
 
     let isMounted = true
+
+    // Check if directory handle is active on this device
+    if (sourceName) {
+      browserStorageBridge.getDirectoryHandle(sourceName).then((h) => {
+        if (isMounted) setHasLocalHandle(Boolean(h))
+      })
+    }
+
     const fetchChunks = async () => {
       setIsLoadingChunks(true)
       try {
@@ -71,7 +82,7 @@ export const KnowledgeSourceDetailModal: React.FC<
     return () => {
       isMounted = false
     }
-  }, [sourceId, sourceStatus, sourceLastSynced])
+  }, [sourceId, sourceName, sourceStatus, sourceLastSynced])
 
   if (!source) return null
 
@@ -102,6 +113,23 @@ export const KnowledgeSourceDetailModal: React.FC<
         setIsUploadingMore(false)
       }
     }
+  }
+
+  const handleSmartSync = async () => {
+    if (hasLocalHandle && onUploadMore && source) {
+      try {
+        const modified = await browserStorageBridge.scanModifiedFiles(
+          source.name,
+          source.lastSynced
+        )
+        if (modified.length > 0) {
+          await onUploadMore(modified, source.name, source.id)
+        }
+      } catch {
+        // Continue with normal sync
+      }
+    }
+    onSync(source.id)
   }
 
   const renderSubtitle = () => (
@@ -169,6 +197,19 @@ export const KnowledgeSourceDetailModal: React.FC<
         />
 
         <div className="space-y-3.5 text-xs">
+          {/* Live Paired Status Banner */}
+          {hasLocalHandle && (
+            <div className="flex items-center justify-between p-2.5 bg-semantic-success/5 rounded-xl border border-semantic-success/20 text-xs">
+              <div className="flex items-center gap-2 text-ink">
+                <span className="w-2 h-2 rounded-full bg-semantic-success animate-pulse" />
+                <span className="font-semibold">Live Paired with Laptop Disk</span>
+              </div>
+              <span className="text-[10px] font-mono text-semantic-success font-semibold">
+                Direct Disk Write-Back Active
+              </span>
+            </div>
+          )}
+
           {/* Description */}
           <p className="text-body leading-relaxed text-xs">
             {source.description}
@@ -283,7 +324,7 @@ export const KnowledgeSourceDetailModal: React.FC<
           <ModalFooter>
             <button
               type="button"
-              onClick={() => onSync(source.id)}
+              onClick={handleSmartSync}
               disabled={isSyncing}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-ink border border-hairline rounded-lg transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
             >

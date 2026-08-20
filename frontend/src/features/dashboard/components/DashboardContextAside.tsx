@@ -22,6 +22,7 @@ import { useWorkspace } from '@/shared/mock'
 import { MarkdownRenderer, EmptyState, IconBox } from '@/shared/components'
 import type { Artifact, CalendarEvent, UserMemoryItem, ToastType } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
+import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service'
 
 export default function DashboardContextAside() {
   const {
@@ -471,9 +472,25 @@ function ArtifactViewerAndEditor({
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(artifact.content)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     onSave(editContent)
     setIsEditing(false)
+
+    // Direct Disk Write-Back to laptop folder (Scenario B)
+    const pathName = artifact.locationPath || `${artifact.title}.md`
+    const writeRes = await browserStorageBridge.writeDocument(
+      pathName,
+      pathName,
+      editContent
+    )
+    if (writeRes.success) {
+      showToast(
+        `✅ Saved & written to laptop disk: /${writeRes.folderName}/${writeRes.relativePath}`,
+        'success'
+      )
+    } else {
+      showToast('Document saved to workspace', 'success')
+    }
   }
 
   const handleCopy = () => {

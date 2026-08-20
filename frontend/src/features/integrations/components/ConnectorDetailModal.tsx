@@ -218,24 +218,27 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
             />
           </div>
 
-          {/* Obsidian Mounting Selector in Edit Mode */}
-          {integration.id.includes('obsidian') && (
-            <div className="p-3 bg-[#7c3aed]/5 rounded-xl border border-[#7c3aed]/20 space-y-2.5">
+          {/* Storage & Knowledge Mounting Selector in Edit Mode */}
+          {(integration.id.includes('obsidian') ||
+            integration.id.includes('filesystem') ||
+            integration.category === 'documentation' ||
+            integration.category === 'mcp_server') && (
+            <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 space-y-2.5">
               <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
-                <BookOpen size={13} className="text-[#7c3aed]" />
-                <span>Mount Target &amp; Output Path</span>
+                <BookOpen size={13} className="text-primary" />
+                <span>Target Knowledge Source Mount &amp; Output Route</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div className="space-y-1">
                   <label className="text-[11px] text-muted flex items-center gap-1">
-                    <Folder size={11} className="text-[#7c3aed]" />
+                    <Folder size={11} className="text-primary" />
                     <span>Mount to Knowledge Source:</span>
                   </label>
                   <select
                     value={selectedVaultScope}
                     onChange={(e) => setSelectedVaultScope(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-[#7c3aed] text-xs font-mono"
+                    className="w-full px-2.5 py-1.5 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs font-mono cursor-pointer"
                   >
                     {knowledgeSources.length > 0 ? (
                       knowledgeSources.map((ks) => (
@@ -255,8 +258,8 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                     type="text"
                     value={outputPath}
                     onChange={(e) => setOutputPath(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-[#7c3aed] text-xs font-mono"
-                    placeholder="e.g. Drafts/"
+                    className="w-full px-2.5 py-1.5 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs font-mono"
+                    placeholder="e.g. Drafts/ or Notes/"
                   />
                 </div>
               </div>
@@ -323,34 +326,42 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
             {integration.description}
           </p>
 
-          {/* Sleek Obsidian Mount Banner (If Obsidian) */}
-          {integration.id.includes('obsidian') && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-[#7c3aed]/5 rounded-xl border border-[#7c3aed]/20 gap-2.5">
+          {/* Sleek Storage & Mount Banner */}
+          {(integration.id.includes('obsidian') ||
+            integration.id.includes('filesystem') ||
+            Boolean(integration.targetBinding)) && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20 gap-2.5">
               <div className="flex items-center gap-2 min-w-0">
-                <BookOpen size={16} className="text-[#7c3aed] shrink-0" />
+                {integration.id.includes('obsidian') ? (
+                  <BookOpen size={16} className="text-[#7c3aed] shrink-0" />
+                ) : (
+                  <Folder size={16} className="text-primary shrink-0" />
+                )}
                 <div className="min-w-0">
                   <div className="font-semibold text-ink text-xs truncate">
                     Mounted to: 📚 {selectedVaultScope}
                   </div>
                   <div className="text-[11px] text-muted font-mono">
-                    Write Path: /{selectedVaultScope}/{outputPath}
+                    Target Storage Route: /{selectedVaultScope}/{outputPath}
                   </div>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  obsidianBridgeService.openInObsidianApp(
-                    selectedVaultScope || 'Engineering-HQ',
-                    '',
-                  )
-                }
-                className="px-3 py-1.5 bg-[#7c3aed] hover:bg-[#7c3aed]/90 text-white font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-xs shadow-2xs shrink-0 self-start sm:self-auto"
-              >
-                <ExternalLink size={12} />
-                <span>Open in Obsidian</span>
-              </button>
+              {integration.id.includes('obsidian') && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    obsidianBridgeService.openInObsidianApp(
+                      selectedVaultScope || 'Engineering-HQ',
+                      '',
+                    )
+                  }
+                  className="px-3 py-1.5 bg-[#7c3aed] hover:bg-[#7c3aed]/90 text-white font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-xs shadow-2xs shrink-0 self-start sm:self-auto"
+                >
+                  <ExternalLink size={12} />
+                  <span>Open in Obsidian</span>
+                </button>
+              )}
             </div>
           )}
 
