@@ -2,6 +2,7 @@ import React from 'react'
 import { Activity } from 'lucide-react'
 import type { ActivityLogEntry } from '@/shared/types/workspace'
 import { ActivityItemRow } from '@/features/activity/components/ActivityItemRow'
+import { EmptyState, IconBox } from '@/shared/components'
 
 interface ActivityListProps {
   activities: ActivityLogEntry[]
@@ -10,13 +11,18 @@ interface ActivityListProps {
 export const ActivityList: React.FC<ActivityListProps> = ({ activities }) => {
   if (activities.length === 0) {
     return (
-      <div className="p-12 bg-surface-card border border-hairline rounded-xl text-center space-y-2">
-        <Activity size={24} className="text-muted mx-auto" />
-        <h3 className="text-sm font-semibold text-ink">No activity records found</h3>
-        <p className="text-xs text-muted">
-          No events match the selected action filter criteria.
-        </p>
-      </div>
+      <EmptyState
+        compact
+        icon={
+          <IconBox
+            size="md"
+            variant="neutral"
+            icon={<Activity size={18} className="text-muted" />}
+          />
+        }
+        title="No Activity Records Yet"
+        description="Agent executions, document syncs, and tool invocations will appear here in real-time."
+      />
     )
   }
 

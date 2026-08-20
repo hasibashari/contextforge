@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react'
 import {
   Package,
   Cpu,
-  Zap,
   Search,
   Plus,
+  Sparkles,
+  RotateCcw,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
 import type { Skill, Integration, Plugin } from '@/shared/types/workspace'
@@ -19,6 +20,7 @@ import {
   AddConnectorModal,
   AddSkillModal,
 } from '@/features/integrations'
+import { EmptyState, IconBox } from '@/shared/components'
 
 type TabType = 'plugins' | 'connectors' | 'skills'
 
@@ -104,103 +106,83 @@ export default function IntegrationsView() {
         activeSkillsCount={activeSkillsCount}
       />
 
-      {/* Tabs Navigation & Search Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-hairline pb-4 min-w-0">
-        {/* 3 Main Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-canvas-soft border border-hairline rounded-xl w-full sm:w-fit overflow-x-auto shrink-0">
-          <button
-            onClick={() => setActiveTab('plugins')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'plugins'
-                ? 'bg-primary text-canvas shadow-xs'
-                : 'text-muted hover:text-ink'
-            }`}
-          >
-            <Package size={14} />
-            <span>Plugins</span>
-            <span
-              className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
-                activeTab === 'plugins'
-                  ? 'bg-canvas text-ink font-bold'
-                  : 'bg-surface-strong text-muted'
-              }`}
-            >
-              {plugins.length}
-            </span>
-          </button>
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-2 border-b border-hairline pb-2 text-xs font-mono font-semibold overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('plugins')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 ${
+            activeTab === 'plugins'
+              ? 'bg-ink text-canvas shadow-xs'
+              : 'text-muted hover:text-ink hover:bg-canvas-soft'
+          }`}
+        >
+          <Package size={14} />
+          <span>Curated Packs ({plugins.length})</span>
+        </button>
 
-          <button
-            onClick={() => setActiveTab('connectors')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'connectors'
-                ? 'bg-primary text-canvas shadow-xs'
-                : 'text-muted hover:text-ink'
-            }`}
-          >
-            <Cpu size={14} />
-            <span>Connectors</span>
-            <span
-              className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
-                activeTab === 'connectors'
-                  ? 'bg-canvas text-ink font-bold'
-                  : 'bg-surface-strong text-muted'
-              }`}
-            >
-              {integrations.length}
-            </span>
-          </button>
+        <button
+          onClick={() => setActiveTab('connectors')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 ${
+            activeTab === 'connectors'
+              ? 'bg-ink text-canvas shadow-xs'
+              : 'text-muted hover:text-ink hover:bg-canvas-soft'
+          }`}
+        >
+          <Cpu size={14} />
+          <span>MCP Connectors ({integrations.length})</span>
+        </button>
 
-          <button
-            onClick={() => setActiveTab('skills')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'skills'
-                ? 'bg-primary text-canvas shadow-xs'
-                : 'text-muted hover:text-ink'
-            }`}
-          >
-            <Zap size={14} />
-            <span>Skills</span>
-            <span
-              className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
-                activeTab === 'skills'
-                  ? 'bg-canvas text-ink font-bold'
-                  : 'bg-surface-strong text-muted'
-              }`}
-            >
-              {activeSkillsCount}/{skills.length}
-            </span>
-          </button>
+        <button
+          onClick={() => setActiveTab('skills')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 ${
+            activeTab === 'skills'
+              ? 'bg-ink text-canvas shadow-xs'
+              : 'text-muted hover:text-ink hover:bg-canvas-soft'
+          }`}
+        >
+          <Sparkles size={14} />
+          <span>Reasoning Skills ({skills.length})</span>
+        </button>
+      </div>
+
+      {/* Global Filter & Search Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-surface-card p-3 rounded-xl border border-hairline shadow-2xs">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted" />
+          <input
+            type="text"
+            placeholder={`Search ${activeTab}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 bg-canvas border border-hairline rounded-lg text-xs font-mono text-ink placeholder:text-muted focus:outline-none focus:border-primary"
+          />
         </div>
 
-        {/* Search & Filter Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto min-w-0">
-          <div className="relative flex-1 sm:w-56 md:w-64 min-w-0">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-            />
-            <input
-              type="text"
-              placeholder={`Search ${activeTab}...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8.5 pr-3 py-1.5 bg-surface-card border border-hairline rounded-lg text-xs text-ink placeholder:text-muted focus:outline-none focus:border-primary transition-colors"
-            />
-          </div>
-
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-1.5 bg-surface-card border border-hairline rounded-lg text-xs text-ink focus:outline-none focus:border-primary cursor-pointer font-mono shrink-0"
+        {/* Categories selector */}
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 text-xs font-mono">
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={`px-3 py-1 rounded-lg text-xs transition-colors cursor-pointer shrink-0 ${
+              selectedCategory === 'all'
+                ? 'bg-ink text-canvas font-semibold shadow-2xs'
+                : 'bg-canvas-soft text-body hover:text-ink border border-hairline'
+            }`}
           >
-            <option value="all">All Categories</option>
-            <option value="devops">DevOps / Git</option>
-            <option value="qa_testing">QA & Testing</option>
-            <option value="security">Security & CVE</option>
-            <option value="knowledge">Knowledge & Vault</option>
-            <option value="database">Database & Schema</option>
-            <option value="productivity">Productivity</option>
-          </select>
+            All
+          </button>
+          {['engineering', 'security', 'knowledge', 'productivity'].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1 rounded-lg text-xs capitalize transition-colors cursor-pointer shrink-0 ${
+                selectedCategory === cat
+                  ? 'bg-ink text-canvas font-semibold shadow-2xs'
+                  : 'bg-canvas-soft text-body hover:text-ink border border-hairline'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -209,38 +191,62 @@ export default function IntegrationsView() {
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs font-mono text-muted">
             <span>
-              Showing <strong>{filteredPlugins.length}</strong> Plugins
-            </span>
-            <span className="text-[11px] text-muted">
-              1-Click activates both Connectors & Skills
+              Showing <strong>{filteredPlugins.length}</strong> Curated Plugin Packs
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-            {filteredPlugins.map((plugin) => (
-              <PluginCard
-                key={plugin.id}
-                plugin={plugin}
-                allConnectors={integrations}
-                allSkills={skills}
-                onOpenDetail={() => setSelectedPlugin(plugin)}
-                onToggleInstall={() =>
-                  plugin.installed
-                    ? uninstallPlugin(plugin.id)
-                    : installPlugin(plugin.id)
-                }
-              />
-            ))}
-          </div>
+          {filteredPlugins.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+              {filteredPlugins.map((plugin) => (
+                <PluginCard
+                  key={plugin.id}
+                  plugin={plugin}
+                  allConnectors={integrations}
+                  allSkills={skills}
+                  onOpenDetail={() => setSelectedPlugin(plugin)}
+                  onToggleInstall={() => {
+                    if (plugin.installed) {
+                      setSelectedPlugin(plugin)
+                    } else {
+                      installPlugin(plugin.id)
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<IconBox size="lg" variant="primary" icon={<Package size={22} />} />}
+              title="No Plugin Packs Found"
+              description={
+                searchQuery || selectedCategory !== 'all'
+                  ? `No plugin packs match your search "${searchQuery}" or selected category.`
+                  : 'No plugin packs are currently available.'
+              }
+              action={
+                searchQuery || selectedCategory !== 'all'
+                  ? {
+                      label: 'Clear Filters',
+                      onClick: () => {
+                        setSearchQuery('')
+                        setSelectedCategory('all')
+                      },
+                      icon: <RotateCcw size={13} />,
+                      variant: 'secondary',
+                    }
+                  : undefined
+              }
+            />
+          )}
         </div>
       )}
 
-      {/* Tab 2: Connectors */}
+      {/* Tab 2: Connectors (MCP) */}
       {activeTab === 'connectors' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs font-mono text-muted">
             <span>
-              Showing <strong>{filteredConnectors.length}</strong> Connectors
+              Showing <strong>{filteredConnectors.length}</strong> MCP Connectors
             </span>
             <button
               onClick={() => setIsAddConnectorOpen(true)}
@@ -251,15 +257,44 @@ export default function IntegrationsView() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-            {filteredConnectors.map((intg) => (
-              <IntegrationCard
-                key={intg.id}
-                integration={intg}
-                onOpenDetail={() => setSelectedConnector(intg)}
-              />
-            ))}
-          </div>
+          {filteredConnectors.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+              {filteredConnectors.map((intg) => (
+                <IntegrationCard
+                  key={intg.id}
+                  integration={intg}
+                  onOpenDetail={() => setSelectedConnector(intg)}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<IconBox size="lg" variant="primary" icon={<Cpu size={22} />} />}
+              title="No MCP Connectors Found"
+              description={
+                searchQuery || selectedCategory !== 'all'
+                  ? `No connectors match your search "${searchQuery}" or category filter.`
+                  : 'Register a local or remote Model Context Protocol server to expose tools to agents.'
+              }
+              action={{
+                label: 'Register MCP Server',
+                onClick: () => setIsAddConnectorOpen(true),
+                icon: <Plus size={14} />,
+              }}
+              secondaryAction={
+                searchQuery || selectedCategory !== 'all'
+                  ? {
+                      label: 'Reset Filters',
+                      onClick: () => {
+                        setSearchQuery('')
+                        setSelectedCategory('all')
+                      },
+                      icon: <RotateCcw size={13} />,
+                    }
+                  : undefined
+              }
+            />
+          )}
         </div>
       )}
 
@@ -279,16 +314,45 @@ export default function IntegrationsView() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-            {filteredSkills.map((skill) => (
-              <SkillCard
-                key={skill.id}
-                skill={skill}
-                onToggle={() => toggleSkill(skill.id)}
-                onInspect={() => setInspectedSkill(skill)}
-              />
-            ))}
-          </div>
+          {filteredSkills.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+              {filteredSkills.map((skill) => (
+                <SkillCard
+                  key={skill.id}
+                  skill={skill}
+                  onToggle={() => toggleSkill(skill.id)}
+                  onInspect={() => setInspectedSkill(skill)}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<IconBox size="lg" variant="purple" icon={<Sparkles size={22} />} />}
+              title="No Reasoning Skills Found"
+              description={
+                searchQuery || selectedCategory !== 'all'
+                  ? `No skill SOPs match your search "${searchQuery}".`
+                  : 'Author a custom procedural playbook to teach agents standard operating procedures.'
+              }
+              action={{
+                label: 'Author New Skill SOP',
+                onClick: () => setIsAddSkillOpen(true),
+                icon: <Plus size={14} />,
+              }}
+              secondaryAction={
+                searchQuery || selectedCategory !== 'all'
+                  ? {
+                      label: 'Reset Filters',
+                      onClick: () => {
+                        setSearchQuery('')
+                        setSelectedCategory('all')
+                      },
+                      icon: <RotateCcw size={13} />,
+                    }
+                  : undefined
+              }
+            />
+          )}
         </div>
       )}
 

@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import type { ActivityLogEntry, ToastNotification, ToastType } from '@/shared/types/workspace'
-import { INITIAL_ACTIVITIES } from './mockData'
+import { activityApi } from '@/shared/api/activityApi'
 import { WorkspaceContext } from './context'
 import { useCalendarMemory } from './hooks/useCalendarMemory'
 import { useEcosystemManager } from './hooks/useEcosystemManager'
@@ -9,10 +9,30 @@ import { useTaskManager } from './hooks/useTaskManager'
 import { useChatEngine } from './hooks/useChatEngine'
 
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activities, setActivities] = useState<ActivityLogEntry[]>(INITIAL_ACTIVITIES)
+  const [activities, setActivities] = useState<ActivityLogEntry[]>([])
   const [toasts, setToasts] = useState<ToastNotification[]>([])
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isAsideOpen, setIsAsideOpen] = useState<boolean>(false)
+
+  // Fetch real activity logs on mount
+  useEffect(() => {
+    let isMounted = true
+    async function loadActivities() {
+      try {
+        const logs = await activityApi.getLogs()
+        if (Array.isArray(logs) && isMounted) {
+          setActivities(logs)
+        }
+      } catch {
+        // gracefully handle empty or offline logs
+      }
+    }
+    void loadActivities()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
@@ -81,6 +101,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         integrations: ecosystem.integrations,
         activities,
         toastMessage,
+        toasts,
         activeRunningTaskId: taskManager.activeRunningTaskId,
 
         // Ecosystem Actions
@@ -92,6 +113,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addCustomConnector: ecosystem.addCustomConnector,
         addCustomSkill: ecosystem.addCustomSkill,
         updateAgentCapabilities: ecosystem.updateAgentCapabilities,
+        testIntegration: ecosystem.testIntegration,
 
         // Conversational Agentic State
         chatSessions: chatEngine.chatSessions,
@@ -99,19 +121,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         activeSession: chatEngine.activeSession,
         activeArtifact: chatEngine.activeArtifact,
         artifacts: chatEngine.artifacts,
-        isAsideOpen,
         isGeneratingResponse: chatEngine.isGeneratingResponse,
         selectedAgentMode: chatEngine.selectedAgentMode,
-        activeSourceFilters: knowledge.activeSourceFilters,
-
-        // Proactive, Calendar & Memory State & Actions
-        calendarEvents: calendarMemory.calendarEvents,
-        userMemories: calendarMemory.userMemories,
-        triggerMorningBriefing: chatEngine.triggerMorningBriefing,
-        addCalendarEvent: calendarMemory.addCalendarEvent,
-        updateCalendarEventStatus: calendarMemory.updateCalendarEventStatus,
-        addUserMemory: calendarMemory.addUserMemory,
-        deleteUserMemory: calendarMemory.deleteUserMemory,
+        isAsideOpen,
 
         // Conversational Actions
         sendChatMessage: chatEngine.sendChatMessage,
@@ -121,28 +133,40 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setActiveArtifact: chatEngine.setActiveArtifact,
         saveArtifactContent: chatEngine.saveArtifactContent,
         executeCardAction: chatEngine.executeCardAction,
+        triggerMorningBriefing: chatEngine.triggerMorningBriefing,
+        setSelectedAgentMode: chatEngine.setSelectedAgentMode,
+
+        // Toast & Layout Actions
+        showToast,
+        dismissToast,
+        clearToast,
         toggleAside,
         setAsideOpen,
-        setSelectedAgentMode: chatEngine.setSelectedAgentMode,
-        toggleSourceFilter: knowledge.toggleSourceFilter,
 
-        // Task & Knowledge Actions
+        // Knowledge Source Filter Grounding State
+        activeSourceFilters: knowledge.activeSourceFilters,
+        toggleSourceFilter: knowledge.toggleSourceFilter,
+        toggleKnowledgeSync: knowledge.toggleKnowledgeSync,
+        toggleKnowledgeSourceConnect: knowledge.toggleKnowledgeSourceConnect,
+        addKnowledgeSource: knowledge.addKnowledgeSource,
+        uploadKnowledgeFiles: knowledge.uploadKnowledgeFiles,
+        deleteKnowledgeSource: knowledge.deleteKnowledgeSource,
+
+        // Personal Hub Grounding Context
+        calendarEvents: calendarMemory.calendarEvents,
+        addCalendarEvent: calendarMemory.addCalendarEvent,
+        updateCalendarEventStatus: calendarMemory.updateCalendarEventStatus,
+        userMemories: calendarMemory.userMemories,
+        addUserMemory: calendarMemory.addUserMemory,
+        deleteUserMemory: calendarMemory.deleteUserMemory,
+
+        // Task Formulation & Autonomous Planner State
         createTask: taskManager.createTask,
         getTaskById: taskManager.getTaskById,
         approveTask: taskManager.approveTask,
         rejectTask: taskManager.rejectTask,
         advanceTaskStage: taskManager.advanceTaskStage,
         simulateLiveRun: taskManager.simulateLiveRun,
-        toggleKnowledgeSync: knowledge.toggleKnowledgeSync,
-        toggleKnowledgeSourceConnect: knowledge.toggleKnowledgeSourceConnect,
-        addKnowledgeSource: knowledge.addKnowledgeSource,
-        uploadKnowledgeFiles: knowledge.uploadKnowledgeFiles,
-        deleteKnowledgeSource: knowledge.deleteKnowledgeSource,
-        testIntegration: ecosystem.testIntegration,
-        toasts,
-        dismissToast,
-        showToast,
-        clearToast,
       }}
     >
       {children}

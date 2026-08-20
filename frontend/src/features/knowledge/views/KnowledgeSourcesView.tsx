@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FolderOpen, Plus, Sparkles, BookOpen, HardDrive } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import {
@@ -7,6 +8,8 @@ import {
   KnowledgeSourceDetailModal,
   AddSourceModal,
 } from '@/features/knowledge'
+import { IconBox } from '@/shared/components/ui/IconBox'
+import { EmptyState } from '@/shared/components/ui/EmptyState'
 
 export default function KnowledgeSourcesView() {
   const {
@@ -44,16 +47,49 @@ export default function KnowledgeSourcesView() {
       {/* Top Banner Header */}
       <KnowledgeHeader onAddSource={() => setIsAddModalOpen(true)} />
 
-      {/* Sources Grid in 2 Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-        {knowledgeSources.map((src) => (
-          <KnowledgeSourceCard
-            key={src.id}
-            source={src}
-            onOpenDetail={() => setSelectedSourceId(src.id)}
-          />
-        ))}
-      </div>
+      {/* Sources Grid or Clean Empty State */}
+      {knowledgeSources.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          {knowledgeSources.map((src) => (
+            <KnowledgeSourceCard
+              key={src.id}
+              source={src}
+              onOpenDetail={() => setSelectedSourceId(src.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={
+            <IconBox
+              size="lg"
+              variant="primary"
+              icon={<FolderOpen size={24} />}
+            />
+          }
+          title="No Knowledge Bases Connected"
+          description="Connect your Obsidian notes, project folders, or upload PDF/code documents to ground AI agent reasoning with 1536-dim vector RAG."
+          action={{
+            label: 'Connect Knowledge Base',
+            onClick: () => setIsAddModalOpen(true),
+            icon: <Plus size={14} />,
+          }}
+          footerPills={[
+            {
+              icon: <BookOpen size={12} className="text-[#7c3aed]" />,
+              label: 'Obsidian Vaults',
+            },
+            {
+              icon: <HardDrive size={12} className="text-semantic-success" />,
+              label: 'Local Folders',
+            },
+            {
+              icon: <Sparkles size={12} className="text-primary" />,
+              label: '1536-dim RAG',
+            },
+          ]}
+        />
+      )}
 
       {/* Grounding Source Detail & Vector Modal */}
       <KnowledgeSourceDetailModal

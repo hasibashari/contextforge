@@ -2,15 +2,13 @@ import type {
   Agent,
   Skill,
   Plugin,
-  Task,
-  KnowledgeSource,
   Integration,
-  ActivityLogEntry,
-  Artifact,
-  ChatSession,
-  CalendarEvent,
-  UserMemoryItem,
 } from '@/shared/types/workspace'
+
+// =============================================================
+// CATALOG REGISTRY TEMPLATES
+// Pre-configured system agents, reasoning skills, plugins, and MCP connectors.
+// =============================================================
 
 export const INITIAL_AGENTS: Agent[] = [
   {
@@ -58,315 +56,165 @@ export const INITIAL_AGENTS: Agent[] = [
     assignedSkills: ['skill-obsidian-vault-synthesis'],
     status: 'idle',
     totalTasksCompleted: 58,
-    successRatePct: 99.2,
-  },
-  {
-    id: 'agent-code-reviewer',
-    name: 'CLI & Code Sandbox Runner',
-    role: 'Side Agent: Terminal & File Execution',
-    agentType: 'execution_worker',
-    permissions: 'full_system',
-    description:
-      'Sandboxed execution worker that creates files, edits codebases, executes bash commands, and runs test suites.',
-    avatarColor: 'bg-[#c0a8dd]',
-    model: 'claude-3-7-sonnet',
-    temperature: 0.1,
-    systemPrompt:
-      'You are Code Sandbox Side Agent. Execute file mutations, run CLI commands, verify AST syntax, and return execution summaries.',
-    capabilities: [
-      { id: 'c8', name: 'File Creation & Editing', description: 'Write source code, apply atomic diffs, and create directories' },
-      { id: 'c9', name: 'CLI Command Execution', description: 'Run test runners, package installers, and lint checks in sandbox' },
-    ],
-    assignedTools: ['write_file', 'replace_file_content', 'run_command', 'git_create_pr'],
-    assignedSkills: ['skill-tdd-flow', 'skill-cve-threat-model'],
-    status: 'idle',
-    totalTasksCompleted: 74,
-    successRatePct: 99.1,
+    successRatePct: 98.7,
   },
   {
     id: 'agent-db-platform',
-    name: 'Calendar & Workflow Worker',
-    role: 'Side Agent: Calendar & API Mutator',
+    name: 'PostgreSQL Platform Worker',
+    role: 'Side Agent: Database & Schema Introspection',
     agentType: 'execution_worker',
     permissions: 'sandbox_write',
     description:
-      'Side agent for scheduling Google Calendar reminders, updating database records, and triggering external webhooks.',
-    avatarColor: 'bg-[#9fc9a2]',
-    model: 'gemini-2.5-flash',
+      'Safe schema analysis, SQL query planning, and DDL migration verification over sandboxed connections.',
+    avatarColor: 'bg-[#4b5563]',
+    model: 'gemini-2.5-pro',
     temperature: 0.1,
     systemPrompt:
-      'You are Calendar & Workflow Worker. Schedule calendar events, configure notification reminders, and run API mutations.',
+      'You are PostgreSQL Platform Worker. Execute read-only introspection, query plan analysis, and generate safe idempotent migration SQL scripts.',
     capabilities: [
-      { id: 'c6', name: 'Calendar Scheduling', description: 'Create, update, and manage Google Calendar reminders' },
-      { id: 'c7', name: 'API Mutation Execution', description: 'Trigger webhook integrations and update cloud records' },
+      { id: 'c6', name: 'Schema Introspection', description: 'Inspect tables, columns, indexes, and foreign keys' },
+      { id: 'c7', name: 'Safe Migration Generation', description: 'Draft non-blocking DDL scripts with rollback guards' },
     ],
-    assignedTools: ['calendar_create_reminder', 'api_post_webhook'],
+    assignedTools: ['mcp_postgres_query', 'pg_explain_analyzer'],
     assignedSkills: ['skill-postgres-schema-analyzer'],
     status: 'idle',
-    totalTasksCompleted: 34,
-    successRatePct: 100.0,
-  },
-  {
-    id: 'agent-frontend-arch',
-    name: 'Visual & Asset Generator',
-    role: 'Side Agent: GPU Asset Renderer',
-    agentType: 'execution_worker',
-    permissions: 'sandbox_write',
-    description:
-      'Specialized GPU worker for rendering UI mockups, architecture diagrams, and visual design assets.',
-    avatarColor: 'bg-[#ff5e00]',
-    model: 'imagen-3-flux',
-    temperature: 0.7,
-    systemPrompt:
-      'You are Visual Asset Generator. Render high-resolution visual designs and diagram assets.',
-    capabilities: [
-      { id: 'c10', name: 'Visual Asset Rendering', description: 'Generate high-res SVG and PNG visual assets' },
-    ],
-    assignedTools: ['image_generation_pipeline'],
-    assignedSkills: ['skill-deep-web-research'],
-    status: 'idle',
-    totalTasksCompleted: 29,
-    successRatePct: 98.8,
-  },
-]
-
-export const INITIAL_KNOWLEDGE_SOURCES: KnowledgeSource[] = [
-  {
-    id: 'source-obsidian-vault',
-    type: 'obsidian_vault',
-    name: 'Personal Obsidian Vault',
-    description: 'Local Obsidian notes folder with architecture decisions, sprint ideas, and daily engineering logs.',
-    location: 'obsidian://vault/Engineering-HQ',
-    meta: '128 notes · 1536-dim vector RAG',
-    filesCount: 12,
-    chunksCount: 148,
-    lastSynced: 'Just now',
-    status: 'synced',
-    iconType: 'book-open',
-    color: 'text-primary',
-    subfolderScope: 'Obsidian',
-    mountRoot: 'contextforge',
-  },
-  {
-    id: 'source-upload-specs',
-    type: 'document_upload',
-    name: 'Technical Design & RFC Documents',
-    description: 'Uploaded engineering documents (PDF, Markdown, DOCX) indexed for conversational RAG grounding.',
-    location: 'upload://documents/170000001',
-    meta: '8 documents uploaded · 1536-dim vector RAG',
-    filesCount: 8,
-    chunksCount: 96,
-    lastSynced: '15m ago',
-    status: 'synced',
-    iconType: 'upload',
-    color: 'text-primary',
-  },
-  {
-    id: 'source-server-docs',
-    type: 'local_folder',
-    name: 'Engineering & Code Specs',
-    description: 'Direct workspace filesystem documentation directory for self-hosted and on-premise deployments.',
-    location: 'paired://contextforge/Engineering',
-    meta: 'Workspace storage · 1536-dim vector RAG',
-    filesCount: 6,
-    chunksCount: 64,
-    lastSynced: '1h ago',
-    status: 'synced',
-    iconType: 'folder',
-    color: 'text-semantic-success',
-    subfolderScope: 'Engineering',
-    mountRoot: 'contextforge',
+    totalTasksCompleted: 92,
+    successRatePct: 99.8,
   },
 ]
 
 export const INITIAL_INTEGRATIONS: Integration[] = [
   {
-    id: 'int-obsidian-mcp',
+    id: 'int-obsidian-vault-mcp',
     name: 'Obsidian Vault MCP Bridge',
-    category: 'productivity',
+    category: 'documentation',
     status: 'connected',
     endpoint: 'http://localhost:27123/mcp/obsidian',
-    version: 'v2.0.4',
-    description: 'Enables direct reading, writing, and tagging of Markdown notes in your Obsidian desktop vault.',
-    lastPingMs: 6,
-    latencyMs: 5,
-    mountedKnowledgeSourceId: 'source-obsidian-vault',
-    mountedKnowledgeSourceName: 'Personal Obsidian Vault',
-    targetBinding: {
-      folderScope: 'Obsidian',
-      defaultOutputPath: 'Drafts/',
-    },
+    version: 'v2.1.0',
+    transport: 'stdio',
+    description: 'Direct bi-directional Model Context Protocol bridge into local Obsidian vault files & daily notes.',
+    lastPingMs: 14,
+    latencyMs: 11,
     tools: [
       {
         name: 'obsidian_vault_writer',
-        description: 'Create or overwrite Markdown file inside Obsidian vault with tags and frontmatter',
-        parametersSchema: { path: 'string', content: 'string', tags: 'array' },
+        description: 'Append or create structured Markdown files with frontmatter inside Obsidian',
+        parametersSchema: { vaultName: 'string', path: 'string', content: 'string' },
         readOnly: false,
       },
       {
         name: 'obsidian_vault_reader',
-        description: 'Search and read existing markdown notes in Obsidian vault',
-        parametersSchema: { query: 'string', folder: 'string' },
+        description: 'Read and search note contents, backlinks, and tags across markdown files',
+        parametersSchema: { vaultName: 'string', query: 'string' },
+        readOnly: true,
+      },
+    ],
+  },
+  {
+    id: 'int-web-search-engine',
+    name: 'Live Web Grounding Engine',
+    category: 'telemetry',
+    status: 'connected',
+    endpoint: 'https://api.tavily.com/v1/search',
+    version: 'v1.4.2',
+    transport: 'rest',
+    description: 'Grounding search engine provider for real-time web facts, documentation verification, & source citations.',
+    lastPingMs: 68,
+    latencyMs: 54,
+    tools: [
+      {
+        name: 'web_search',
+        description: 'Query search index for real-time technical documentation and cited news',
+        parametersSchema: { query: 'string', maxResults: 'number' },
+        readOnly: true,
+      },
+      {
+        name: 'web_crawl_openapi',
+        description: 'Crawl and parse remote OpenAPI/Swagger JSON specifications',
+        parametersSchema: { url: 'string' },
         readOnly: true,
       },
     ],
   },
   {
     id: 'int-google-calendar',
-    name: 'Google Calendar & Reminder Service',
+    name: 'Google Calendar API',
     category: 'productivity',
     status: 'connected',
-    endpoint: 'https://googleapis.com/calendar/v3/primary',
-    version: 'v3.0.0',
-    description: 'Sets calendar events, reminders, and deadline alerts directly from chat instructions.',
+    endpoint: 'https://googleapis.com/calendar/v3/calendars/primary',
+    version: 'v3.0.1',
+    transport: 'rest',
+    description: 'Sync reminders, schedule engineering reviews, and set autonomous agent checkpoints.',
     lastPingMs: 42,
     latencyMs: 38,
     tools: [
       {
-        name: 'calendar_create_reminder',
-        description: 'Schedule a new calendar reminder with date, time, and title',
-        parametersSchema: { title: 'string', datetimeIso: 'string', details: 'string' },
-        readOnly: false,
-      },
-    ],
-  },
-  {
-    id: 'int-web-search-engine',
-    name: 'Tavily / Google Web Search API',
-    category: 'documentation',
-    status: 'connected',
-    endpoint: 'https://api.tavily.com/v1/search',
-    version: 'v1.1.0',
-    description: 'Provides clean, verified web extracts, citations, and realtime facts for research prompts.',
-    lastPingMs: 95,
-    latencyMs: 85,
-    tools: [
-      {
-        name: 'web_search',
-        description: 'Perform web search query and return top summarized URL results',
-        parametersSchema: { query: 'string', maxResults: 'number' },
-        readOnly: true,
-      },
-    ],
-  },
-  {
-    id: 'int-github-app',
-    name: 'GitHub Enterprise Connector',
-    category: 'git_provider',
-    status: 'connected',
-    endpoint: 'api.github.com/app/contextforge-bot',
-    version: 'v2.1.0',
-    description: 'Reads codebase AST, indexes main branches, and creates draft pull requests on demand.',
-    lastPingMs: 45,
-    latencyMs: 42,
-    tools: [
-      {
-        name: 'github_grep',
-        description: 'Search exact string or regex across all indexed files',
-        parametersSchema: { query: 'string', pathFilter: 'string' },
+        name: 'calendar_list_events',
+        description: 'List upcoming events and agenda items for current workspace',
+        parametersSchema: { timeMin: 'string', timeMax: 'string' },
         readOnly: true,
       },
       {
-        name: 'github_create_pr',
-        description: 'Dispatch pull request with branch, title, and commit patch',
-        parametersSchema: { branch: 'string', title: 'string', diff: 'string' },
+        name: 'calendar_schedule_review',
+        description: 'Insert new calendar reminder event for code reviews and deadlines',
+        parametersSchema: { title: 'string', dateTime: 'string', durationMinutes: 'number' },
         readOnly: false,
       },
     ],
   },
   {
     id: 'int-mcp-postgres',
-    name: 'PostgreSQL MCP Server',
+    name: 'PostgreSQL Direct MCP Connector',
     category: 'mcp_server',
     status: 'connected',
-    endpoint: 'http://localhost:8080/mcp/postgres',
-    version: 'v1.4.0',
-    description: 'Allows agents to inspect table DDLs, active connection limits, and index cardinality.',
-    lastPingMs: 14,
-    latencyMs: 12,
+    endpoint: 'postgres://contextforge:secret@localhost:5432/platform_db',
+    version: 'v1.0.0',
+    transport: 'stdio',
+    description: 'Model Context Protocol adapter for read-only database introspection, EXPLAIN ANALYZE, & schema inspection.',
+    lastPingMs: 8,
+    latencyMs: 6,
     tools: [
       {
         name: 'mcp_postgres_query',
-        description: 'Execute read-only SQL queries in sandboxed transaction block',
-        parametersSchema: { sql: 'string', limit: 'number' },
+        description: 'Execute parameterized read-only SQL query against database',
+        parametersSchema: { sql: 'string' },
+        readOnly: true,
+      },
+      {
+        name: 'pg_explain_analyzer',
+        description: 'Run EXPLAIN (ANALYZE, BUFFERS) on target query to diagnose table scans',
+        parametersSchema: { query: 'string' },
         readOnly: true,
       },
     ],
   },
   {
-    id: 'int-google-drive',
-    name: 'Google Drive',
-    category: 'productivity',
+    id: 'int-github-app',
+    name: 'GitHub Cloud / App',
+    category: 'git_provider',
     status: 'connected',
-    endpoint: 'https://googleapis.com/drive/v3/files',
-    version: 'v3.2.0',
-    description: 'Search, read, and upload files instantly across personal and shared team drives.',
-    lastPingMs: 28,
-    latencyMs: 22,
+    endpoint: 'https://api.github.com/repos/acme/platform-core',
+    version: 'v3.0.0',
+    transport: 'rest',
+    description: 'Read AST files, inspect pull requests, and commit audited deliverables directly to Git.',
+    lastPingMs: 45,
+    latencyMs: 38,
     tools: [
       {
-        name: 'drive_search_files',
-        description: 'Search files and folders in Google Drive by keyword or MIME type',
-        parametersSchema: { query: 'string', mimeType: 'string' },
+        name: 'github_grep',
+        description: 'Ripgrep regex pattern across entire remote repository codebase',
+        parametersSchema: { query: 'string', pathFilter: 'string' },
         readOnly: true,
       },
       {
-        name: 'drive_upload_doc',
-        description: 'Export and upload generated markdown or artifact to Google Drive',
-        parametersSchema: { title: 'string', content: 'string', folderId: 'string' },
+        name: 'github_create_pr',
+        description: 'Submit an automated branch and pull request for reviewed changes',
+        parametersSchema: { branch: 'string', title: 'string', body: 'string' },
         readOnly: false,
-      },
-    ],
-  },
-  {
-    id: 'int-gmail',
-    name: 'Gmail',
-    category: 'productivity',
-    status: 'connected',
-    endpoint: 'https://googleapis.com/gmail/v1/users/me',
-    version: 'v1.0.0',
-    description: 'Draft replies, summarize threads, & search your inbox securely without human friction.',
-    lastPingMs: 32,
-    latencyMs: 26,
-    tools: [
-      {
-        name: 'gmail_search_threads',
-        description: 'Search email threads by query or sender address',
-        parametersSchema: { query: 'string', maxResults: 'number' },
-        readOnly: true,
-      },
-      {
-        name: 'gmail_draft_reply',
-        description: 'Create draft response for review before dispatch',
-        parametersSchema: { threadId: 'string', replyBody: 'string' },
-        readOnly: false,
-      },
-    ],
-  },
-  {
-    id: 'int-notion-workspace',
-    name: 'Notion Workspace',
-    category: 'documentation',
-    status: 'connected',
-    endpoint: 'https://api.notion.com/v1/search',
-    version: 'v2.2.0',
-    description: 'Index engineering wikis, product requirement documents (PRD), and Notion RFCs.',
-    lastPingMs: 19,
-    latencyMs: 15,
-    tools: [
-      {
-        name: 'notion_read_rfc',
-        description: 'Query and fetch internal technical specifications in Notion',
-        parametersSchema: { pageId: 'string', query: 'string' },
-        readOnly: true,
       },
     ],
   },
 ]
-
-// -------------------------------------------------------------
-// Initial Skills (SOPs / Reasoning Playbooks)
-// -------------------------------------------------------------
 
 export const INITIAL_SKILLS: Skill[] = [
   {
@@ -450,10 +298,6 @@ export const INITIAL_SKILLS: Skill[] = [
   },
 ]
 
-// -------------------------------------------------------------
-// Initial Plugins (Curated Ecosystem Bundles)
-// -------------------------------------------------------------
-
 export const INITIAL_PLUGINS: Plugin[] = [
   {
     id: 'plugin-devops-automation',
@@ -508,126 +352,3 @@ export const INITIAL_PLUGINS: Plugin[] = [
     bundledSkillIds: ['skill-cve-threat-model', 'skill-rfc-architect'],
   },
 ]
-
-// -------------------------------------------------------------
-// Initial Artifacts (Real data loaded from PostgreSQL)
-// -------------------------------------------------------------
-
-export const INITIAL_ARTIFACTS: Artifact[] = []
-
-// -------------------------------------------------------------
-// Initial Chat Sessions (Real data loaded from PostgreSQL)
-// -------------------------------------------------------------
-
-export const INITIAL_CHAT_SESSIONS: ChatSession[] = []
-
-// -------------------------------------------------------------
-// Legacy Mock Tasks for compatibility
-// -------------------------------------------------------------
-
-export const INITIAL_TASKS: Task[] = [
-  {
-    id: 'PLAN-104',
-    title: 'Migrate OAuth2 session tokens to ephemeral scoped keys',
-    objective:
-      'Grounded across internal Notion Security RFC #204 and GitHub auth middleware. Ingest 14 files, update JWT payload structure, and verify 0 regressions in sandboxed AST test.',
-    repo: 'github:acme/auth-service',
-    agentId: 'agent-sec-docs',
-    status: 'waiting_approval',
-    currentStage: 'deliverable',
-    createdAt: '12m ago',
-    knowledgeSources: ['source-github-core', 'source-notion-sops', 'source-obsidian-vault'],
-    toolsUsed: ['github_grep', 'notion_read_rfc', 'ast_sandbox_runner'],
-    tokensUsed: {
-      input: 14250,
-      output: 3840,
-      total: 18090,
-      estimatedCostUsd: 0.082,
-    },
-    steps: [
-      {
-        id: 'step-1',
-        stage: 'planning',
-        title: 'Task Decomposition & Objective Formulation',
-        status: 'completed',
-        startedAt: '12m ago',
-        completedAt: '11m ago',
-        logs: [
-          '[Agent:Security & RFC Architect] Initialized task workflow: Migrate OAuth2 session tokens',
-          '[Planning] Parsed user constraints: zero-regression, ephemeral 15m expiration, RFC #204 compatibility',
-        ],
-      },
-    ],
-    deliverable: {
-      id: 'DELIV-104',
-      type: 'pull_request',
-      title: 'feat(auth): migrate OAuth2 session tokens to scoped ephemeral keys',
-      summary:
-        'Replaces legacy static JWT verification with ephemeral scoped HMAC tokens adhering to Notion Security RFC #204. Sandboxed AST validation completed with 32/32 tests passing.',
-      impactLevel: 'High',
-      impactArea: 'Auth Gateway, Session Storage, Token Middleware',
-      branchName: 'feat/ephemeral-oauth2-rfc204',
-      pullRequestUrl: 'https://github.com/acme-corp/platform-core/pull/842',
-      checkpoints: [
-        {
-          id: 'cp-1',
-          text: 'Validate HMAC token rotation against Notion Security RFC #204',
-          category: 'rfc_compliance',
-          done: true,
-          details: 'Verified payload contains iss, exp (900s), and scope claims',
-        },
-        {
-          id: 'cp-2',
-          text: 'Update authMiddleware.ts with scoped claims extractor',
-          category: 'ast_analysis',
-          done: true,
-          details: 'Zero broken references in AST parser',
-        },
-      ],
-      diffs: [
-        {
-          file: 'src/middleware/auth.ts',
-          additions: 34,
-          deletions: 12,
-          oldCode: `export function verifyToken(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1]\n  return jwt.verify(token, process.env.STATIC_SECRET)\n}`,
-          newCode: `export function verifyToken(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1]\n  const scopedKey = getEphemeralKeyRotator().getCurrentScope()\n  return jwt.verify(token, scopedKey, { maxAge: '15m', algorithms: ['HS256'] })\n}`,
-        },
-      ],
-    },
-  },
-]
-
-export const INITIAL_ACTIVITIES: ActivityLogEntry[] = [
-  {
-    id: 'act-1',
-    timestamp: '10m ago',
-    agentId: 'agent-doc-crawl',
-    agentName: 'Knowledge & Obsidian Sync',
-    actionType: 'obsidian_note_created',
-    summary: 'Created new sprint plan in Obsidian vault: Vault/Work/Sprints/Sprint-34-Plan.md',
-    status: 'success',
-  },
-  {
-    id: 'act-2',
-    timestamp: '25m ago',
-    agentId: 'agent-doc-crawl',
-    agentName: 'Knowledge & Obsidian Sync',
-    actionType: 'web_searched',
-    summary: 'Retrieved latest AI reasoning architecture benchmarks via Web Search API',
-    status: 'info',
-  },
-  {
-    id: 'act-3',
-    timestamp: '1h ago',
-    agentId: 'agent-db-platform',
-    agentName: 'Database & Productivity Agent',
-    actionType: 'reminder_created',
-    summary: 'Scheduled calendar reminder: "Review RFC #204 Token Compliance" for tomorrow 09:00',
-    status: 'success',
-  },
-]
-
-export const INITIAL_CALENDAR_EVENTS: CalendarEvent[] = []
-
-export const INITIAL_USER_MEMORIES: UserMemoryItem[] = []
-

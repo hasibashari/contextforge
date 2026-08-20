@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react'
 import type { Task, Agent, ToastType } from '@/shared/types/workspace'
-import { INITIAL_TASKS } from '../mockData'
 
 export function useTaskManager(agents: Agent[], showToast: (msg: string, type?: ToastType) => void) {
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS)
+  const [tasks, setTasks] = useState<Task[]>([])
   const [activeRunningTaskId, setActiveRunningTaskId] = useState<string | null>(null)
 
   const getTaskById = useCallback(
@@ -31,12 +30,12 @@ export function useTaskManager(agents: Agent[], showToast: (msg: string, type?: 
         title: title || objective.slice(0, 60),
         objective,
         repo: 'github:acme/platform-core',
-        agentId: assignedAgent.id,
+        agentId: assignedAgent ? assignedAgent.id : 'agent-sec-docs',
         status: 'planning',
         currentStage: 'planning',
         createdAt: 'Just now',
-        knowledgeSources: selectedSources.length > 0 ? selectedSources : ['source-obsidian-vault'],
-        toolsUsed: assignedAgent.assignedTools,
+        knowledgeSources: selectedSources.length > 0 ? selectedSources : [],
+        toolsUsed: assignedAgent ? assignedAgent.assignedTools : [],
         tokensUsed: {
           input: 1200,
           output: 350,
@@ -50,7 +49,7 @@ export function useTaskManager(agents: Agent[], showToast: (msg: string, type?: 
             title: 'Task Formulation',
             status: 'in_progress',
             startedAt: 'Just now',
-            logs: [`[Agent:${assignedAgent.name}] Dispatched workflow for: "${objective}"`],
+            logs: [`[Agent:${assignedAgent?.name || 'Orchestrator'}] Dispatched workflow for: "${objective}"`],
           },
         ],
       }
@@ -99,17 +98,42 @@ export function useTaskManager(agents: Agent[], showToast: (msg: string, type?: 
   const simulateLiveRun = useCallback(
     (taskId: string) => {
       setActiveRunningTaskId(taskId)
-      showToast(`Simulating step for task ${taskId}`, 'info')
+      showToast(`Agent executing sub-steps for ${taskId}...`, 'info')
+
       setTimeout(() => {
+        setTasks((prev) =>
+          prev.map((task) => {
+            if (task.id !== taskId) return task
+            return {
+              ...task,
+              status: 'running_tools',
+              currentStage: 'tool_execution',
+            }
+          })
+        )
+      }, 1200)
+
+      setTimeout(() => {
+        setTasks((prev) =>
+          prev.map((task) => {
+            if (task.id !== taskId) return task
+            return {
+              ...task,
+              status: 'completed',
+              currentStage: 'deliverable',
+              completedAt: 'Just now',
+            }
+          })
+        )
         setActiveRunningTaskId(null)
-      }, 1500)
+        showToast(`Task ${taskId} completed!`, 'success')
+      }, 3500)
     },
     [showToast]
   )
 
   return {
     tasks,
-    setTasks,
     activeRunningTaskId,
     getTaskById,
     createTask,

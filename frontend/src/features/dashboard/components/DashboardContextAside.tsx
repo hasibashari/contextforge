@@ -19,7 +19,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
-import { MarkdownRenderer } from '@/shared/components'
+import { MarkdownRenderer, EmptyState, IconBox } from '@/shared/components'
 import type { Artifact, CalendarEvent, UserMemoryItem, ToastType } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 
@@ -151,13 +151,18 @@ export default function DashboardContextAside() {
                 onSelectArtifact={setActiveArtifact}
               />
             ) : (
-              <div className="p-8 text-center bg-surface-card border border-hairline rounded-xl space-y-2">
-                <FileText size={24} className="text-muted mx-auto" />
-                <div className="font-semibold text-ink">No Active Document</div>
-                <p className="text-[11px] text-muted">
-                  Type an instruction in chat (e.g., "Create a note in Obsidian" or "Generate an architecture diagram") and artifacts will appear here.
-                </p>
-              </div>
+              <EmptyState
+                compact
+                icon={
+                  <IconBox
+                    size="md"
+                    variant="neutral"
+                    icon={<FileText size={18} className="text-muted" />}
+                  />
+                }
+                title="No Active Document"
+                description="Type an instruction in chat (e.g. 'Create note in Obsidian' or 'Generate diagram') to preview artifacts here."
+              />
             )}
           </div>
         )}
@@ -235,81 +240,96 @@ export default function DashboardContextAside() {
 
             {/* Events Timeline List */}
             <div className="space-y-2">
-              {calendarEvents.map((evt) => {
-                const isDone = evt.status === 'completed'
+              {calendarEvents.length === 0 ? (
+                <EmptyState
+                  compact
+                  icon={
+                    <IconBox
+                      size="md"
+                      variant="primary"
+                      icon={<Calendar size={18} />}
+                    />
+                  }
+                  title="No Events Scheduled"
+                  description="Schedule meetings, reviews, or tasks for your agentic workflow by clicking '+ New Event'."
+                />
+              ) : (
+                calendarEvents.map((evt) => {
+                  const isDone = evt.status === 'completed'
 
-                return (
-                  <div
-                    key={evt.id}
-                    className={`p-3 rounded-xl border transition-all shadow-2xs space-y-2 ${
-                      isDone
-                        ? 'bg-canvas-soft/60 border-hairline opacity-60'
-                        : 'bg-surface-card border-hairline hover:border-hairline-strong'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateCalendarEventStatus(
-                              evt.id,
-                              isDone ? 'upcoming' : 'completed'
-                            )
-                          }
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-                            isDone
-                              ? 'bg-semantic-success border-semantic-success text-white'
-                              : 'border-hairline hover:border-primary text-transparent'
-                          }`}
-                          title={isDone ? 'Mark as Upcoming' : 'Mark as Completed'}
-                        >
-                          <CheckCircle2 size={12} />
-                        </button>
+                  return (
+                    <div
+                      key={evt.id}
+                      className={`p-3 rounded-xl border transition-all shadow-2xs space-y-2 ${
+                        isDone
+                          ? 'bg-canvas-soft/60 border-hairline opacity-60'
+                          : 'bg-surface-card border-hairline hover:border-hairline-strong'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateCalendarEventStatus(
+                                evt.id,
+                                isDone ? 'upcoming' : 'completed'
+                              )
+                            }
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                              isDone
+                                ? 'bg-semantic-success border-semantic-success text-white'
+                                : 'border-hairline hover:border-primary text-transparent'
+                            }`}
+                            title={isDone ? 'Mark as Upcoming' : 'Mark as Completed'}
+                          >
+                            <CheckCircle2 size={12} />
+                          </button>
 
-                        <h4
-                          className={`font-semibold text-xs text-ink leading-snug truncate ${
-                            isDone ? 'line-through text-muted' : ''
+                          <h4
+                            className={`font-semibold text-xs text-ink leading-snug truncate ${
+                              isDone ? 'line-through text-muted' : ''
+                            }`}
+                          >
+                            {evt.title}
+                          </h4>
+                        </div>
+
+                        <span
+                          className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold shrink-0 ${
+                            evt.category === 'meeting'
+                              ? 'bg-primary/10 text-primary'
+                              : evt.category === 'review'
+                              ? 'bg-[#3b6ea5]/15 text-[#3b6ea5]'
+                              : 'bg-surface-strong text-body'
                           }`}
                         >
-                          {evt.title}
-                        </h4>
+                          {evt.category}
+                        </span>
                       </div>
 
-                      <span
-                        className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold shrink-0 ${
-                          evt.category === 'meeting'
-                            ? 'bg-primary/10 text-primary'
-                            : evt.category === 'review'
-                            ? 'bg-[#3b6ea5]/15 text-[#3b6ea5]'
-                            : 'bg-surface-strong text-body'
-                        }`}
-                      >
-                        {evt.category}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] font-mono text-muted pl-6">
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={11} className="text-muted shrink-0" />
-                        <span>{evt.time}</span>
-                        <span>•</span>
-                        <span>{evt.duration}</span>
+                      <div className="flex items-center justify-between text-[11px] font-mono text-muted pl-6">
+                        <div className="flex items-center gap-1.5">
+                          <Clock size={11} className="text-muted shrink-0" />
+                          <span>{evt.time}</span>
+                          <span>•</span>
+                          <span>{evt.duration}</span>
+                        </div>
+                        {evt.location && (
+                          <span className="truncate max-w-30">{evt.location}</span>
+                        )}
                       </div>
-                      {evt.location && (
-                        <span className="truncate max-w-30">{evt.location}</span>
+
+                      {evt.attendees && evt.attendees.length > 0 && (
+                        <div className="flex items-center gap-1.5 pl-6 text-[10px] font-mono text-muted">
+                          <User size={10} />
+                          <span className="truncate">{evt.attendees.join(', ')}</span>
+                        </div>
                       )}
                     </div>
-
-                    {evt.attendees && evt.attendees.length > 0 && (
-                      <div className="flex items-center gap-1.5 pl-6 text-[10px] font-mono text-muted">
-                        <User size={10} />
-                        <span className="truncate">{evt.attendees.join(', ')}</span>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+                  )
+                })
+              )}
             </div>
           </div>
         )}
@@ -388,30 +408,45 @@ export default function DashboardContextAside() {
 
             {/* Memory Items List */}
             <div className="space-y-2">
-              {userMemories.map((mem) => (
-                <div
-                  key={mem.id}
-                  className="p-3 rounded-xl bg-surface-card border border-hairline hover:border-hairline-strong space-y-1.5 shadow-2xs group"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-primary/10 text-primary font-semibold">
-                      {mem.category}
-                    </span>
+              {userMemories.length === 0 ? (
+                <EmptyState
+                  compact
+                  icon={
+                    <IconBox
+                      size="md"
+                      variant="purple"
+                      icon={<Brain size={18} />}
+                    />
+                  }
+                  title="Memory Bank is Empty"
+                  description="ContextForge AI automatically stores key facts, preferences, and workspace rules here."
+                />
+              ) : (
+                userMemories.map((mem) => (
+                  <div
+                    key={mem.id}
+                    className="p-3 rounded-xl bg-surface-card border border-hairline hover:border-hairline-strong space-y-1.5 shadow-2xs group"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-primary/10 text-primary font-semibold">
+                        {mem.category}
+                      </span>
 
-                    <button
-                      type="button"
-                      onClick={() => deleteUserMemory(mem.id)}
-                      className="text-muted hover:text-semantic-error opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
-                      title="Forget this memory item"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteUserMemory(mem.id)}
+                        className="text-muted hover:text-semantic-error opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
+                        title="Forget this memory item"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+
+                    <div className="font-semibold text-xs text-ink">{mem.key}</div>
+                    <p className="text-[11px] text-body leading-relaxed">{mem.value}</p>
                   </div>
-
-                  <div className="font-semibold text-xs text-ink">{mem.key}</div>
-                  <p className="text-[11px] text-body leading-relaxed">{mem.value}</p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}
