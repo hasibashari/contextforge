@@ -1,8 +1,8 @@
 /**
- * ContextForge: Production-Ready Obsidian Bridge Service
- * Browser-native local vault pairing (HTML5 File System Access API),
- * Hierarchical Subfolder Scoping (obsidian://vault/VaultName/Subfolder),
- * Obsidian URI protocol dispatching, and fallback file export.
+ * ContextForge: Unified Storage & Obsidian Bridge Service
+ * Browser-native local storage pairing (HTML5 File System Access API),
+ * Multi-subfolder scanning, Vault signature detection,
+ * Hierarchical Subfolder Scoping, and Obsidian URI protocol dispatching.
  */
 
 export interface VaultFileItem {
@@ -14,6 +14,16 @@ export interface ParsedObsidianUri {
   vaultName: string
   subfolderScope: string
   fullLocation: string
+}
+
+export interface DiscoveredSubfolder {
+  path: string
+  name: string
+  filesCount: number
+  hasObsidianVaultSignature: boolean
+  suggestedType: 'obsidian_vault' | 'local_folder' | 'document_upload'
+  files: File[]
+  fileSampleNames: string[]
 }
 
 class ObsidianBridgeService {
@@ -71,7 +81,233 @@ class ObsidianBridgeService {
   }
 
   /**
-   * Open OS directory picker to select a local Obsidian Vault or Sub-folder
+   * Open OS directory picker to select a local root storage or folder
+   */
+  async requestDirectoryPicker(): Promise<{
+    handle: FileSystemDirectoryHandle
+    rootName: string
+    subfolders: DiscoveredSubfolder[]
+    rootFiles: File[]
+  } | null> {
+    if (!this.isFileSystemAccessSupported()) {
+      return null
+    }
+
+    try {
+      const dirHandle = await (window as unknown as {
+        showDirectoryPicker: (options?: { mode?: 'read' | 'readwrite' }) => Promise<FileSystemDirectoryHandle>
+      }).showDirectoryPicker({ mode: 'readwrite' })
+
+      this.activeDirectoryHandle = dirHandle
+      const subfolders = await this.scanSubfolders(dirHandle)
+      const rootFiles = await this.readDirectFiles(dirHandle)
+
+      return {
+        handle: dirHandle,
+        rootName: dirHandle.name,
+        subfolders,
+        rootFiles,
+      }
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return null
+      }
+      throw err
+    }
+  }
+
+  /**
+   * Scans immediate subfolders of a directory handle to discover granular knowledge sources
+   */
+  async scanSubfolders(dirHandle: FileSystemDirectoryHandle): Promise<DiscoveredSubfolder[]> {
+    const subfolders: DiscoveredSubfolder[] = []
+
+    try {
+      const iterator =
+        typeof (dirHandle as unknown as { values?: () => AsyncIterable<FileSystemHandle> }).values === 'function'
+          ? (dirHandle as unknown as { values: () => AsyncIterable<FileSystemHandle> }).values()
+          : (dirHandle as unknown as AsyncIterable<FileSystemHandle>)
+
+      for await (const entry of iterator) {
+        if (entry.kind === 'directory' && !entry.name.startsWith('.')) {
+          const subDirHandle = entry as unknown as FileSystemDirectoryHandle
+          const { files, hasObsidianSig, sampleNames } = await this.analyzeSubdirectory(subDirHandle)
+
+          const isObsidian =
+            hasObsidianSig ||
+            entry.name.toLowerCase().includes('obsidian') ||
+            entry.name.toLowerCase().includes('vault') ||
+            entry.name.toLowerCase().includes('notes')
+
+          subfolders.push({
+            path: entry.name,
+            name: this.formatFolderName(entry.name),
+            filesCount: files.length,
+            hasObsidianVaultSignature: isObsidian,
+            suggestedType: isObsidian ? 'obsidian_vault' : 'local_folder',
+            files,
+            fileSampleNames: sampleNames,
+          })
+        }
+      }
+    } catch {
+      // Fallback if iteration fails
+    }
+
+    return subfolders.sort((a, b) => b.filesCount - a.filesCount)
+  }
+
+  /**
+   * Helper to format raw folder name into a pleasant Knowledge Source Title
+   */
+  private formatFolderName(raw: string): string {
+    return raw
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+
+  /**
+   * Analyzes files inside a subdirectory recursively
+   */
+  private async analyzeSubdirectory(
+    dirHandle: FileSystemDirectoryHandle,
+    depth: number = 0,
+  ): Promise<{ files: File[]; hasObsidianSig: boolean; sampleNames: string[] }> {
+    const files: File[] = []
+    const sampleNames: string[] = []
+    let hasObsidianSig = false
+
+    if (depth > 4) return { files, hasObsidianSig, sampleNames }
+
+    try {
+      const iterator =
+        typeof (dirHandle as unknown as { values?: () => AsyncIterable<FileSystemHandle> }).values === 'function'
+          ? (dirHandle as unknown as { values: () => AsyncIterable<FileSystemHandle> }).values()
+          : (dirHandle as unknown as AsyncIterable<FileSystemHandle>)
+
+      for await (const entry of iterator) {
+        if (entry.name === '.obsidian') {
+          hasObsidianSig = true
+        }
+
+        if (entry.kind === 'file' && !entry.name.startsWith('.')) {
+          const ext = entry.name.toLowerCase()
+          if (
+            ext.endsWith('.md') ||
+            ext.endsWith('.txt') ||
+            ext.endsWith('.pdf') ||
+            ext.endsWith('.docx') ||
+            ext.endsWith('.json') ||
+            ext.endsWith('.csv') ||
+            ext.endsWith('.ts') ||
+            ext.endsWith('.js') ||
+            ext.endsWith('.py') ||
+            ext.endsWith('.sql')
+          ) {
+            const fileHandle = entry as unknown as FileSystemFileHandle
+            const file = await fileHandle.getFile()
+            files.push(file)
+            if (sampleNames.length < 3) {
+              sampleNames.push(entry.name)
+            }
+          }
+        } else if (entry.kind === 'directory' && !entry.name.startsWith('.')) {
+          const sub = await this.analyzeSubdirectory(entry as unknown as FileSystemDirectoryHandle, depth + 1)
+          files.push(...sub.files)
+          if (sub.hasObsidianSig) hasObsidianSig = true
+          if (sampleNames.length < 3) {
+            sampleNames.push(...sub.sampleNames.slice(0, 3 - sampleNames.length))
+          }
+        }
+      }
+    } catch {
+      // Catch permission or traversal issues
+    }
+
+    return { files, hasObsidianSig, sampleNames }
+  }
+
+  /**
+   * Reads files directly in the root of the picked handle
+   */
+  private async readDirectFiles(dirHandle: FileSystemDirectoryHandle): Promise<File[]> {
+    const files: File[] = []
+    try {
+      const iterator =
+        typeof (dirHandle as unknown as { values?: () => AsyncIterable<FileSystemHandle> }).values === 'function'
+          ? (dirHandle as unknown as { values: () => AsyncIterable<FileSystemHandle> }).values()
+          : (dirHandle as unknown as AsyncIterable<FileSystemHandle>)
+
+      for await (const entry of iterator) {
+        if (entry.kind === 'file' && !entry.name.startsWith('.')) {
+          const fileHandle = entry as unknown as FileSystemFileHandle
+          const file = await fileHandle.getFile()
+          files.push(file)
+        }
+      }
+    } catch {
+      // Fallback
+    }
+    return files
+  }
+
+  /**
+   * Groups a flat FileList (from webkitdirectory input) into DiscoveredSubfolders
+   */
+  groupWebkitFilesBySubfolder(fileList: File[]): {
+    rootName: string
+    subfolders: DiscoveredSubfolder[]
+    rootFiles: File[]
+  } {
+    if (fileList.length === 0) {
+      return { rootName: 'Local Storage', subfolders: [], rootFiles: [] }
+    }
+
+    const firstRel = (fileList[0] as unknown as { webkitRelativePath?: string }).webkitRelativePath || ''
+    const rootName = firstRel.split('/')[0] || 'Local Storage'
+
+    const folderMap = new Map<string, File[]>()
+    const rootFiles: File[] = []
+
+    for (const file of fileList) {
+      const rel = (file as unknown as { webkitRelativePath?: string }).webkitRelativePath || file.name
+      const segments = rel.split('/')
+
+      if (segments.length > 2) {
+        const subfolderName = segments[1]
+        if (!folderMap.has(subfolderName)) {
+          folderMap.set(subfolderName, [])
+        }
+        folderMap.get(subfolderName)!.push(file)
+      } else {
+        rootFiles.push(file)
+      }
+    }
+
+    const subfolders: DiscoveredSubfolder[] = []
+    for (const [subName, files] of folderMap.entries()) {
+      const isObsidian =
+        subName.toLowerCase().includes('obsidian') ||
+        subName.toLowerCase().includes('vault') ||
+        subName.toLowerCase().includes('notes') ||
+        files.some((f) => f.name.endsWith('.md'))
+
+      subfolders.push({
+        path: subName,
+        name: this.formatFolderName(subName),
+        filesCount: files.length,
+        hasObsidianVaultSignature: isObsidian,
+        suggestedType: isObsidian ? 'obsidian_vault' : 'local_folder',
+        files,
+        fileSampleNames: files.slice(0, 3).map((f) => f.name),
+      })
+    }
+
+    return { rootName, subfolders, rootFiles }
+  }
+
+  /**
+   * Open OS directory picker to select a local Obsidian Vault or Sub-folder (Legacy direct helper)
    */
   async requestVaultDirectory(
     vaultName?: string,
@@ -113,7 +349,6 @@ class ObsidianBridgeService {
     const results: VaultFileItem[] = []
 
     try {
-      // In W3C File System Access API, dirHandle.values() provides the async iterable
       const iterator =
         typeof (dirHandle as unknown as { values?: () => AsyncIterable<FileSystemHandle> }).values === 'function'
           ? (dirHandle as unknown as { values: () => AsyncIterable<FileSystemHandle> }).values()
@@ -159,7 +394,6 @@ class ObsidianBridgeService {
       const parts = relativePath.split('/').filter(Boolean)
       let currentDir = targetHandle
 
-      // Traverse / create subdirectories if needed
       for (let i = 0; i < parts.length - 1; i++) {
         currentDir = await currentDir.getDirectoryHandle(parts[i], { create: true })
       }
@@ -180,7 +414,6 @@ class ObsidianBridgeService {
 
   /**
    * Open / Create note directly in the local Obsidian desktop application via URI protocol
-   * Respects subfolder scoping (e.g. file=Architecture/auth-v2)
    */
   openInObsidianApp(
     vaultName: string,
@@ -193,7 +426,6 @@ class ObsidianBridgeService {
     let targetFile = filePath.replace(/\.md$/, '').replace(/^\/+/, '')
     const scope = (subfolderScope || this.pairedSubfolderScope || '').replace(/^\/+|\/+$/g, '')
 
-    // Prefix subfolder scope if not already in filePath
     if (scope && !targetFile.startsWith(scope)) {
       targetFile = `${scope}/${targetFile}`
     }
@@ -207,7 +439,6 @@ class ObsidianBridgeService {
       uri = `obsidian://new?vault=${cleanVault}&file=${cleanFile}&content=${cleanContent}`
     }
 
-    // Open Obsidian Desktop protocol
     window.location.href = uri
   }
 

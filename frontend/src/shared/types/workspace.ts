@@ -172,6 +172,8 @@ export interface KnowledgeSource {
   isLocalSandbox?: boolean
   embeddingModel?: string
   embeddingDimension?: number
+  subfolderScope?: string
+  mountRoot?: string
   fileList?: Array<{ name: string; size: number; mimeType?: string }>
 }
 
@@ -195,6 +197,12 @@ export interface Integration {
   latencyMs: number
   transport?: 'stdio' | 'sse' | 'rest'
   isCustom?: boolean
+  mountedKnowledgeSourceId?: string
+  mountedKnowledgeSourceName?: string
+  targetBinding?: {
+    folderScope: string
+    defaultOutputPath?: string
+  }
 }
 
 // -------------------------------------------------------------

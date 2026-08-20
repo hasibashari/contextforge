@@ -2,6 +2,7 @@ import React from 'react'
 import { Package, Settings, Plus } from 'lucide-react'
 import type { Plugin, Integration, Skill } from '@/shared/types/workspace'
 import { EcosystemCard } from '@/shared/components/EcosystemCard'
+import { IconBox } from '@/shared/components/ui/IconBox'
 
 interface PluginCardProps {
   plugin: Plugin
@@ -25,15 +26,9 @@ export const PluginCard: React.FC<PluginCardProps> = ({
     plugin.bundledSkillIds.includes(s.id)
   )
 
-  const icon = (
-    <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs">
-      <Package size={18} />
-    </div>
-  )
-
   return (
     <EcosystemCard
-      icon={icon}
+      icon={<IconBox size="sm" variant="primary" icon={<Package size={17} />} />}
       title={plugin.name}
       description={plugin.description}
       badge={plugin.badge}

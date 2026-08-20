@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { Brain, Terminal, X, Sparkles, Check, Settings2 } from 'lucide-react'
+import { Brain, Terminal, Sparkles, Check, Settings2 } from 'lucide-react'
 import type { Agent } from '@/shared/types/workspace'
 import { useWorkspace } from '@/shared/mock'
+import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
 
 interface AgentInspectorModalProps {
   agent: Agent | null
@@ -15,7 +16,6 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
   const { skills, integrations, updateAgentCapabilities } = useWorkspace()
   const [isEditing, setIsEditing] = useState(false)
 
-  // Local editing state
   const [selectedTools, setSelectedTools] = useState<string[]>([])
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
 
@@ -33,7 +33,6 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
 
   if (!agent) return null
 
-  // All tools available in workspace from connected integrations
   const allWorkspaceTools = integrations.flatMap((intg) =>
     intg.tools.map((t) => ({ name: t.name, integrationName: intg.name }))
   )
@@ -59,86 +58,84 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
     setIsEditing(false)
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink/40 backdrop-blur-xs">
-      <div className="bg-surface-card border border-hairline rounded-xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div
-              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl ${agent.avatarColor} text-canvas flex items-center justify-center font-mono font-bold text-sm shadow-xs shrink-0`}
-            >
-              <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-ink leading-snug truncate">
-                {agent.name}
-              </h2>
-              <div className="text-[11px] sm:text-xs text-muted font-mono truncate">{agent.role}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <button
-              onClick={isEditing ? handleCancelEdit : handleStartEdit}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold border transition-colors cursor-pointer ${
-                isEditing
-                  ? 'bg-primary text-canvas border-primary'
-                  : 'bg-canvas-soft hover:bg-canvas text-ink border-hairline'
-              }`}
-            >
-              <Settings2 size={13} />
-              <span className="hidden xs:inline sm:inline">{isEditing ? 'Cancel Edit' : 'Edit Capabilities'}</span>
-              <span className="xs:hidden sm:hidden">{isEditing ? 'Cancel' : 'Edit'}</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-canvas-soft text-muted hover:text-ink cursor-pointer transition-colors"
-              title="Close modal"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
+  const icon = (
+    <div
+      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${agent.avatarColor} text-canvas flex items-center justify-center font-mono font-bold text-sm shadow-xs shrink-0`}
+    >
+      <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
+    </div>
+  )
 
+  const renderActions = () => (
+    <button
+      onClick={isEditing ? handleCancelEdit : handleStartEdit}
+      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+        isEditing
+          ? 'bg-primary text-canvas border-primary'
+          : 'bg-canvas-soft hover:bg-canvas text-ink border-hairline'
+      }`}
+    >
+      <Settings2 size={13} />
+      <span>{isEditing ? 'Cancel' : 'Edit Capabilities'}</span>
+    </button>
+  )
+
+  return (
+    <Modal isOpen={Boolean(agent)} onClose={onClose} size="2xl">
+      <ModalHeader
+        icon={icon}
+        title={agent.name}
+        subtitle={agent.role}
+        onClose={onClose}
+        actions={renderActions()}
+      />
+
+      <div className="space-y-3.5 text-xs">
         {/* Model & Config */}
-        <div className="grid grid-cols-3 gap-3 p-3 bg-canvas-soft rounded-lg border border-hairline text-xs font-mono">
+        <div className="grid grid-cols-3 gap-2.5 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono">
           <div>
             <div className="text-muted text-[10px] uppercase">Base LLM</div>
-            <div className="font-semibold text-ink">{agent.model}</div>
+            <div className="font-semibold text-ink text-[11px]">{agent.model}</div>
           </div>
           <div>
             <div className="text-muted text-[10px] uppercase">Temperature</div>
-            <div className="font-semibold text-ink">{agent.temperature}</div>
+            <div className="font-semibold text-ink text-[11px]">{agent.temperature}</div>
           </div>
           <div>
-            <div className="text-muted text-[10px] uppercase">Historical Success</div>
-            <div className="font-semibold text-semantic-success">{agent.successRatePct}%</div>
+            <div className="text-muted text-[10px] uppercase">Success Rate</div>
+            <div className="font-semibold text-semantic-success text-[11px]">
+              {agent.successRatePct}%
+            </div>
           </div>
         </div>
 
         {/* System Prompt */}
-        <div className="space-y-1.5">
-          <div className="text-xs font-mono uppercase tracking-caption text-muted">
-            System Prompt & Guardrails:
+        <div className="space-y-1">
+          <div className="text-[11px] font-mono uppercase tracking-caption text-muted">
+            System Prompt &amp; Guardrails:
           </div>
-          <pre className="p-3 bg-ink text-canvas font-mono text-xs rounded-lg whitespace-pre-wrap leading-relaxed border border-hairline">
+          <pre className="p-3 bg-ink text-canvas font-mono text-xs rounded-lg whitespace-pre-wrap leading-relaxed border border-hairline max-h-32 overflow-y-auto">
             {agent.systemPrompt}
           </pre>
         </div>
 
         {/* Assigned Skills Section */}
-        <div className="space-y-2">
-          <div className="text-xs font-mono uppercase tracking-caption text-primary flex items-center justify-between">
+        <div className="space-y-1.5">
+          <div className="text-[11px] font-mono uppercase tracking-caption text-primary flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              <Sparkles size={13} />
-              <span>Equipped Reasoning Skills ({isEditing ? selectedSkills.length : agent.assignedSkills?.length || 0}):</span>
+              <Sparkles size={12} />
+              <span>
+                Equipped Reasoning Skills (
+                {isEditing ? selectedSkills.length : agent.assignedSkills?.length || 0}
+                ):
+              </span>
             </span>
             {isEditing && (
               <span className="text-[10px] text-muted lowercase">click to toggle</span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono">
             {isEditing
               ? skills.map((skill) => {
                   const isChecked = selectedSkills.includes(skill.id)
@@ -153,8 +150,8 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
                           : 'bg-canvas border-hairline text-muted hover:text-ink'
                       }`}
                     >
-                      <div>
-                        <div className="font-semibold text-ink text-[11px] leading-tight">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-ink text-[11px] leading-tight truncate">
                           {skill.name}
                         </div>
                         <div className="text-[10px] text-muted mt-0.5 capitalize">
@@ -176,10 +173,10 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
                   return (
                     <div
                       key={skillId}
-                      className="p-2.5 rounded bg-canvas border border-hairline flex items-center gap-2 text-ink"
+                      className="p-2 rounded bg-canvas border border-hairline flex items-center gap-2 text-ink"
                     >
-                      <Sparkles size={13} className="text-primary shrink-0" />
-                      <span className="truncate font-medium">
+                      <Sparkles size={12} className="text-primary shrink-0" />
+                      <span className="truncate font-medium text-xs">
                         {s?.name || skillId}
                       </span>
                     </div>
@@ -189,18 +186,22 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
         </div>
 
         {/* Assigned Tools Section */}
-        <div className="space-y-2">
-          <div className="text-xs font-mono uppercase tracking-caption text-muted flex items-center justify-between">
+        <div className="space-y-1.5">
+          <div className="text-[11px] font-mono uppercase tracking-caption text-muted flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              <Terminal size={13} className="text-primary" />
-              <span>Permitted Sandboxed Tools ({isEditing ? selectedTools.length : agent.assignedTools.length}):</span>
+              <Terminal size={12} className="text-primary" />
+              <span>
+                Permitted Sandboxed Tools (
+                {isEditing ? selectedTools.length : agent.assignedTools.length}
+                ):
+              </span>
             </span>
             {isEditing && (
               <span className="text-[10px] text-muted lowercase">click to toggle</span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono">
             {isEditing
               ? allWorkspaceTools.map((tool) => {
                   const isChecked = selectedTools.includes(tool.name)
@@ -215,8 +216,8 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
                           : 'bg-canvas border-hairline text-muted hover:text-ink'
                       }`}
                     >
-                      <div>
-                        <div className="font-semibold text-ink text-[11px] leading-tight">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-ink text-[11px] leading-tight truncate">
                           {tool.name}
                         </div>
                         <div className="text-[10px] text-muted mt-0.5">
@@ -236,23 +237,23 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
               : agent.assignedTools.map((t) => (
                   <div
                     key={t}
-                    className="p-2.5 rounded bg-canvas border border-hairline flex items-center gap-2 text-ink"
+                    className="p-2 rounded bg-canvas border border-hairline flex items-center gap-2 text-ink"
                   >
-                    <Terminal size={13} className="text-primary shrink-0" />
-                    <span className="truncate">{t}</span>
+                    <Terminal size={12} className="text-primary shrink-0" />
+                    <span className="truncate text-xs">{t}</span>
                   </div>
                 ))}
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-3 border-t border-hairline flex items-center justify-between">
+        <ModalFooter className="justify-end">
           {isEditing ? (
-            <div className="flex items-center gap-2 w-full justify-end">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="px-3.5 py-1.5 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-ink border border-hairline rounded-lg cursor-pointer"
+                className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
               >
                 Discard
               </button>
@@ -262,21 +263,20 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
                 className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer flex items-center gap-1"
               >
                 <Check size={13} />
-                <span>Save Agent Capabilities</span>
+                <span>Save Capabilities</span>
               </button>
             </div>
           ) : (
-            <div className="flex justify-end w-full">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-ink border border-hairline rounded-lg cursor-pointer"
-              >
-                Close Inspector
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer flex items-center gap-1"
+            >
+              <Check size={13} />
+              <span>Done</span>
+            </button>
           )}
-        </div>
+        </ModalFooter>
       </div>
-    </div>
+    </Modal>
   )
 }

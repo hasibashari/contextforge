@@ -144,6 +144,8 @@ export const INITIAL_KNOWLEDGE_SOURCES: KnowledgeSource[] = [
     status: 'synced',
     iconType: 'book-open',
     color: 'text-primary',
+    subfolderScope: 'Obsidian',
+    mountRoot: 'contextforge',
   },
   {
     id: 'source-upload-specs',
@@ -162,16 +164,18 @@ export const INITIAL_KNOWLEDGE_SOURCES: KnowledgeSource[] = [
   {
     id: 'source-server-docs',
     type: 'local_folder',
-    name: 'Server Local Filesystem Directory',
-    description: 'Direct server filesystem documentation directory for self-hosted and on-premise deployments.',
-    location: 'file:///home/azure/dev/projects/fullstack/contextforge/vault',
-    meta: 'Server local storage · 1536-dim vector RAG',
+    name: 'Engineering & Code Specs',
+    description: 'Direct workspace filesystem documentation directory for self-hosted and on-premise deployments.',
+    location: 'paired://contextforge/Engineering',
+    meta: 'Workspace storage · 1536-dim vector RAG',
     filesCount: 6,
     chunksCount: 64,
     lastSynced: '1h ago',
     status: 'synced',
     iconType: 'folder',
     color: 'text-semantic-success',
+    subfolderScope: 'Engineering',
+    mountRoot: 'contextforge',
   },
 ]
 
@@ -186,6 +190,12 @@ export const INITIAL_INTEGRATIONS: Integration[] = [
     description: 'Enables direct reading, writing, and tagging of Markdown notes in your Obsidian desktop vault.',
     lastPingMs: 6,
     latencyMs: 5,
+    mountedKnowledgeSourceId: 'source-obsidian-vault',
+    mountedKnowledgeSourceName: 'Personal Obsidian Vault',
+    targetBinding: {
+      folderScope: 'Obsidian',
+      defaultOutputPath: 'Drafts/',
+    },
     tools: [
       {
         name: 'obsidian_vault_writer',

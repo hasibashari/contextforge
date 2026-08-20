@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
-  X,
   CheckCircle2,
-  BookOpen,
   RefreshCw,
   Folder,
   Layers3,
@@ -17,10 +15,6 @@ import {
   Loader2,
   AlertTriangle,
   UploadCloud,
-  HardDrive,
-  Globe,
-  Database,
-  Terminal,
 } from 'lucide-react'
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import {
@@ -28,6 +22,9 @@ import {
   type BackendKnowledgeChunk,
 } from '@/shared/api/knowledgeApi'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
+import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
+import { StatusPill } from '@/shared/components/ui/StatusPill'
+import { KnowledgeIconBox } from '@/shared/components/ui/IconBox'
 
 interface KnowledgeSourceDetailModalProps {
   source: KnowledgeSource | null
@@ -80,47 +77,8 @@ export const KnowledgeSourceDetailModal: React.FC<
 
   if (!source) return null
 
-  const getSourceIcon = (type: KnowledgeSource['type']) => {
-    switch (type) {
-      case 'document_upload':
-      case 'document':
-        return (
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs shrink-0">
-            <UploadCloud className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-        )
-      case 'obsidian_vault':
-        return (
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[#7c3aed]/10 border border-[#7c3aed]/20 flex items-center justify-center text-[#7c3aed] shadow-2xs shrink-0">
-            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-        )
-      case 'local_folder':
-        return (
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-semantic-success/10 border border-semantic-success/20 flex items-center justify-center text-semantic-success shadow-2xs shrink-0">
-            <HardDrive className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-        )
-      case 'github_repo':
-        return (
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-ink/10 border border-hairline flex items-center justify-center text-ink shadow-2xs shrink-0">
-            <Terminal className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-        )
-      case 'database_schema':
-        return (
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-semantic-success/10 border border-semantic-success/20 flex items-center justify-center text-semantic-success shadow-2xs shrink-0">
-            <Database className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-        )
-      default:
-        return (
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[#06b6d4]/10 border border-[#06b6d4]/20 flex items-center justify-center text-[#06b6d4] shadow-2xs shrink-0">
-            <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-        )
-    }
-  }
+  const isSynced = source.status === 'synced'
+  const isSyncing = source.status === 'syncing'
 
   const handleCopyUri = () => {
     void navigator.clipboard.writeText(source.location)
@@ -147,11 +105,10 @@ export const KnowledgeSourceDetailModal: React.FC<
     }
   }
 
-  const isSynced = source.status === 'synced'
-  const isSyncing = source.status === 'syncing'
-  const isError = source.status === 'error'
-
   const getResolvedPathNote = () => {
+    if (source.subfolderScope) {
+      return `Scoped to subfolder "/${source.subfolderScope}". Paired from local storage and ingested into 1536-dim vector embeddings.`
+    }
     if (source.type === 'document_upload') {
       return `Physical storage in backend: "storage/uploads/${source.id}".`
     }
@@ -160,7 +117,7 @@ export const KnowledgeSourceDetailModal: React.FC<
       const scopeText = parsed.subfolderScope
         ? ` (Scoped to "/${parsed.subfolderScope}")`
         : ''
-      return `Target Vault: "${parsed.vaultName}"${scopeText}. Mapped to "./vault" locally or dispatched via Obsidian protocol.`
+      return `Target Vault: "${parsed.vaultName}"${scopeText}. Mapped locally or dispatched via Obsidian protocol.`
     }
     if (source.type === 'local_folder') {
       if (
@@ -174,116 +131,75 @@ export const KnowledgeSourceDetailModal: React.FC<
     return `Vectorized into PostgreSQL using gemini-embedding-002 (1536-dim).`
   }
 
+  const renderSubtitle = () => (
+    <>
+      <span className="capitalize">{source.type.replace('_', ' ')}</span>
+      <span>·</span>
+      <StatusPill status={source.status} />
+      <span>·</span>
+      <span>{source.lastSynced}</span>
+    </>
+  )
+
+  const renderActions = () => (
+    <div className="flex items-center gap-1.5">
+      {onToggleConnect && (
+        <button
+          type="button"
+          onClick={() => onToggleConnect(source.id)}
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${
+            isSynced
+              ? 'text-muted hover:text-ink bg-canvas-soft border-hairline hover:bg-surface-strong'
+              : 'text-canvas bg-primary hover:bg-primary/90 border-transparent shadow-xs'
+          }`}
+          title={
+            isSynced
+              ? 'Mute Grounding (Temporarily pause reading this source)'
+              : 'Enable Grounding (Active in Chat)'
+          }
+        >
+          {isSynced ? <Unlink size={13} /> : <Plus size={13} />}
+          <span>{isSynced ? 'Mute' : 'Connect'}</span>
+        </button>
+      )}
+
+      {onDelete && !isConfirmingDelete && (
+        <button
+          type="button"
+          onClick={() => setIsConfirmingDelete(true)}
+          className="p-1.5 rounded-lg text-muted hover:text-semantic-error hover:bg-semantic-error/10 border border-transparent hover:border-semantic-error/20 transition-colors cursor-pointer"
+          title="Delete Knowledge Source and Vector Chunks"
+        >
+          <Trash2 size={15} />
+        </button>
+      )}
+    </div>
+  )
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink/40 backdrop-blur-xs">
-      <div className="bg-surface-card border border-hairline rounded-xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150">
-        {/* Header with Top-Right Action Controls */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-            {getSourceIcon(source.type)}
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-ink leading-snug truncate">
-                  {source.name}
-                </h2>
-                {isSynced && (
-                  <CheckCircle2
-                    size={15}
-                    className="text-semantic-success/80 shrink-0 fill-semantic-success/10"
-                  />
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-mono text-muted mt-0.5">
-                <span className="capitalize">
-                  {source.type.replace('_', ' ')}
-                </span>
-                <span>·</span>
-                <span
-                  className={`font-semibold flex items-center gap-1 ${
-                    isSyncing
-                      ? 'text-primary'
-                      : isSynced
-                        ? 'text-semantic-success'
-                        : isError
-                          ? 'text-semantic-error'
-                          : 'text-muted'
-                  }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isSyncing
-                        ? 'bg-primary animate-ping'
-                        : isSynced
-                          ? 'bg-semantic-success'
-                          : isError
-                            ? 'bg-semantic-error'
-                            : 'bg-muted'
-                    }`}
-                  />
-                  {isSyncing
-                    ? 'Indexing...'
-                    : isSynced
-                      ? 'Vector Synced'
-                      : isError
-                        ? 'Sync Error'
-                        : 'Muted'}
-                </span>
-                <span className="hidden xs:inline sm:inline">·</span>
-                <span className="hidden xs:inline sm:inline">
-                  {source.lastSynced}
-                </span>
-              </div>
-            </div>
-          </div>
+    <Modal isOpen={Boolean(source)} onClose={onClose} size="2xl">
+      <ModalHeader
+        icon={<KnowledgeIconBox type={source.type} size="md" />}
+        title={source.name}
+        badge={
+          isSynced ? (
+            <CheckCircle2
+              size={15}
+              className="text-semantic-success/80 shrink-0 fill-semantic-success/10"
+            />
+          ) : undefined
+        }
+        subtitle={renderSubtitle()}
+        onClose={onClose}
+        actions={renderActions()}
+      />
 
-          {/* Top-Right Lifecycle Action Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {onToggleConnect && (
-              <button
-                type="button"
-                onClick={() => onToggleConnect(source.id)}
-                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold transition-colors cursor-pointer border ${
-                  isSynced
-                    ? 'text-muted hover:text-ink bg-canvas-soft border-hairline hover:bg-surface-strong'
-                    : 'text-canvas bg-primary hover:bg-primary/90 border-transparent shadow-xs'
-                }`}
-                title={
-                  isSynced
-                    ? 'Mute Grounding (Temporarily pause reading this source)'
-                    : 'Enable Grounding (Active in Chat)'
-                }
-              >
-                {isSynced ? <Unlink size={13} /> : <Plus size={13} />}
-                <span>{isSynced ? 'Mute' : 'Connect'}</span>
-              </button>
-            )}
-
-            {onDelete && !isConfirmingDelete && (
-              <button
-                type="button"
-                onClick={() => setIsConfirmingDelete(true)}
-                className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-muted hover:text-semantic-error hover:bg-semantic-error/10 border border-transparent hover:border-semantic-error/20 transition-colors cursor-pointer"
-                title="Delete Knowledge Source and Vector Chunks"
-              >
-                <Trash2 size={16} />
-              </button>
-            )}
-
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-canvas-soft text-muted hover:text-ink cursor-pointer transition-colors"
-              title="Close modal"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
+      <div className="space-y-4 text-xs">
         {/* Delete Confirmation Banner if triggered */}
         {isConfirmingDelete && (
           <div className="p-3 bg-semantic-error/10 border border-semantic-error/30 rounded-xl space-y-2 animate-in fade-in duration-150">
             <div className="flex items-start gap-2 text-xs text-semantic-error font-semibold">
-              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+              <AlertTriangle size={15} className="shrink-0 mt-0.5" />
               <span>
                 Permanent Delete: Are you sure you want to remove &quot;{source.name}&quot;
                 and purge all {source.chunksCount} 1536-dim vector embeddings?
@@ -309,13 +225,13 @@ export const KnowledgeSourceDetailModal: React.FC<
         )}
 
         {/* Description */}
-        <div className="p-3.5 bg-canvas-soft rounded-xl border border-hairline text-xs text-body leading-relaxed">
+        <p className="text-body leading-relaxed text-xs">
           {source.description}
-        </div>
+        </p>
 
         {/* Telemetry Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
-          <div className="p-3 rounded-xl bg-canvas border border-hairline space-y-1">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 font-mono">
+          <div className="p-2.5 rounded-xl bg-canvas border border-hairline space-y-0.5">
             <div className="text-muted text-[10px] uppercase tracking-caption flex items-center gap-1">
               <Folder size={11} className="text-primary" />
               <span>Source Files</span>
@@ -325,7 +241,7 @@ export const KnowledgeSourceDetailModal: React.FC<
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-canvas border border-hairline space-y-1">
+          <div className="p-2.5 rounded-xl bg-canvas border border-hairline space-y-0.5">
             <div className="text-muted text-[10px] uppercase tracking-caption flex items-center gap-1">
               <Layers3 size={11} className="text-[#8c52ff]" />
               <span>Vector Chunks</span>
@@ -335,7 +251,7 @@ export const KnowledgeSourceDetailModal: React.FC<
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-canvas border border-hairline space-y-1">
+          <div className="p-2.5 rounded-xl bg-canvas border border-hairline space-y-0.5">
             <div className="text-muted text-[10px] uppercase tracking-caption flex items-center gap-1">
               <Cpu size={11} className="text-semantic-success" />
               <span>Grounding Dimension</span>
@@ -350,9 +266,9 @@ export const KnowledgeSourceDetailModal: React.FC<
         </div>
 
         {/* Storage Location & Path with Copy Action */}
-        <div className="p-3.5 bg-canvas rounded-xl border border-hairline space-y-2 text-xs font-mono">
+        <div className="p-3 bg-canvas-soft rounded-xl border border-hairline space-y-1.5 font-mono">
           <div className="text-[10px] uppercase tracking-caption text-muted flex items-center justify-between">
-            <span>Root Indexing URI & Local Resolver</span>
+            <span>Root Indexing URI &amp; Local Resolver</span>
             <span className="text-primary font-semibold">
               {source.type === 'document_upload'
                 ? '[UPLOAD STORAGE]'
@@ -362,7 +278,7 @@ export const KnowledgeSourceDetailModal: React.FC<
             </span>
           </div>
           <div className="flex items-center justify-between gap-2 bg-surface-strong px-2.5 py-1.5 rounded-lg border border-hairline">
-            <span className="text-ink font-semibold break-all">
+            <span className="text-ink font-semibold break-all text-xs">
               {source.location}
             </span>
             <button
@@ -379,7 +295,7 @@ export const KnowledgeSourceDetailModal: React.FC<
             </button>
           </div>
           <p className="text-[11px] text-muted font-sans flex items-center gap-1 pt-0.5">
-            <Info size={13} className="text-primary shrink-0" />
+            <Info size={12} className="text-primary shrink-0" />
             <span>{getResolvedPathNote()}</span>
           </p>
         </div>
@@ -416,7 +332,7 @@ export const KnowledgeSourceDetailModal: React.FC<
         )}
 
         {/* Live Chunks Preview (Sample Grounding Context) */}
-        <div className="space-y-2 text-xs font-mono">
+        <div className="space-y-1.5 font-mono">
           <div className="text-[10px] uppercase tracking-caption text-muted flex items-center justify-between">
             <span className="flex items-center gap-1">
               <FileCode size={11} className="text-primary" />
@@ -427,15 +343,15 @@ export const KnowledgeSourceDetailModal: React.FC<
 
           {isLoadingChunks ? (
             <div className="p-4 bg-canvas rounded-xl border border-hairline flex items-center justify-center gap-2 text-muted">
-              <Loader2 size={15} className="animate-spin text-primary" />
+              <Loader2 size={14} className="animate-spin text-primary" />
               <span>Loading vector chunks from database...</span>
             </div>
           ) : chunks.length > 0 ? (
-            <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
               {chunks.map((chk, idx) => (
                 <div
                   key={chk.id || idx}
-                  className="p-2.5 bg-canvas-soft rounded-lg border border-hairline space-y-1 font-mono text-[11px]"
+                  className="p-2 bg-canvas-soft rounded-lg border border-hairline space-y-1 text-[11px]"
                 >
                   <div className="flex items-center justify-between text-muted text-[10px]">
                     <span className="text-primary font-semibold truncate">
@@ -457,15 +373,15 @@ export const KnowledgeSourceDetailModal: React.FC<
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-4 border-t border-hairline flex items-center justify-between gap-3">
+        <ModalFooter>
           <button
             type="button"
             onClick={() => onSync(source.id)}
             disabled={isSyncing}
-            className="flex items-center gap-1.5 px-4 py-2 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-ink border border-hairline rounded-xl transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-ink border border-hairline rounded-lg transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
           >
             <RefreshCw
-              size={14}
+              size={13}
               className={
                 isSyncing
                   ? 'animate-spin text-primary'
@@ -473,19 +389,19 @@ export const KnowledgeSourceDetailModal: React.FC<
               }
             />
             <span>
-              {isSyncing ? 'Re-indexing Chunks...' : 'Trigger Re-index'}
+              {isSyncing ? 'Re-indexing...' : 'Trigger Re-index'}
             </span>
           </button>
 
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-xl shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
+            className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer transition-colors flex items-center gap-1"
           >
-            <Check size={14} />
+            <Check size={13} />
             <span>Done</span>
           </button>
-        </div>
+        </ModalFooter>
       </div>
-    </div>
+    </Modal>
   )
 }

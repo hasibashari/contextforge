@@ -1,16 +1,7 @@
 import React, { useState } from 'react'
 import {
-  X,
-  Cpu,
   CheckCircle2,
   BookOpen,
-  Calendar,
-  Globe,
-  Database,
-  GitPullRequest,
-  Mail,
-  HardDrive,
-  FileText,
   Terminal,
   Zap,
   Check,
@@ -24,10 +15,15 @@ import {
   Lock,
   Eye,
   EyeOff,
-  FolderOpen,
+  Folder,
+  ExternalLink,
 } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
+import { useWorkspace } from '@/shared/mock'
+import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
+import { StatusPill } from '@/shared/components/ui/StatusPill'
+import { IntegrationIconBox } from '@/shared/components/ui/IconBox'
 
 interface ConnectorDetailModalProps {
   integration: Integration | null
@@ -55,8 +51,18 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
   onSaveConfig,
   isTesting,
 }) => {
+  const { knowledgeSources } = useWorkspace()
+
   const [isEditing, setIsEditing] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
+
+  const [selectedVaultScope, setSelectedVaultScope] = useState(
+    integration.targetBinding?.folderScope || 'Obsidian',
+  )
+  const [outputPath, setOutputPath] = useState(
+    integration.targetBinding?.defaultOutputPath || 'Drafts/',
+  )
+
   const [formData, setFormData] = useState({
     name: integration.name,
     description: integration.description,
@@ -64,73 +70,6 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
     transport: integration.transport || 'stdio',
     apiKey: 'sec_live_mcp_9a4f21e08cb4418a',
   })
-
-  const getIntegrationIcon = () => {
-    const id = integration.id.toLowerCase()
-    const name = integration.name.toLowerCase()
-
-    if (id.includes('drive') || name.includes('drive')) {
-      return (
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-canvas border border-hairline flex items-center justify-center shadow-2xs shrink-0">
-          <HardDrive className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-success" />
-        </div>
-      )
-    }
-    if (id.includes('gmail') || name.includes('gmail') || name.includes('mail')) {
-      return (
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-canvas border border-hairline flex items-center justify-center shadow-2xs shrink-0">
-          <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-error" />
-        </div>
-      )
-    }
-    if (id.includes('notion') || name.includes('notion')) {
-      return (
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-canvas border border-hairline flex items-center justify-center text-ink shadow-2xs shrink-0">
-          <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
-        </div>
-      )
-    }
-    if (id.includes('obsidian') || name.includes('obsidian')) {
-      return (
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[#7c3aed]/10 border border-[#7c3aed]/20 flex items-center justify-center text-[#7c3aed] shadow-2xs shrink-0">
-          <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
-        </div>
-      )
-    }
-    if (id.includes('calendar') || name.includes('calendar')) {
-      return (
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-semantic-success/10 border border-semantic-success/20 flex items-center justify-center text-semantic-success shadow-2xs shrink-0">
-          <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-        </div>
-      )
-    }
-    if (id.includes('search') || name.includes('search') || name.includes('web') || name.includes('tavily')) {
-      return (
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center text-[#3b82f6] shadow-2xs shrink-0">
-          <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
-        </div>
-      )
-    }
-    if (id.includes('github') || name.includes('git')) {
-      return (
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-ink/10 border border-hairline flex items-center justify-center text-ink shadow-2xs shrink-0">
-          <GitPullRequest className="w-4 h-4 sm:w-5 sm:h-5" />
-        </div>
-      )
-    }
-    if (id.includes('postgres') || name.includes('database') || name.includes('sql')) {
-      return (
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[#06b6d4]/10 border border-[#06b6d4]/20 flex items-center justify-center text-[#06b6d4] shadow-2xs shrink-0">
-          <Database className="w-4 h-4 sm:w-5 sm:h-5" />
-        </div>
-      )
-    }
-    return (
-      <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs shrink-0">
-        <Cpu className="w-4 h-4 sm:w-5 sm:h-5" />
-      </div>
-    )
-  }
 
   const isConnected = integration.status === 'connected'
 
@@ -141,415 +80,359 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
       description: formData.description,
       endpoint: formData.endpoint,
       transport: formData.transport,
+      targetBinding: {
+        folderScope: selectedVaultScope,
+        defaultOutputPath: outputPath,
+      },
     })
     setIsEditing(false)
   }
 
+  const renderSubtitle = () => (
+    <>
+      <span className="capitalize">{integration.category.replace('_', ' ')}</span>
+      <span>·</span>
+      <span>{integration.version}</span>
+      <span>·</span>
+      <StatusPill status={integration.status} />
+    </>
+  )
+
+  const renderHeaderActions = () => {
+    if (isEditing) {
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            setFormData({
+              name: integration.name,
+              description: integration.description,
+              endpoint: integration.endpoint,
+              transport: integration.transport || 'stdio',
+              apiKey: 'sec_live_mcp_9a4f21e08cb4418a',
+            })
+            setIsEditing(false)
+          }}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-muted hover:text-ink bg-canvas-soft hover:bg-canvas border border-hairline transition-colors cursor-pointer"
+        >
+          <RotateCcw size={13} />
+          <span>Cancel</span>
+        </button>
+      )
+    }
+
+    return (
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setIsEditing(true)}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-ink bg-canvas-soft hover:bg-canvas border border-hairline transition-colors cursor-pointer"
+          title="Edit connector configuration"
+        >
+          <Edit3 size={13} />
+          <span>Edit</span>
+        </button>
+
+        {onToggleConnect && isConnected && (
+          <button
+            type="button"
+            onClick={() => onToggleConnect(integration.id)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-semantic-error hover:bg-semantic-error/10 border border-semantic-error/30 transition-colors cursor-pointer"
+            title="Disconnect connector"
+          >
+            <Unlink size={13} />
+            <span>Disconnect</span>
+          </button>
+        )}
+
+        {onToggleConnect && !isConnected && (
+          <button
+            type="button"
+            onClick={() => onToggleConnect(integration.id)}
+            className="flex items-center gap-1 px-3 py-1.5 bg-primary hover:bg-primary/90 text-canvas text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
+            title="Connect MCP Server"
+          >
+            <Plus size={13} />
+            <span>Connect</span>
+          </button>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink/40 backdrop-blur-xs">
-      <div className="bg-surface-card border border-hairline rounded-xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150">
-        {/* Header with Top-Right Action Controls */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-            {getIntegrationIcon()}
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-ink leading-snug truncate">
-                  {isEditing ? `Edit: ${formData.name}` : integration.name}
-                </h2>
-                <CheckCircle2
-                  size={15}
-                  className="text-primary shrink-0 fill-primary/10"
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-mono text-muted mt-0.5">
-                <span className="capitalize">{integration.category.replace('_', ' ')}</span>
-                <span>·</span>
-                <span>{integration.version}</span>
-                <span>·</span>
-                <span
-                  className={`font-semibold flex items-center gap-1 ${
-                    isConnected ? 'text-semantic-success' : 'text-muted'
-                  }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isConnected ? 'bg-semantic-success' : 'bg-muted'
-                    }`}
-                  />
-                  {isConnected ? 'Connected' : 'Disconnected'}
-                </span>
-              </div>
+    <Modal isOpen={true} onClose={onClose} size="2xl">
+      <ModalHeader
+        icon={<IntegrationIconBox integration={integration} size="md" />}
+        title={isEditing ? `Edit: ${formData.name}` : integration.name}
+        badge={<CheckCircle2 size={15} className="text-primary shrink-0" />}
+        subtitle={renderSubtitle()}
+        onClose={onClose}
+        actions={renderHeaderActions()}
+      />
+
+      {/* Modal Body */}
+      {isEditing ? (
+        /* EDIT CONFIGURATION FORM */
+        <form onSubmit={handleSave} className="space-y-3.5 text-xs font-sans">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="font-semibold text-ink">Connector Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-semibold text-ink">Transport Protocol</label>
+              <select
+                value={formData.transport}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    transport: e.target.value as Integration['transport'],
+                  })
+                }
+                className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs cursor-pointer"
+              >
+                <option value="stdio">stdio (Local Subprocess)</option>
+                <option value="sse">sse (Server-Sent Events)</option>
+                <option value="rest">rest (HTTP Webhook API)</option>
+              </select>
             </div>
           </div>
 
-          {/* Top-Right Action Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {!isEditing ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold text-ink bg-canvas-soft hover:bg-canvas border border-hairline transition-colors cursor-pointer"
-                  title="Edit connector endpoint & settings"
-                >
-                  <Edit3 size={13} />
-                  <span className="hidden xs:inline sm:inline">Edit Config</span>
-                  <span className="xs:hidden sm:hidden">Edit</span>
-                </button>
+          <div className="space-y-1">
+            <label className="font-semibold text-ink">Endpoint Host / URI</label>
+            <input
+              type="text"
+              value={formData.endpoint}
+              onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })}
+              required
+              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary font-mono text-xs"
+              placeholder="e.g. http://localhost:27123/mcp/obsidian"
+            />
+          </div>
 
-                {isConnected ? (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] sm:text-[11px] font-mono text-semantic-success font-semibold px-2 py-0.5 sm:py-1 rounded-lg bg-semantic-success/10 border border-semantic-success/20 hidden md:flex items-center gap-1">
-                      <CheckCircle2 size={12} />
-                      <span>Connected</span>
-                    </span>
-                    {onToggleConnect && (
-                      <button
-                        type="button"
-                        onClick={() => onToggleConnect(integration.id)}
-                        className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold text-semantic-error hover:bg-semantic-error/10 border border-semantic-error/30 transition-colors cursor-pointer"
-                        title="Disconnect connector"
-                      >
-                        <Unlink size={13} />
-                        <span className="hidden xs:inline sm:inline">Disconnect</span>
-                      </button>
+          {/* Obsidian Mounting Selector in Edit Mode */}
+          {integration.id.includes('obsidian') && (
+            <div className="p-3 bg-[#7c3aed]/5 rounded-xl border border-[#7c3aed]/20 space-y-2.5">
+              <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
+                <BookOpen size={13} className="text-[#7c3aed]" />
+                <span>Mount Target &amp; Output Path</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <label className="text-[11px] text-muted flex items-center gap-1">
+                    <Folder size={11} className="text-[#7c3aed]" />
+                    <span>Mount to Knowledge Source:</span>
+                  </label>
+                  <select
+                    value={selectedVaultScope}
+                    onChange={(e) => setSelectedVaultScope(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-[#7c3aed] text-xs font-mono"
+                  >
+                    {knowledgeSources.length > 0 ? (
+                      knowledgeSources.map((ks) => (
+                        <option key={ks.id} value={ks.subfolderScope || ks.name}>
+                          📚 {ks.name} ({ks.filesCount} files)
+                        </option>
+                      ))
+                    ) : (
+                      <option value="Personal Obsidian Vault">📚 Personal Obsidian Vault</option>
                     )}
-                  </div>
-                ) : (
-                  onToggleConnect && (
-                    <button
-                      type="button"
-                      onClick={() => onToggleConnect(integration.id)}
-                      className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 bg-primary hover:bg-primary/90 text-canvas text-[11px] sm:text-xs font-semibold rounded-lg sm:rounded-xl shadow-xs transition-colors cursor-pointer"
-                      title="Connect MCP Server"
-                    >
-                      <Plus size={14} />
-                      <span>Connect</span>
-                    </button>
-                  )
-                )}
-              </>
-            ) : (
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] text-muted">Default Output Subfolder</label>
+                  <input
+                    type="text"
+                    value={outputPath}
+                    onChange={(e) => setOutputPath(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-[#7c3aed] text-xs font-mono"
+                    placeholder="e.g. Drafts/"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="font-semibold text-ink">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary resize-none text-xs"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="font-semibold text-ink flex items-center justify-between">
+              <span>API Key / Secret Token</span>
+              <span className="text-[10px] text-semantic-success flex items-center gap-1 font-mono">
+                <Lock size={10} /> Encrypted
+              </span>
+            </label>
+            <div className="relative">
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                value={formData.apiKey}
+                onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary font-mono text-xs pr-9"
+              />
               <button
                 type="button"
-                onClick={() => {
-                  setFormData({
-                    name: integration.name,
-                    description: integration.description,
-                    endpoint: integration.endpoint,
-                    transport: integration.transport || 'stdio',
-                    apiKey: 'sec_live_mcp_9a4f21e08cb4418a',
-                  })
-                  setIsEditing(false)
-                }}
-                className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold text-muted hover:text-ink bg-canvas-soft hover:bg-canvas border border-hairline transition-colors cursor-pointer"
+                onClick={() => setShowApiKey(!showApiKey)}
+                className="absolute right-2.5 top-2.5 text-muted hover:text-ink cursor-pointer"
               >
-                <RotateCcw size={13} />
-                <span>Cancel</span>
+                {showApiKey ? <EyeOff size={13} /> : <Eye size={13} />}
               </button>
-            )}
+            </div>
+          </div>
+
+          {/* Save Buttons */}
+          <ModalFooter className="justify-end">
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
+            >
+              <Save size={13} />
+              <span>Save Configuration</span>
+            </button>
+          </ModalFooter>
+        </form>
+      ) : (
+        /* VIEW OVERVIEW */
+        <div className="space-y-3.5 text-xs">
+          {/* Description */}
+          <p className="text-body leading-relaxed text-xs">
+            {integration.description}
+          </p>
+
+          {/* Sleek Obsidian Mount Banner (If Obsidian) */}
+          {integration.id.includes('obsidian') && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-[#7c3aed]/5 rounded-xl border border-[#7c3aed]/20 gap-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <BookOpen size={16} className="text-[#7c3aed] shrink-0" />
+                <div className="min-w-0">
+                  <div className="font-semibold text-ink text-xs truncate">
+                    Mounted to: 📚 {selectedVaultScope}
+                  </div>
+                  <div className="text-[11px] text-muted font-mono">
+                    Write Path: /{selectedVaultScope}/{outputPath}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  obsidianBridgeService.openInObsidianApp(
+                    selectedVaultScope || 'Engineering-HQ',
+                    '',
+                  )
+                }
+                className="px-3 py-1.5 bg-[#7c3aed] hover:bg-[#7c3aed]/90 text-white font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-xs shadow-2xs shrink-0 self-start sm:self-auto"
+              >
+                <ExternalLink size={12} />
+                <span>Open in Obsidian</span>
+              </button>
+            </div>
+          )}
+
+          {/* Compact Connection Info Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono text-[11px] text-muted">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Server size={12} className="text-primary shrink-0" />
+              <span className="text-ink truncate">{integration.endpoint}</span>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="flex items-center gap-1 text-semantic-success">
+                <Activity size={11} />
+                <span>{integration.latencyMs}ms</span>
+              </span>
+              <span className="uppercase text-ink font-semibold">
+                {integration.transport || 'stdio'}
+              </span>
+            </div>
+          </div>
+
+          {/* Exposed Tools List */}
+          <div className="space-y-2 pt-1">
+            <div className="text-[11px] font-mono font-semibold uppercase tracking-caption text-muted flex items-center justify-between">
+              <span>Available Tools ({integration.tools.length})</span>
+            </div>
+
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {integration.tools.map((tool) => (
+                <div
+                  key={tool.name}
+                  className="p-2.5 rounded-lg bg-canvas border border-hairline space-y-1"
+                >
+                  <div className="flex items-center justify-between gap-2 font-mono">
+                    <span className="font-semibold text-ink flex items-center gap-1.5 text-xs">
+                      <Terminal size={12} className="text-primary" />
+                      <span>{tool.name}</span>
+                    </span>
+                    <span
+                      className={`text-[9px] uppercase px-1.5 py-0.2 rounded font-semibold ${
+                        tool.readOnly
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-semantic-success/10 text-semantic-success'
+                      }`}
+                    >
+                      {tool.readOnly ? 'read' : 'write'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted leading-relaxed">
+                    {tool.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <ModalFooter>
+            <button
+              type="button"
+              onClick={() => onTest(integration.id)}
+              disabled={isTesting}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-ink border border-hairline rounded-lg transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+            >
+              {isTesting ? (
+                <Zap size={13} className="animate-spin text-primary" />
+              ) : (
+                <Activity size={13} className="text-semantic-success" />
+              )}
+              <span>{isTesting ? 'Pinging...' : 'Test Ping'}</span>
+            </button>
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-canvas-soft text-muted hover:text-ink cursor-pointer transition-colors"
-              title="Close modal"
+              className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer transition-colors flex items-center gap-1"
             >
-              <X size={18} />
+              <Check size={13} />
+              <span>Done</span>
             </button>
-          </div>
+          </ModalFooter>
         </div>
-
-        {/* Modal Body */}
-        {isEditing ? (
-          /* EDIT CONFIGURATION FORM */
-          <form onSubmit={handleSave} className="space-y-4 pt-1">
-            <div className="space-y-3 p-4 bg-canvas rounded-xl border border-hairline">
-              <div className="text-xs font-mono uppercase tracking-caption text-primary flex items-center gap-1.5">
-                <Edit3 size={13} />
-                <span>Connector Connection Parameters</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-ink">Connector Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 text-xs rounded-lg bg-surface border border-hairline text-ink focus:outline-hidden focus:border-primary font-mono"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-ink">Transport Mode</label>
-                  <select
-                    value={formData.transport}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        transport: e.target.value as 'stdio' | 'sse' | 'rest',
-                      })
-                    }
-                    className="w-full px-3 py-2 text-xs rounded-lg bg-surface border border-hairline text-ink focus:outline-hidden focus:border-primary font-mono capitalize"
-                  >
-                    <option value="stdio">stdio (Local Subprocess)</option>
-                    <option value="sse">sse (Server-Sent Events)</option>
-                    <option value="rest">rest (HTTP Webhook API)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-ink">
-                  Endpoint Command / Host Connection URI
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formData.endpoint}
-                    onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 text-xs rounded-lg bg-surface border border-hairline text-ink focus:outline-hidden focus:border-primary font-mono pr-8"
-                    placeholder="e.g. npx -y @modelcontextprotocol/server-postgres"
-                  />
-                  <Server size={14} className="absolute right-2.5 top-2.5 text-muted pointer-events-none" />
-                </div>
-                <p className="text-[10px] text-muted font-mono">
-                  Command or network URL executed by the orchestrator daemon.
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-ink">Description & Scope</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-surface border border-hairline text-ink focus:outline-hidden focus:border-primary resize-none font-sans"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-ink flex items-center justify-between">
-                  <span>API Key / Secret Token (Encrypted)</span>
-                  <span className="text-[10px] text-semantic-success flex items-center gap-1 font-mono">
-                    <Lock size={10} /> AES-256 Vault
-                  </span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    value={formData.apiKey}
-                    onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-lg bg-surface border border-hairline text-ink focus:outline-hidden focus:border-primary font-mono pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-2.5 top-2 text-muted hover:text-ink cursor-pointer"
-                  >
-                    {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Edit Form Footer */}
-            <div className="pt-3 border-t border-hairline flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setFormData({
-                    name: integration.name,
-                    description: integration.description,
-                    endpoint: integration.endpoint,
-                    transport: integration.transport || 'stdio',
-                    apiKey: 'sec_live_mcp_9a4f21e08cb4418a',
-                  })
-                  setIsEditing(false)
-                }}
-                className="px-4 py-2 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-muted hover:text-ink border border-hairline rounded-xl cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="submit"
-                className="px-5 py-2 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-xl shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
-              >
-                <Save size={14} />
-                <span>Save Configuration</span>
-              </button>
-            </div>
-          </form>
-        ) : (
-          /* VIEW OVERVIEW & TELEMETRY */
-          <>
-            {/* Description */}
-            <div className="p-3.5 bg-canvas-soft rounded-xl border border-hairline text-xs text-body leading-relaxed">
-              {integration.description}
-            </div>
-
-            {/* Obsidian Vault Pairing & Desktop App Actions (If Obsidian MCP) */}
-            {integration.id.includes('obsidian') && (
-              <div className="p-3.5 bg-[#7c3aed]/5 rounded-xl border border-[#7c3aed]/20 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
-                    <BookOpen size={14} className="text-[#7c3aed]" />
-                    <span>Obsidian Desktop &amp; Local Vault Bridge</span>
-                  </div>
-                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20">
-                    Active MCP Connector
-                  </span>
-                </div>
-
-                <p className="text-[11px] text-muted leading-relaxed">
-                  Pair your local Obsidian vault folder to allow AI agents to write notes, format frontmatter, and open drafts directly in Obsidian Desktop via <code className="font-mono text-ink">obsidian://</code> protocol.
-                </p>
-
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await obsidianBridgeService.requestVaultDirectory('Engineering-HQ')
-                    }}
-                    className="px-3 py-1.5 bg-[#7c3aed] hover:bg-[#7c3aed]/90 text-white font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-xs shadow-2xs"
-                  >
-                    <FolderOpen size={13} />
-                    <span>Pair Local Vault Folder</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      obsidianBridgeService.openInObsidianApp('Engineering-HQ', '')
-                    }}
-                    className="px-3 py-1.5 bg-canvas-soft hover:bg-canvas text-ink font-semibold rounded-lg border border-hairline transition-colors cursor-pointer flex items-center gap-1.5 text-xs shadow-2xs"
-                  >
-                    <BookOpen size={13} className="text-[#7c3aed]" />
-                    <span>Open Obsidian App</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Connection Telemetry & Config Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
-              <div className="p-3 rounded-xl bg-canvas border border-hairline space-y-1">
-                <div className="text-muted text-[10px] uppercase tracking-caption flex items-center gap-1">
-                  <Server size={11} className="text-primary" />
-                  <span>Endpoint Host</span>
-                </div>
-                <div className="font-semibold text-ink truncate" title={integration.endpoint}>
-                  {integration.endpoint}
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-canvas border border-hairline space-y-1">
-                <div className="text-muted text-[10px] uppercase tracking-caption flex items-center gap-1">
-                  <Activity size={11} className="text-semantic-success" />
-                  <span>Response Latency</span>
-                </div>
-                <div className="font-semibold text-semantic-success">
-                  {integration.latencyMs} ms
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-canvas border border-hairline space-y-1">
-                <div className="text-muted text-[10px] uppercase tracking-caption flex items-center gap-1">
-                  <Terminal size={11} className="text-[#8c52ff]" />
-                  <span>Transport Mode</span>
-                </div>
-                <div className="font-semibold text-ink uppercase">
-                  {integration.transport || 'stdio'}
-                </div>
-              </div>
-            </div>
-
-            {/* Exposed MCP Tools List */}
-            <div className="space-y-2">
-              <div className="text-xs font-mono uppercase tracking-caption text-muted flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-primary">
-                  <Terminal size={13} />
-                  <span>Exposed Tools & Actions ({integration.tools.length}):</span>
-                </span>
-                <span className="text-[10px] lowercase text-muted">Ready for agent execution</span>
-              </div>
-
-              <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
-                {integration.tools.map((tool) => (
-                  <div
-                    key={tool.name}
-                    className="p-3 rounded-xl bg-canvas border border-hairline space-y-1.5 text-xs font-mono"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-ink flex items-center gap-1.5">
-                        <Terminal size={12} className="text-primary" />
-                        <span>{tool.name}</span>
-                      </span>
-                      <span
-                        className={`text-[10px] uppercase px-2 py-0.5 rounded font-semibold ${
-                          tool.readOnly
-                            ? 'bg-primary/10 text-primary border border-primary/20'
-                            : 'bg-semantic-success/10 text-semantic-success border border-semantic-success/20'
-                        }`}
-                      >
-                        {tool.readOnly ? 'Read Only' : 'Mutating Action'}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-body font-sans leading-relaxed">
-                      {tool.description}
-                    </p>
-                    {tool.parametersSchema && Object.keys(tool.parametersSchema).length > 0 && (
-                      <div className="text-[10px] text-muted pt-1 border-t border-hairline/60 flex items-center gap-1.5 flex-wrap">
-                        <span className="font-semibold text-ink">Parameters:</span>
-                        {Object.entries(tool.parametersSchema).map(([param, type]) => (
-                          <span
-                            key={param}
-                            className="px-1.5 py-0.2 rounded bg-surface-strong text-ink font-mono text-[10px]"
-                          >
-                            {param}: <em className="text-primary">{String(type)}</em>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer Actions */}
-            <div className="pt-4 border-t border-hairline flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => onTest(integration.id)}
-                disabled={isTesting}
-                className="flex items-center gap-1.5 px-4 py-2 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-ink border border-hairline rounded-xl transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
-              >
-                {isTesting ? (
-                  <Zap size={14} className="animate-spin text-primary" />
-                ) : (
-                  <Activity size={14} className="text-semantic-success" />
-                )}
-                <span>{isTesting ? 'Testing Connection...' : 'Test Ping Server'}</span>
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={onClose}
-                  className="px-5 py-2 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-xl shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
-                >
-                  <Check size={14} />
-                  <span>Done</span>
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+      )}
+    </Modal>
   )
 }
 

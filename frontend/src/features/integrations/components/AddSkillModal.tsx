@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
-import { X, Sparkles, Check } from 'lucide-react'
+import { Sparkles, Check } from 'lucide-react'
 import type { Skill } from '@/shared/types/workspace'
+import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
+import { IconBox } from '@/shared/components/ui/IconBox'
 
 interface AddSkillModalProps {
   isOpen: boolean
@@ -55,126 +57,108 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink/40 backdrop-blur-xs">
-      <div className="bg-surface-card border border-hairline rounded-xl sm:rounded-2xl max-w-lg w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-ink leading-snug truncate">
-                Author Custom Skill Playbook
-              </h2>
-              <p className="text-[11px] sm:text-xs text-muted mt-0.5 leading-relaxed truncate">
-                Teach agents procedural SOPs & reasoning instructions
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-canvas-soft text-muted hover:text-ink cursor-pointer transition-colors shrink-0"
-            title="Close modal"
-          >
-            <X size={18} />
-          </button>
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <ModalHeader
+        icon={<IconBox size="md" variant="primary" icon={<Sparkles size={19} />} />}
+        title="Author Custom Skill Playbook"
+        subtitle="Teach agents procedural SOPs & reasoning instructions"
+        onClose={onClose}
+      />
+
+      <form onSubmit={handleSubmit} className="space-y-3 text-xs font-mono">
+        <div className="space-y-1">
+          <label className="text-ink font-semibold">Skill Title</label>
+          <input
+            type="text"
+            placeholder="e.g. Clean Code & DRY Refactoring SOP"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-mono">
-          <div className="space-y-1.5">
-            <label className="text-ink font-semibold">Skill Title</label>
-            <input
-              type="text"
-              placeholder="e.g. Clean Code & DRY Refactoring SOP"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-ink font-semibold">Domain Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as Skill['category'])}
-                className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary cursor-pointer"
-              >
-                <option value="qa_testing">QA & Testing</option>
-                <option value="security">Security & CVE</option>
-                <option value="knowledge">Knowledge & Vault</option>
-                <option value="database">Database & Schema</option>
-                <option value="architecture">Architecture</option>
-                <option value="productivity">Productivity</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-ink font-semibold">Assigned Tools (comma separated)</label>
-              <input
-                type="text"
-                placeholder="github_grep, eslint_ast_checker"
-                value={toolsString}
-                onChange={(e) => setToolsString(e.target.value)}
-                className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-ink font-semibold">SOP Summary (Single Line Flow)</label>
-            <input
-              type="text"
-              placeholder="Inspect AST -> Run linter -> Propose minimal diff -> Verify clean build"
-              value={sopSummary}
-              onChange={(e) => setSopSummary(e.target.value)}
-              required
-              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-ink font-semibold">Short Description</label>
-            <input
-              type="text"
-              placeholder="What problem does this skill solve?"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary font-sans text-xs"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-ink font-semibold">AI Instructions & Guardrails</label>
-            <textarea
-              rows={4}
-              placeholder="1. First check XYZ...&#10;2. Never perform destructive operations without user signoff...&#10;3. Format final answer in markdown tables."
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              required
-              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary font-mono text-xs"
-            />
-          </div>
-
-          <div className="pt-3 border-t border-hairline flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3.5 py-2 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-ink border border-hairline rounded-lg cursor-pointer"
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-ink font-semibold">Domain Category</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as Skill['category'])}
+              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs cursor-pointer"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-canvas text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5"
-            >
-              <Check size={14} />
-              <span>Create Skill Playbook</span>
-            </button>
+              <option value="qa_testing">QA & Testing</option>
+              <option value="security">Security & CVE</option>
+              <option value="knowledge">Knowledge & Vault</option>
+              <option value="database">Database & Schema</option>
+              <option value="architecture">Architecture</option>
+              <option value="productivity">Productivity</option>
+            </select>
           </div>
-        </form>
-      </div>
-    </div>
+
+          <div className="space-y-1">
+            <label className="text-ink font-semibold">Assigned Tools (comma separated)</label>
+            <input
+              type="text"
+              placeholder="github_grep, eslint_ast_checker"
+              value={toolsString}
+              onChange={(e) => setToolsString(e.target.value)}
+              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-ink font-semibold">SOP Summary (Single Line Flow)</label>
+          <input
+            type="text"
+            placeholder="Inspect AST -> Run linter -> Propose minimal diff -> Verify clean build"
+            value={sopSummary}
+            onChange={(e) => setSopSummary(e.target.value)}
+            required
+            className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-ink font-semibold">Short Description</label>
+          <input
+            type="text"
+            placeholder="What problem does this skill solve?"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary font-sans text-xs"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-ink font-semibold">AI Instructions & Guardrails</label>
+          <textarea
+            rows={3}
+            placeholder="1. First check XYZ...&#10;2. Never perform destructive operations without user signoff...&#10;3. Format final answer in markdown tables."
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            required
+            className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary font-mono text-xs resize-none"
+          />
+        </div>
+
+        <ModalFooter className="justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-canvas text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5"
+          >
+            <Check size={13} />
+            <span>Create Skill Playbook</span>
+          </button>
+        </ModalFooter>
+      </form>
+    </Modal>
   )
 }
