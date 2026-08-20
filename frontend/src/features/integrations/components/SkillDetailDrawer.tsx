@@ -77,7 +77,7 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
         actions={renderActions()}
       />
 
-      <div className="space-y-4 text-xs">
+      <div className="space-y-3.5 text-xs">
         {/* Description */}
         <p className="text-body leading-relaxed text-xs">
           {skill.description}
@@ -94,21 +94,21 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
           </div>
         </div>
 
-        {/* Full AI Instructions / Prompt Rules */}
-        <div className="space-y-1.5">
-          <div className="text-xs font-mono uppercase tracking-caption text-muted flex items-center gap-1.5">
-            <FileText size={13} className="text-primary" />
+        {/* AI Reasoning Playbook Rules */}
+        <div className="space-y-1">
+          <div className="text-[11px] font-mono uppercase tracking-caption text-muted flex items-center gap-1.5">
+            <FileText size={12} className="text-primary" />
             <span>AI Reasoning Rules &amp; Playbook Instructions:</span>
           </div>
-          <pre className="p-3.5 bg-ink text-canvas font-mono text-xs rounded-xl whitespace-pre-wrap leading-relaxed border border-hairline max-h-44 overflow-y-auto">
+          <pre className="p-3 bg-canvas border border-hairline text-ink font-mono text-xs rounded-xl whitespace-pre-wrap leading-relaxed max-h-36 overflow-y-auto">
             {skill.instructions}
           </pre>
         </div>
 
         {/* Permitted Sandboxed Tools */}
         <div className="space-y-1.5">
-          <div className="text-xs font-mono uppercase tracking-caption text-muted flex items-center gap-1.5">
-            <Terminal size={13} className="text-primary" />
+          <div className="text-[11px] font-mono uppercase tracking-caption text-muted flex items-center gap-1.5">
+            <Terminal size={12} className="text-primary" />
             <span>Invoked MCP / System Tools ({skill.assignedTools.length}):</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono">

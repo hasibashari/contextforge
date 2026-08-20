@@ -90,20 +90,20 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
         actions={renderActions()}
       />
 
-      <div className="space-y-3.5 text-xs">
+      <div className="space-y-3 text-xs">
         {/* Model & Config */}
-        <div className="grid grid-cols-3 gap-2.5 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono">
+        <div className="grid grid-cols-3 gap-2 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono text-[11px]">
           <div>
             <div className="text-muted text-[10px] uppercase">Base LLM</div>
-            <div className="font-semibold text-ink text-[11px]">{agent.model}</div>
+            <div className="font-semibold text-ink">{agent.model}</div>
           </div>
           <div>
             <div className="text-muted text-[10px] uppercase">Temperature</div>
-            <div className="font-semibold text-ink text-[11px]">{agent.temperature}</div>
+            <div className="font-semibold text-ink">{agent.temperature}</div>
           </div>
           <div>
             <div className="text-muted text-[10px] uppercase">Success Rate</div>
-            <div className="font-semibold text-semantic-success text-[11px]">
+            <div className="font-semibold text-semantic-success">
               {agent.successRatePct}%
             </div>
           </div>
@@ -114,7 +114,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
           <div className="text-[11px] font-mono uppercase tracking-caption text-muted">
             System Prompt &amp; Guardrails:
           </div>
-          <pre className="p-3 bg-ink text-canvas font-mono text-xs rounded-lg whitespace-pre-wrap leading-relaxed border border-hairline max-h-32 overflow-y-auto">
+          <pre className="p-2.5 bg-canvas text-ink font-mono text-xs rounded-lg whitespace-pre-wrap leading-relaxed border border-hairline max-h-28 overflow-y-auto">
             {agent.systemPrompt}
           </pre>
         </div>
@@ -269,7 +269,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
           ) : (
             <button
               onClick={onClose}
-              className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer flex items-center gap-1"
+              className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer transition-colors flex items-center gap-1"
             >
               <Check size={13} />
               <span>Done</span>

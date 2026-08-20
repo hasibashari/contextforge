@@ -1,10 +1,5 @@
 import React from 'react'
-import {
-  Settings,
-  Plus,
-  Loader2,
-  AlertCircle,
-} from 'lucide-react'
+import { Settings, Plus, Loader2, AlertCircle } from 'lucide-react'
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import { EcosystemCard } from '@/shared/components/EcosystemCard'
 import { KnowledgeIconBox } from '@/shared/components/ui/IconBox'
@@ -18,26 +13,26 @@ export const KnowledgeSourceCard: React.FC<KnowledgeSourceCardProps> = ({
   source,
   onOpenDetail,
 }) => {
-  const getEnvBadge = () => {
-    if (source.type === 'obsidian_vault') {
-      return source.subfolderScope ? `[OBSIDIAN: /${source.subfolderScope}]` : '[OBSIDIAN VAULT]'
-    }
+  const getCleanSubtitle = () => {
     if (source.subfolderScope) {
-      return `[FOLDER: /${source.subfolderScope}]`
+      return `/${source.subfolderScope}`
     }
-    if (source.type === 'local_folder' || source.location.includes('paired') || source.location.includes('folder')) {
-      return '[LOCAL FOLDER]'
+    if (source.type === 'obsidian_vault') {
+      return 'Obsidian Vault'
     }
-    if (source.type === 'document_upload' || source.type === 'document') {
-      return '[LOCAL DOCUMENTS]'
+    if (source.type === 'local_folder') {
+      return 'Paired Local Folder'
+    }
+    if (source.type === 'document_upload') {
+      return 'Uploaded Documents'
     }
     if (source.type === 'github_repo') {
-      return '[GIT REPO]'
+      return 'GitHub Repository'
     }
     if (source.type === 'database_schema') {
-      return '[POSTGRES MCP]'
+      return 'PostgreSQL Schema'
     }
-    return '[KNOWLEDGE BASE]'
+    return source.location
   }
 
   const isSynced = source.status === 'synced'
@@ -46,8 +41,8 @@ export const KnowledgeSourceCard: React.FC<KnowledgeSourceCardProps> = ({
 
   const getBadgeLabel = () => {
     if (isSyncing) return 'Indexing...'
-    if (isSynced) return 'Vector Synced'
-    if (isError) return 'Sync Error'
+    if (isSynced) return 'Synced'
+    if (isError) return 'Error'
     return 'Muted'
   }
 
@@ -61,20 +56,11 @@ export const KnowledgeSourceCard: React.FC<KnowledgeSourceCardProps> = ({
     <EcosystemCard
       icon={<KnowledgeIconBox type={source.type} size="sm" />}
       title={source.name}
-      subtitle={`${getEnvBadge()} ${source.location}`}
+      subtitle={getCleanSubtitle()}
       description={source.description}
       badge={getBadgeLabel()}
       badgeVariant={getBadgeVariant()}
-      metaLine={
-        <div className="flex items-center justify-between w-full">
-          <span>
-            {source.filesCount} Files · {source.chunksCount} Chunks (1536-dim) · {source.lastSynced}
-          </span>
-          <span className="text-primary font-semibold hover:underline">
-            Inspect Details →
-          </span>
-        </div>
-      }
+      metaLine={`${source.filesCount} Files · ${source.chunksCount} Chunks · ${source.lastSynced}`}
       actionIcon={
         isSyncing ? (
           <Loader2 size={16} className="animate-spin text-primary" />
