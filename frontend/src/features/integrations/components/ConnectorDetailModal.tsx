@@ -364,12 +364,14 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
               {integration.id.includes('obsidian') && (
                 <button
                   type="button"
-                  onClick={() =>
-                    obsidianBridgeService.openInObsidianApp(
-                      selectedVaultScope || 'Engineering-HQ',
-                      '',
-                    )
-                  }
+                  onClick={() => {
+                    const vaultName =
+                      (currentIntegration.authConfig?.vaultName as string) ||
+                      obsidianBridgeService.getPairedVaultName() ||
+                      'Obsidian Vault'
+                    const subfolder = selectedVaultScope || ''
+                    obsidianBridgeService.openInObsidianApp(vaultName, subfolder)
+                  }}
                   className="px-3 py-1.5 bg-[#7c3aed] hover:bg-[#7c3aed]/90 text-white font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-xs shadow-2xs shrink-0 self-start sm:self-auto"
                 >
                   <ExternalLink size={12} />

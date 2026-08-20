@@ -1,24 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CheckCircle2,
   RefreshCw,
-  Folder,
-  Layers3,
-  Cpu,
   Check,
   Plus,
   Unlink,
   Trash2,
   Copy,
-  FileCode,
   Loader2,
   UploadCloud,
 } from 'lucide-react'
 import type { KnowledgeSource } from '@/shared/types/workspace'
-import {
-  knowledgeApi,
-  type BackendKnowledgeChunk,
-} from '@/shared/api/knowledgeApi'
 import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service'
 import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
 import { StatusPill } from '@/shared/components/ui/StatusPill'
@@ -37,52 +29,27 @@ interface KnowledgeSourceDetailModalProps {
 export const KnowledgeSourceDetailModal: React.FC<
   KnowledgeSourceDetailModalProps
 > = ({ source, onClose, onSync, onToggleConnect, onDelete, onUploadMore }) => {
-  const [chunks, setChunks] = useState<BackendKnowledgeChunk[]>([])
-  const [isLoadingChunks, setIsLoadingChunks] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isUploadingMore, setIsUploadingMore] = useState(false)
   const [hasLocalHandle, setHasLocalHandle] = useState(false)
 
-  const uploadMoreInputRef = useRef<HTMLInputElement>(null)
-
-  const sourceId = source?.id
   const sourceName = source?.name
-  const sourceStatus = source?.status
-  const sourceLastSynced = source?.lastSynced
 
   useEffect(() => {
-    if (!sourceId) return
+    if (!sourceName) return
 
     let isMounted = true
 
     // Check if directory handle is active on this device
-    if (sourceName) {
-      browserStorageBridge.getDirectoryHandle(sourceName).then((h) => {
-        if (isMounted) setHasLocalHandle(Boolean(h))
-      })
-    }
-
-    const fetchChunks = async () => {
-      setIsLoadingChunks(true)
-      try {
-        const data = await knowledgeApi.getSourceChunks(sourceId, 3)
-        if (isMounted) {
-          setChunks(data || [])
-        }
-      } catch {
-        if (isMounted) setChunks([])
-      } finally {
-        if (isMounted) setIsLoadingChunks(false)
-      }
-    }
-
-    void fetchChunks()
+    browserStorageBridge.getDirectoryHandle(sourceName).then((h) => {
+      if (isMounted) setHasLocalHandle(Boolean(h))
+    })
 
     return () => {
       isMounted = false
     }
-  }, [sourceId, sourceName, sourceStatus, sourceLastSynced])
+  }, [sourceName])
 
   if (!source) return null
 
@@ -179,7 +146,7 @@ export const KnowledgeSourceDetailModal: React.FC<
 
   return (
     <>
-      <Modal isOpen={Boolean(source)} onClose={onClose} size="2xl">
+      <Modal isOpen={Boolean(source)} onClose={onClose} size="3xl">
         <ModalHeader
           icon={<KnowledgeIconBox type={source.type} size="md" />}
           title={source.name}
@@ -218,26 +185,26 @@ export const KnowledgeSourceDetailModal: React.FC<
           {/* Compact Telemetry & Metadata Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono text-[11px]">
             <div className="flex items-center gap-1.5 text-ink truncate">
-              <Folder size={12} className="text-primary shrink-0" />
-              <span>{source.filesCount} Documents</span>
+              <span className="text-muted">Type:</span>
+              <span className="font-semibold truncate">{source.type}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-[#8c52ff] truncate">
-              <Layers3 size={12} className="shrink-0" />
-              <span>{source.chunksCount} Vector Chunks</span>
+            <div className="flex items-center gap-1.5 text-ink truncate">
+              <span className="text-muted">Files:</span>
+              <span className="font-semibold">{source.filesCount} notes/files</span>
             </div>
-            <div className="flex items-center gap-1.5 text-semantic-success truncate">
-              <Cpu size={12} className="shrink-0" />
-              <span>1536-dim (Gemini)</span>
+            <div className="flex items-center gap-1.5 text-ink truncate">
+              <span className="text-muted">Chunks:</span>
+              <span className="font-semibold text-primary">{source.chunksCount} vectors</span>
             </div>
           </div>
 
-          {/* Clean Location Row with Copy Action */}
-          <div className="flex items-center justify-between gap-2 p-2 bg-canvas rounded-lg border border-hairline font-mono text-xs">
-            <span className="text-ink truncate font-medium">{source.location}</span>
+          {/* Location URI Row with Copy Action */}
+          <div className="flex items-center justify-between gap-2 p-2.5 bg-canvas rounded-xl border border-hairline font-mono text-xs">
+            <span className="text-ink truncate font-medium text-[11px]">{source.location}</span>
             <button
               type="button"
               onClick={handleCopyUri}
-              className="p-1 rounded text-muted hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer shrink-0"
+              className="p-1 rounded-md text-muted hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer shrink-0"
               title="Copy Location URI"
             >
               {isCopied ? (
@@ -248,25 +215,31 @@ export const KnowledgeSourceDetailModal: React.FC<
             </button>
           </div>
 
-          {/* Upload More Files Action */}
+          {/* Upload More Files Dropzone */}
           {onUploadMore && (
-            <div className="p-2.5 bg-primary/5 rounded-lg border border-primary/20 flex items-center justify-between gap-3 text-xs">
+            <div className="p-3 bg-canvas-soft rounded-xl border border-dashed border-hairline flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="font-semibold text-ink text-xs">Add Documents to Collection</div>
-                <div className="text-[11px] text-muted truncate">Upload PDF, DOCX, Markdown, or code files.</div>
+                <div className="font-semibold text-ink text-xs truncate">
+                  Add more documents to this source
+                </div>
+                <div className="text-[11px] text-muted truncate">
+                  Supports .md, .txt, .pdf, .ts, .json (chunked into 1536-dim vectors)
+                </div>
               </div>
               <input
-                ref={uploadMoreInputRef}
                 type="file"
+                id={`upload-more-${source.id}`}
                 multiple
-                onChange={handleUploadMoreFiles}
                 className="hidden"
-                accept=".pdf,.docx,.doc,.md,.txt,.json,.csv,.ts,.js,.py,.sql"
+                onChange={handleUploadMoreFiles}
+                disabled={isUploadingMore}
               />
               <button
                 type="button"
+                onClick={() =>
+                  document.getElementById(`upload-more-${source.id}`)?.click()
+                }
                 disabled={isUploadingMore}
-                onClick={() => uploadMoreInputRef.current?.click()}
                 className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-canvas font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs text-xs"
               >
                 {isUploadingMore ? (
@@ -278,47 +251,6 @@ export const KnowledgeSourceDetailModal: React.FC<
               </button>
             </div>
           )}
-
-          {/* Live Chunks Preview (Sample Grounding Context) */}
-          <div className="space-y-1.5 font-mono">
-            <div className="text-[10px] uppercase tracking-caption text-muted flex items-center justify-between">
-              <span className="flex items-center gap-1">
-                <FileCode size={11} className="text-primary" />
-                <span>Vector Grounding Preview</span>
-              </span>
-              <span>Showing top {chunks.length} of {source.chunksCount}</span>
-            </div>
-
-            {isLoadingChunks ? (
-              <div className="p-3 bg-canvas rounded-lg border border-hairline flex items-center justify-center gap-2 text-muted text-xs">
-                <Loader2 size={13} className="animate-spin text-primary" />
-                <span>Loading vector chunks from database...</span>
-              </div>
-            ) : chunks.length > 0 ? (
-              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                {chunks.map((chk, idx) => (
-                  <div
-                    key={chk.id || idx}
-                    className="p-2 bg-canvas rounded-lg border border-hairline space-y-0.5 text-[11px]"
-                  >
-                    <div className="flex items-center justify-between text-muted text-[10px]">
-                      <span className="text-primary font-semibold truncate">
-                        {chk.file_path}
-                      </span>
-                      <span>Chunk #{chk.chunk_index}</span>
-                    </div>
-                    <p className="text-ink line-clamp-2 text-[11px] font-sans leading-relaxed">
-                      {chk.chunk_content}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-2.5 bg-canvas rounded-lg border border-hairline text-center text-muted text-xs">
-                No vector chunks indexed yet. Click &quot;Re-index&quot; below.
-              </div>
-            )}
-          </div>
 
           {/* Footer Actions */}
           <ModalFooter>

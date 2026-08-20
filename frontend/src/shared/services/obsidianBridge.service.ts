@@ -416,12 +416,16 @@ class ObsidianBridgeService {
    * Open / Create note directly in the local Obsidian desktop application via URI protocol
    */
   openInObsidianApp(
-    vaultName: string,
-    filePath: string,
+    vaultNameOrPath: string,
+    filePath: string = '',
     content?: string,
     subfolderScope?: string,
   ): void {
-    const cleanVault = encodeURIComponent(vaultName || this.pairedVaultName || 'Engineering-HQ')
+    let rawTarget = (vaultNameOrPath || this.pairedVaultName || 'Obsidian Vault').trim()
+    if (rawTarget.startsWith('upload://')) {
+      rawTarget = this.pairedVaultName || 'Obsidian Vault'
+    }
+    const isAbsolutePath = rawTarget.startsWith('/') || /^[a-zA-Z]:\\/.test(rawTarget) || rawTarget.startsWith('~')
 
     let targetFile = filePath.replace(/\.md$/, '').replace(/^\/+/, '')
     const scope = (subfolderScope || this.pairedSubfolderScope || '').replace(/^\/+|\/+$/g, '')
@@ -430,13 +434,33 @@ class ObsidianBridgeService {
       targetFile = `${scope}/${targetFile}`
     }
 
+    const cleanVault = encodeURIComponent(rawTarget)
     const cleanFile = encodeURIComponent(targetFile)
-
-    let uri = `obsidian://open?vault=${cleanVault}&file=${cleanFile}`
+    let uri: string
 
     if (content) {
       const cleanContent = encodeURIComponent(content)
-      uri = `obsidian://new?vault=${cleanVault}&file=${cleanFile}&content=${cleanContent}`
+      if (isAbsolutePath) {
+        const fullPath = targetFile
+          ? `${rawTarget.replace(/\/+$/, '')}/${targetFile}.md`
+          : rawTarget
+        uri = `obsidian://new?path=${encodeURIComponent(fullPath)}&content=${cleanContent}`
+      } else {
+        uri = targetFile
+          ? `obsidian://new?vault=${cleanVault}&file=${cleanFile}&content=${cleanContent}`
+          : `obsidian://new?vault=${cleanVault}&content=${cleanContent}`
+      }
+    } else {
+      if (isAbsolutePath && !targetFile) {
+        uri = `obsidian://open?path=${encodeURIComponent(rawTarget)}`
+      } else if (isAbsolutePath && targetFile) {
+        const fullPath = `${rawTarget.replace(/\/+$/, '')}/${targetFile}.md`
+        uri = `obsidian://open?path=${encodeURIComponent(fullPath)}`
+      } else {
+        uri = targetFile
+          ? `obsidian://open?vault=${cleanVault}&file=${cleanFile}`
+          : `obsidian://open?vault=${cleanVault}`
+      }
     }
 
     window.location.href = uri

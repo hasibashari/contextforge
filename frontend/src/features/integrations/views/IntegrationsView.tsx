@@ -73,9 +73,7 @@ export default function IntegrationsView() {
       const matchesFilter =
         selectedCategory === 'all' ||
         (selectedCategory === 'connected' && c.status === 'connected') ||
-        (selectedCategory === 'disconnected' && c.status !== 'connected') ||
-        (c.transport || 'stdio') === selectedCategory ||
-        (selectedCategory === 'streamable_http' && c.transport === 'streamable_http')
+        (selectedCategory === 'disconnected' && c.status !== 'connected')
 
       return matchesSearch && matchesFilter
     })
@@ -138,15 +136,24 @@ export default function IntegrationsView() {
 
       {/* Global Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-surface-card p-3 rounded-xl border border-hairline shadow-2xs">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted" />
+        <div className="relative flex-1 w-full sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" />
           <input
             type="text"
             placeholder={`Search ${activeTab === 'connectors' ? 'MCP servers & tools' : 'skill SOPs'}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 bg-canvas border border-hairline rounded-lg text-xs font-mono text-ink placeholder:text-muted focus:outline-none focus:border-primary"
+            className="w-full pl-9 pr-8 py-2 bg-canvas border border-hairline rounded-lg text-xs font-mono text-ink placeholder:text-muted focus:outline-none focus:border-primary shadow-2xs transition-colors"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink text-xs cursor-pointer p-0.5"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {/* Filter Pills */}
@@ -165,8 +172,6 @@ export default function IntegrationsView() {
             ? [
                 { id: 'connected', label: 'Connected' },
                 { id: 'disconnected', label: 'Ready to Connect' },
-                { id: 'stdio', label: 'stdio (Local)' },
-                { id: 'streamable_http', label: 'Streamable HTTP' },
               ].map((p) => (
                 <button
                   key={p.id}

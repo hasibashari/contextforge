@@ -210,6 +210,8 @@ export interface Integration {
   authConfig?: {
     token?: string
     workspaceName?: string
+    vaultName?: string
+    vaultId?: string
     headers?: Record<string, string>
     env?: Record<string, string>
   }

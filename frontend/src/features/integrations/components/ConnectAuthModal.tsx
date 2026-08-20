@@ -6,12 +6,14 @@ import {
   Cpu,
   ExternalLink,
   Sparkles,
+  BookOpen,
 } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
 import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
 import { IntegrationIconBox } from '@/shared/components/ui/IconBox'
 import { useWorkspace } from '@/shared/mock'
 import { ecosystemApi } from '@/shared/api/ecosystemApi'
+import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 
 interface ConnectAuthModalProps {
   integration: Integration | null
@@ -26,12 +28,33 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { updateConnectorConfig, discoverTools, refreshIntegrations, showToast } = useWorkspace()
+  const {
+    updateConnectorConfig,
+    discoverTools,
+    refreshIntegrations,
+    showToast,
+    knowledgeSources,
+  } = useWorkspace()
 
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [vaultPath, setVaultPath] = useState(
-    integration?.targetBinding?.folderScope || '~/Documents/ObsidianVault',
+  const availableVaultSources = knowledgeSources.filter(
+    (s) =>
+      s.type === 'obsidian_vault' ||
+      s.type === 'local_folder' ||
+      Boolean(s.location),
   )
+
+  const initialSourceId =
+    availableVaultSources.find(
+      (s) =>
+        s.name === integration?.targetBinding?.folderScope ||
+        s.location === integration?.targetBinding?.folderScope,
+    )?.id || (availableVaultSources.length > 0 ? availableVaultSources[0].id : '')
+
+  const [vaultName, setVaultName] = useState<string>(
+    (integration?.authConfig?.vaultName as string) || 'Obsidian Vault',
+  )
+  const [selectedSourceId, setSelectedSourceId] = useState<string>(initialSourceId)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!isOpen || !integration) return null
 
@@ -101,25 +124,31 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
     setIsSubmitting(true)
 
     try {
-      if (!vaultPath.trim()) {
-        showToast('Please specify a valid Obsidian Vault path', 'error')
-        setIsSubmitting(false)
-        return
-      }
+      const activeVaultName = vaultName.trim() || 'Obsidian Vault'
+      const matchedSource = availableVaultSources.find(
+        (s) => s.id === selectedSourceId,
+      )
+      const folderScopeName = matchedSource?.name || ''
 
       await updateConnectorConfig(integration.id, {
         status: 'connected',
-        endpoint: `npx -y @modelcontextprotocol/server-obsidian ${vaultPath.trim()}`,
+        endpoint: `npx -y @modelcontextprotocol/server-obsidian "${activeVaultName}"`,
+        authConfig: {
+          vaultName: activeVaultName,
+        },
         targetBinding: {
-          folderScope: vaultPath.trim(),
+          folderScope: folderScopeName,
+          defaultOutputPath: 'Drafts',
         },
       })
+
+      obsidianBridgeService.setPairedVault(activeVaultName, folderScopeName)
 
       await discoverTools(integration.id)
       await refreshIntegrations()
 
       showToast(
-        `Successfully paired local Obsidian vault at ${vaultPath.trim()}!`,
+        `✨ Successfully paired Obsidian vault "${activeVaultName}" (Source: ${folderScopeName || 'Root'})!`,
         'success',
       )
       onSuccess?.()
@@ -238,21 +267,61 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
               </p>
             </div>
 
+            {/* Field 1: Obsidian Desktop App Vault Name */}
             <div className="space-y-1.5">
               <label className="text-ink font-semibold flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
-                  <Terminal size={13} className="text-[#7c3aed]" />
-                  <span>Obsidian Vault Absolute Directory</span>
+                  <BookOpen size={13} className="text-[#7c3aed]" />
+                  <span>Obsidian Desktop Vault Name</span>
+                </span>
+                <span className="text-[10px] text-muted">
+                  Name registered in Obsidian App
                 </span>
               </label>
               <input
                 type="text"
-                value={vaultPath}
-                onChange={(e) => setVaultPath(e.target.value)}
+                value={vaultName}
+                onChange={(e) => setVaultName(e.target.value)}
+                placeholder="e.g. Obsidian Vault"
                 required
                 className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink font-mono focus:outline-none focus:border-primary text-xs"
               />
             </div>
+
+            {/* Field 2: Target Knowledge Source (Subfolder Scope) */}
+            {availableVaultSources.length > 0 ? (
+              <div className="space-y-1.5">
+                <label className="text-ink font-semibold flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Folder size={13} className="text-[#7c3aed]" />
+                    <span>Mount to Knowledge Source</span>
+                  </span>
+                  <span className="text-[10px] text-primary font-normal">
+                    ✓ Subfolder Scope
+                  </span>
+                </label>
+                <select
+                  value={selectedSourceId}
+                  onChange={(e) => setSelectedSourceId(e.target.value)}
+                  className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink font-mono focus:outline-none focus:border-primary text-xs cursor-pointer"
+                >
+                  {availableVaultSources.map((ks) => (
+                    <option key={ks.id} value={ks.id}>
+                      📚 {ks.name} ({ks.filesCount} files)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-canvas-soft rounded-xl border border-hairline text-center space-y-1">
+                <p className="text-ink font-semibold text-xs">
+                  No Knowledge Sources Available
+                </p>
+                <p className="text-muted text-[11px] font-sans">
+                  Please add an Obsidian Vault or folder in the Knowledge Base first before connecting the bridge.
+                </p>
+              </div>
+            )}
 
             <ModalFooter className="justify-end pt-2">
               <button
@@ -264,7 +333,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || availableVaultSources.length === 0}
                 className="px-4 py-2 bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Zap size={13} className={isSubmitting ? 'animate-spin' : ''} />
