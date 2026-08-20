@@ -197,7 +197,7 @@ export interface Integration {
   id: string
   connectionId?: string
   name: string
-  category: 'mcp_server' | 'git_provider' | 'documentation' | 'notification' | 'telemetry' | 'productivity' | 'engineering' | 'security' | 'knowledge'
+  category?: string
   status: 'connected' | 'connecting' | 'disconnected' | 'error'
   endpoint: string
   version: string
@@ -205,7 +205,14 @@ export interface Integration {
   tools: McpTool[]
   lastPingMs: number
   latencyMs: number
-  transport?: 'stdio' | 'sse' | 'rest'
+  transport?: 'stdio' | 'streamable_http' | 'sse' | 'rest'
+  authType?: 'none' | 'bearer' | 'oauth' | 'api_key'
+  authConfig?: {
+    token?: string
+    workspaceName?: string
+    headers?: Record<string, string>
+    env?: Record<string, string>
+  }
   isCustom?: boolean
   mountedKnowledgeSourceId?: string
   mountedKnowledgeSourceName?: string

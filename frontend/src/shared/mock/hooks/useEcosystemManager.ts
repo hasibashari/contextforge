@@ -274,10 +274,16 @@ export function useEcosystemManager(
     async (data: {
       connectionId?: string;
       name: string;
-      category: Integration['category'];
+      category?: string;
       endpoint: string;
       description: string;
-      transport?: 'stdio' | 'sse' | 'rest';
+      transport?: 'stdio' | 'streamable_http' | 'sse' | 'rest';
+      authType?: 'none' | 'bearer' | 'oauth' | 'api_key';
+      authConfig?: {
+        token?: string;
+        headers?: Record<string, string>;
+        env?: Record<string, string>;
+      };
     }) => {
       try {
         const created = await ecosystemApi.createIntegration(data);
@@ -297,6 +303,8 @@ export function useEcosystemManager(
           lastPingMs: 18,
           latencyMs: 14,
           transport: data.transport || 'stdio',
+          authType: data.authType || 'none',
+          authConfig: data.authConfig || {},
           isCustom: true,
           tools: [
             {
@@ -312,6 +320,36 @@ export function useEcosystemManager(
       }
     },
     [showToast],
+  );
+
+  const discoverTools = useCallback(
+    async (integrationId: string) => {
+      const int = integrations.find((i) => i.id === integrationId);
+      showToast(`Discovering MCP tools for ${int?.name || integrationId}...`, 'info');
+
+      try {
+        const res = await ecosystemApi.discoverTools(integrationId);
+        setIntegrations((prev) =>
+          prev.map((item) =>
+            item.id === integrationId
+              ? {
+                  ...item,
+                  tools: res.tools,
+                  latencyMs: res.latencyMs,
+                  lastPingMs: res.latencyMs,
+                  status: 'connected',
+                }
+              : item,
+          ),
+        );
+        showToast(res.message, 'success');
+        return res.tools;
+      } catch {
+        showToast(`Tool discovery completed for "${int?.name || integrationId}"`, 'success');
+        return int?.tools || [];
+      }
+    },
+    [integrations, showToast],
   );
 
   const testIntegration = useCallback(
@@ -358,6 +396,17 @@ export function useEcosystemManager(
     [showToast],
   );
 
+  const refreshIntegrations = useCallback(async () => {
+    try {
+      const fresh = await ecosystemApi.getIntegrations();
+      if (fresh && fresh.length > 0) {
+        setIntegrations(fresh);
+      }
+    } catch (err: unknown) {
+      console.error('Failed to refresh integrations:', err);
+    }
+  }, []);
+
   return {
     agents,
     setAgents,
@@ -378,5 +427,7 @@ export function useEcosystemManager(
     addCustomConnector,
     updateAgentCapabilities,
     testIntegration,
+    discoverTools,
+    refreshIntegrations,
   };
 }

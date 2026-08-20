@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Cpu,
   Sparkles,
@@ -14,7 +14,7 @@ import {
   SkillCard,
   SkillDetailDrawer,
   ConnectorDetailModal,
-  AddConnectorModal,
+  ConnectAuthModal,
   AddSkillModal,
 } from '@/features/integrations'
 import { EmptyState, IconBox } from '@/shared/components'
@@ -29,8 +29,9 @@ export default function IntegrationsView() {
     toggleSkill,
     toggleIntegrationConnect,
     updateConnectorConfig,
-    addCustomConnector,
     addCustomSkill,
+    refreshIntegrations,
+    showToast,
   } = useWorkspace()
 
   const [activeTab, setActiveTab] = useState<TabType>('connectors')
@@ -38,13 +39,22 @@ export default function IntegrationsView() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
   // Modals & Inspection State
-  const [isAddConnectorOpen, setIsAddConnectorOpen] = useState(false)
   const [isAddSkillOpen, setIsAddSkillOpen] = useState(false)
   const [inspectedSkill, setInspectedSkill] = useState<Skill | null>(null)
   const [selectedConnector, setSelectedConnector] = useState<Integration | null>(null)
+  const [connectingConnector, setConnectingConnector] = useState<Integration | null>(null)
 
   // Testing State
   const [testingId, setTestingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('oauth') === 'success') {
+      showToast('✨ Notion OAuth authorization completed successfully!', 'success')
+      refreshIntegrations()
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [refreshIntegrations, showToast])
 
   const handleTestPing = async (id: string) => {
     setTestingId(id)
@@ -59,9 +69,15 @@ export default function IntegrationsView() {
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.tools.some((t) => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      const matchesCat =
-        selectedCategory === 'all' || c.category === selectedCategory
-      return matchesSearch && matchesCat
+
+      const matchesFilter =
+        selectedCategory === 'all' ||
+        (selectedCategory === 'connected' && c.status === 'connected') ||
+        (selectedCategory === 'disconnected' && c.status !== 'connected') ||
+        (c.transport || 'stdio') === selectedCategory ||
+        (selectedCategory === 'streamable_http' && c.transport === 'streamable_http')
+
+      return matchesSearch && matchesFilter
     })
   }, [integrations, searchQuery, selectedCategory])
 
@@ -101,7 +117,7 @@ export default function IntegrationsView() {
           }`}
         >
           <Cpu size={14} />
-          <span>MCP Tool Connectors ({integrations.length})</span>
+          <span>MCP Catalog ({integrations.length})</span>
         </button>
 
         <button
@@ -126,14 +142,14 @@ export default function IntegrationsView() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted" />
           <input
             type="text"
-            placeholder={`Search ${activeTab}...`}
+            placeholder={`Search ${activeTab === 'connectors' ? 'MCP servers & tools' : 'skill SOPs'}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 bg-canvas border border-hairline rounded-lg text-xs font-mono text-ink placeholder:text-muted focus:outline-none focus:border-primary"
           />
         </div>
 
-        {/* Categories selector */}
+        {/* Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 text-xs font-mono">
           <button
             onClick={() => setSelectedCategory('all')}
@@ -145,36 +161,48 @@ export default function IntegrationsView() {
           >
             All
           </button>
-          {['engineering', 'security', 'knowledge', 'productivity'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 rounded-lg text-xs capitalize transition-colors cursor-pointer shrink-0 ${
-                selectedCategory === cat
-                  ? 'bg-ink text-canvas font-semibold shadow-2xs'
-                  : 'bg-canvas-soft text-body hover:text-ink border border-hairline'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+          {activeTab === 'connectors'
+            ? [
+                { id: 'connected', label: 'Connected' },
+                { id: 'disconnected', label: 'Ready to Connect' },
+                { id: 'stdio', label: 'stdio (Local)' },
+                { id: 'streamable_http', label: 'Streamable HTTP' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedCategory(p.id)}
+                  className={`px-3 py-1 rounded-lg text-xs transition-colors cursor-pointer shrink-0 ${
+                    selectedCategory === p.id
+                      ? 'bg-ink text-canvas font-semibold shadow-2xs'
+                      : 'bg-canvas-soft text-body hover:text-ink border border-hairline'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))
+            : ['engineering', 'security', 'knowledge', 'productivity'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1 rounded-lg text-xs capitalize transition-colors cursor-pointer shrink-0 ${
+                    selectedCategory === cat
+                      ? 'bg-ink text-canvas font-semibold shadow-2xs'
+                      : 'bg-canvas-soft text-body hover:text-ink border border-hairline'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
         </div>
       </div>
 
-      {/* Tab 1: Connectors (MCP Tools) */}
+      {/* Tab 1: Connectors (MCP Tools Catalog) */}
       {activeTab === 'connectors' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs font-mono text-muted">
             <span>
-              Showing <strong>{filteredConnectors.length}</strong> MCP Server Connectors
+              Showing <strong>{filteredConnectors.length}</strong> Official MCP Servers
             </span>
-            <button
-              onClick={() => setIsAddConnectorOpen(true)}
-              className="text-primary hover:underline flex items-center gap-1 cursor-pointer font-semibold"
-            >
-              <Plus size={13} />
-              <span>Register MCP Server</span>
-            </button>
           </div>
 
           {filteredConnectors.length > 0 ? (
@@ -184,6 +212,7 @@ export default function IntegrationsView() {
                   key={intg.id}
                   integration={intg}
                   onOpenDetail={() => setSelectedConnector(intg)}
+                  onConnect={() => setConnectingConnector(intg)}
                 />
               ))}
             </div>
@@ -193,14 +222,9 @@ export default function IntegrationsView() {
               title="No MCP Connectors Found"
               description={
                 searchQuery || selectedCategory !== 'all'
-                  ? `No connectors match your search "${searchQuery}" or category filter.`
-                  : 'Register a local or remote Model Context Protocol server to expose tools to agents.'
+                  ? `No connectors match your search "${searchQuery}" or filter.`
+                  : 'Official Model Context Protocol integrations will appear here.'
               }
-              action={{
-                label: 'Register MCP Server',
-                onClick: () => setIsAddConnectorOpen(true),
-                icon: <Plus size={14} />,
-              }}
               secondaryAction={
                 searchQuery || selectedCategory !== 'all'
                   ? {
@@ -299,6 +323,12 @@ export default function IntegrationsView() {
         isTesting={Boolean(selectedConnector && testingId === selectedConnector.id)}
       />
 
+      <ConnectAuthModal
+        integration={connectingConnector}
+        isOpen={Boolean(connectingConnector)}
+        onClose={() => setConnectingConnector(null)}
+      />
+
       <SkillDetailDrawer
         skill={inspectedSkill}
         onClose={() => setInspectedSkill(null)}
@@ -311,12 +341,6 @@ export default function IntegrationsView() {
             })
           }
         }}
-      />
-
-      <AddConnectorModal
-        isOpen={isAddConnectorOpen}
-        onClose={() => setIsAddConnectorOpen(false)}
-        onAdd={addCustomConnector}
       />
 
       <AddSkillModal

@@ -11,12 +11,24 @@ import { useWorkspace } from '@/shared/mock'
 
 export default function SettingsView() {
   const { showToast, integrations, skills } = useWorkspace()
-  const [strictHitl, setStrictHitl] = useState(true)
-  const [astSandboxing, setAstSandboxing] = useState(true)
-  const [autoVectorSync, setAutoVectorSync] = useState(true)
+  const [strictHitl, setStrictHitl] = useState(() => {
+    const saved = localStorage.getItem('cf_strict_hitl')
+    return saved !== null ? saved === 'true' : true
+  })
+  const [astSandboxing, setAstSandboxing] = useState(() => {
+    const saved = localStorage.getItem('cf_ast_sandboxing')
+    return saved !== null ? saved === 'true' : true
+  })
+  const [autoVectorSync, setAutoVectorSync] = useState(() => {
+    const saved = localStorage.getItem('cf_auto_vector_sync')
+    return saved !== null ? saved === 'true' : true
+  })
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
+    localStorage.setItem('cf_strict_hitl', String(strictHitl))
+    localStorage.setItem('cf_ast_sandboxing', String(astSandboxing))
+    localStorage.setItem('cf_auto_vector_sync', String(autoVectorSync))
     showToast('✓ Workspace safety policies and guardrails saved!')
   }
 

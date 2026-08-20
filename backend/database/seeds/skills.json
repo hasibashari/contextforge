@@ -1,0 +1,74 @@
+[
+  {
+    "id": "skill-rfc-architect",
+    "name": "Architecture RFC & Decision Records",
+    "description": "Standard operating procedure for drafting comprehensive technical design docs (TDD) and architecture decision records (ADR).",
+    "category": "engineering",
+    "icon": "book-open",
+    "sopSummary": "Enforces strict section hierarchy: Executive Summary, System Architecture, SQL DDL Schema, API Specifications, and Rollout Strategy.",
+    "instructions": "Follow the RFC template: 1. Executive Summary, 2. High-Level Mermaid Architecture, 3. Relational/Vector Schema, 4. REST & SSE Contract, 5. Step-by-Step Implementation.",
+    "assignedTools": ["read_file", "obsidian_vault_writer"],
+    "enabled": true,
+    "isCustom": false
+  },
+  {
+    "id": "skill-deep-web-research",
+    "name": "Deep Web Synthesis & Citation Grounding",
+    "description": "Structured research playbook that queries search engines, evaluates source authority, and synthesizes cited answers.",
+    "category": "knowledge",
+    "icon": "globe",
+    "sopSummary": "Formulate multi-angle search queries, extract primary domain sources, filter commercial noise, and append numbered markdown footnotes.",
+    "instructions": "Execute web search queries, verify 2+ sources, synthesize findings, cite domain URLs.",
+    "assignedTools": ["web_search"],
+    "enabled": true,
+    "isCustom": false
+  },
+  {
+    "id": "skill-obsidian-vault-synthesis",
+    "name": "Obsidian Vault Note Ingestion & Linking",
+    "description": "Playbook for writing bi-directionally linked Markdown files with frontmatter tags and Obsidian YAML metadata.",
+    "category": "knowledge",
+    "icon": "book-open",
+    "sopSummary": "Structures frontmatter YAML (created, tags, aliases), uses [[WikiLinks]] for cross-note referencing, and writes atomic notes.",
+    "instructions": "Format YAML frontmatter with date and tags, write concise markdown, link related topics.",
+    "assignedTools": ["obsidian_vault_writer", "obsidian_vault_reader"],
+    "enabled": true,
+    "isCustom": false
+  },
+  {
+    "id": "skill-ast-code-patcher",
+    "name": "AST-Verified Code Patching & Refactoring",
+    "description": "Strict code modification playbook that checks Abstract Syntax Trees (AST) before applying file diffs.",
+    "category": "engineering",
+    "icon": "cpu",
+    "sopSummary": "Generates minimal unified diffs, runs AST parsing to prevent syntax breakage, and verifies unit test passing.",
+    "instructions": "Inspect original code, generate atomic diff, run syntax check, format output cleanly.",
+    "assignedTools": ["code_editor", "code_ast_checker", "bash_executor"],
+    "enabled": true,
+    "isCustom": false
+  },
+  {
+    "id": "skill-threat-model-review",
+    "name": "CVE & Security Threat Model Review",
+    "description": "Standard protocol for auditing authentication boundaries, SQL injection risks, and secret leakage.",
+    "category": "security",
+    "icon": "shield",
+    "sopSummary": "Applies STRIDE threat modeling methodology, checks for hardcoded tokens, and verifies SQL parameterization.",
+    "instructions": "Audit code for unsanitized inputs, check CORS and auth boundaries, document mitigations.",
+    "assignedTools": ["code_ast_checker", "read_file"],
+    "enabled": true,
+    "isCustom": false
+  },
+  {
+    "id": "skill-calendar-workflow-sync",
+    "name": "Calendar & Agenda Intelligent Dispatch",
+    "description": "Procedural standard for parsing conversational meeting requests, resolving timezones, and creating calendar events.",
+    "category": "productivity",
+    "icon": "calendar",
+    "sopSummary": "Resolves relative dates (tomorrow, next Monday), validates duration against free slots, and populates attendee metadata.",
+    "instructions": "Extract event title, date, time, and attendees, verify slot availability, create calendar event.",
+    "assignedTools": ["calendar_event_creator", "calendar_schedule_reader"],
+    "enabled": true,
+    "isCustom": false
+  }
+]

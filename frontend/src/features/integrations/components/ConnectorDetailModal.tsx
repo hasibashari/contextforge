@@ -17,6 +17,7 @@ import {
   EyeOff,
   Folder,
   ExternalLink,
+  RefreshCw,
 } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
@@ -51,9 +52,12 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
   onSaveConfig,
   isTesting,
 }) => {
-  const { knowledgeSources } = useWorkspace()
+  const { knowledgeSources, integrations, discoverTools } = useWorkspace()
+  const currentIntegration =
+    integrations.find((i) => i.id === integration.id) || integration
 
   const [isEditing, setIsEditing] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
 
   const [selectedVaultScope, setSelectedVaultScope] = useState(
@@ -71,7 +75,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
     apiKey: 'sec_live_mcp_9a4f21e08cb4418a',
   })
 
-  const isConnected = integration.status === 'connected'
+  const isConnected = currentIntegration.status === 'connected'
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
@@ -90,11 +94,21 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
 
   const renderSubtitle = () => (
     <>
-      <span className="capitalize">{integration.category.replace('_', ' ')}</span>
+      <span className="uppercase text-[11px] font-mono">
+        {currentIntegration.transport || 'stdio'}
+      </span>
+      {currentIntegration.authType && currentIntegration.authType !== 'none' && (
+        <>
+          <span>·</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-semibold uppercase">
+            {currentIntegration.authType}
+          </span>
+        </>
+      )}
       <span>·</span>
-      <span>{integration.version}</span>
+      <span>{currentIntegration.version}</span>
       <span>·</span>
-      <StatusPill status={integration.status} />
+      <StatusPill status={currentIntegration.status} />
     </>
   )
 
@@ -369,15 +383,15 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono text-[11px] text-muted">
             <div className="flex items-center gap-1.5 min-w-0">
               <Server size={12} className="text-primary shrink-0" />
-              <span className="text-ink truncate">{integration.endpoint}</span>
+              <span className="text-ink truncate">{currentIntegration.endpoint}</span>
             </div>
             <div className="flex items-center gap-3 shrink-0">
               <span className="flex items-center gap-1 text-semantic-success">
                 <Activity size={11} />
-                <span>{integration.latencyMs}ms</span>
+                <span>{currentIntegration.latencyMs}ms</span>
               </span>
               <span className="uppercase text-ink font-semibold">
-                {integration.transport || 'stdio'}
+                {currentIntegration.transport || 'stdio'}
               </span>
             </div>
           </div>
@@ -385,11 +399,24 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
           {/* Exposed Tools List */}
           <div className="space-y-2 pt-1">
             <div className="text-[11px] font-mono font-semibold uppercase tracking-caption text-muted flex items-center justify-between">
-              <span>Available Tools ({integration.tools.length})</span>
+              <span>Available Tools ({currentIntegration.tools.length})</span>
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsSyncing(true)
+                  await discoverTools(currentIntegration.id)
+                  setIsSyncing(false)
+                }}
+                disabled={isSyncing}
+                className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw size={11} className={isSyncing ? 'animate-spin' : ''} />
+                <span>{isSyncing ? 'Syncing...' : 'Sync Tools (tools/list)'}</span>
+              </button>
             </div>
 
             <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-              {integration.tools.map((tool) => (
+              {currentIntegration.tools.map((tool) => (
                 <div
                   key={tool.name}
                   className="p-2.5 rounded-lg bg-canvas border border-hairline space-y-1"

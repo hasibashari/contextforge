@@ -6,7 +6,10 @@ import {
   Delete,
   Param,
   Body,
+  Query,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { EcosystemService } from './ecosystem.service';
 import type {
   WorkspaceAgentRow,
@@ -57,6 +60,12 @@ export class EcosystemController {
     return { success: true, data };
   }
 
+  @Get('skills/:id')
+  async getSkillById(@Param('id') id: string) {
+    const data = await this.service.getSkillById(id);
+    return { success: true, data };
+  }
+
   @Post('skills')
   async createSkill(
     @Body()
@@ -74,7 +83,7 @@ export class EcosystemController {
     return {
       success: true,
       data,
-      message: `Skill "${data.name}" created successfully`,
+      message: `Skill SOP "${data.name}" created successfully`,
     };
   }
 
@@ -84,12 +93,14 @@ export class EcosystemController {
     return {
       success: true,
       data,
-      message: `Skill ${id} status changed to ${data.enabled ? 'enabled' : 'disabled'}`,
+      message: `Skill "${data.name}" is now ${
+        data.enabled ? 'active' : 'disabled'
+      }`,
     };
   }
 
   // ==========================================
-  // MCP INTEGRATIONS & TOOLS
+  // MCP CONNECTORS / INTEGRATIONS
   // ==========================================
 
   @Get('integrations')
@@ -109,12 +120,17 @@ export class EcosystemController {
   async createIntegration(
     @Body()
     body: {
-      connectionId?: string;
       name: string;
-      category: WorkspaceIntegrationRow['category'];
+      category?: string;
       endpoint: string;
       description: string;
-      transport?: 'stdio' | 'sse' | 'rest';
+      transport?: 'stdio' | 'streamable_http' | 'sse' | 'rest';
+      authType?: 'none' | 'bearer' | 'oauth' | 'api_key';
+      authConfig?: {
+        token?: string;
+        headers?: Record<string, string>;
+        env?: Record<string, string>;
+      };
       tools?: any[];
     },
   ) {
@@ -136,6 +152,16 @@ export class EcosystemController {
       success: true,
       data,
       message: `Integration connector ${id} updated successfully`,
+    };
+  }
+
+  @Post('integrations/:id/discover')
+  async discoverTools(@Param('id') id: string) {
+    const data = await this.service.discoverTools(id);
+    return {
+      success: true,
+      data,
+      message: data.message,
     };
   }
 
@@ -165,6 +191,119 @@ export class EcosystemController {
     return {
       success: true,
       message: `Integration connector ${id} deleted successfully`,
+    };
+  }
+
+  // ==========================================
+  // NOTION OAUTH 2.0 ENDPOINTS
+  // ==========================================
+
+  @Get('oauth/notion/authorize')
+  getNotionOAuthUrl() {
+    const res = this.service.getNotionOAuthUrl();
+    return {
+      success: true,
+      data: res,
+    };
+  }
+
+  @Get('oauth/notion/callback')
+  async handleNotionOAuthCallback(
+    @Query('code') code: string,
+    @Query('error') error: string,
+    @Res() res: Response,
+  ) {
+    if (error || !code) {
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>Notion Authorization Cancelled</title></head>
+          <body style="font-family: system-ui, sans-serif; text-align: center; padding: 48px; background: #0b0f19; color: #f87171;">
+            <h2>⚠️ Notion Authorization Cancelled</h2>
+            <p style="color: #94a3b8;">${error || 'No authorization code returned'}</p>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ type: 'NOTION_AUTH_ERROR', error: '${error || 'Cancelled'}' }, '*');
+                setTimeout(() => window.close(), 1500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+    }
+
+    try {
+      const result = await this.service.exchangeNotionOAuthCode(code);
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Notion Connected - ContextForge</title>
+            <style>
+              body { font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 50px; background: #0b0f19; color: #f8fafc; }
+              .card { background: #161e2e; border: 1px solid #334155; border-radius: 16px; padding: 32px; max-width: 420px; margin: auto; }
+              .success { color: #10b981; font-size: 24px; font-weight: bold; margin-bottom: 8px; }
+              .ws { color: #60a5fa; font-weight: 600; font-size: 16px; margin: 12px 0; }
+              .hint { color: #64748b; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <div class="success">✨ Notion Connected!</div>
+              <p style="color: #cbd5e1; font-size: 14px;">Your workspace is now paired with ContextForge MCP.</p>
+              <div class="ws">Workspace: ${result.workspaceName}</div>
+              <p class="hint">This window will close automatically...</p>
+            </div>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ 
+                  type: 'NOTION_AUTH_SUCCESS', 
+                  workspaceName: ${JSON.stringify(result.workspaceName)}
+                }, '*');
+                setTimeout(() => window.close(), 1000);
+              } else {
+                setTimeout(() => { window.location.href = '/integrations?oauth=success'; }, 1500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'OAuth exchange failed';
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>Notion Authorization Error</title></head>
+          <body style="font-family: system-ui, sans-serif; text-align: center; padding: 48px; background: #0b0f19; color: #f87171;">
+            <h2>❌ Connection Failed</h2>
+            <p style="color: #cbd5e1;">${msg}</p>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ type: 'NOTION_AUTH_ERROR', error: ${JSON.stringify(msg)} }, '*');
+                setTimeout(() => window.close(), 2500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+    }
+  }
+
+  @Post('oauth/notion/token')
+  async connectNotionToken(
+    @Body() body: { token: string; workspaceName?: string },
+  ) {
+    const data = await this.service.verifyAndConnectNotionToken(
+      body.token,
+      body.workspaceName,
+    );
+    return {
+      success: true,
+      data,
+      message: `Notion workspace "${data.workspaceName}" connected successfully`,
     };
   }
 }

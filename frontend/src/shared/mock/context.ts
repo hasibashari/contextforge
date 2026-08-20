@@ -6,6 +6,7 @@ import type {
   WorkspaceConnection,
   KnowledgeSource,
   Integration,
+  McpTool,
   ActivityLogEntry,
   Artifact,
   ChatSession,
@@ -67,10 +68,16 @@ export interface WorkspaceContextType {
   addCustomConnector: (data: {
     connectionId?: string
     name: string
-    category: Integration['category']
+    category?: string
     endpoint: string
     description: string
-    transport?: 'stdio' | 'sse' | 'rest'
+    transport?: 'stdio' | 'streamable_http' | 'sse' | 'rest'
+    authType?: 'none' | 'bearer' | 'oauth' | 'api_key'
+    authConfig?: {
+      token?: string
+      headers?: Record<string, string>
+      env?: Record<string, string>
+    }
   }) => void
   updateAgentCapabilities: (
     agentId: string,
@@ -78,6 +85,8 @@ export interface WorkspaceContextType {
     skillIds: string[]
   ) => void
   testIntegration: (integrationId: string) => Promise<boolean>
+  discoverTools: (integrationId: string) => Promise<McpTool[]>
+  refreshIntegrations: () => Promise<void>
 
   // Connections Actions (4. Connection)
   addConnection: (data: {

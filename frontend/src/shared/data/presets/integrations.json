@@ -1,0 +1,94 @@
+[
+  {
+    "id": "int-obsidian-vault-mcp",
+    "name": "Obsidian Vault MCP Bridge",
+    "category": "mcp_server",
+    "status": "connected",
+    "endpoint": "npx -y @modelcontextprotocol/server-obsidian ~/Documents/ObsidianVault",
+    "version": "v2.1.0",
+    "transport": "stdio",
+    "authType": "none",
+    "authConfig": {},
+    "description": "Direct bi-directional Model Context Protocol bridge into local Obsidian vault files & daily notes.",
+    "lastPingMs": 14,
+    "latencyMs": 11,
+    "tools": [
+      {
+        "id": "t-obsidian-1",
+        "name": "obsidian_vault_writer",
+        "description": "Append or create structured Markdown files with frontmatter inside Obsidian",
+        "parametersSchema": {
+          "vaultName": "string",
+          "path": "string",
+          "content": "string"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-obsidian-2",
+        "name": "obsidian_vault_reader",
+        "description": "Read and search note contents, backlinks, and tags across markdown files",
+        "parametersSchema": {
+          "vaultName": "string",
+          "query": "string"
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "int-notion-mcp",
+    "name": "Notion Workspace MCP Server",
+    "category": "mcp_server",
+    "status": "disconnected",
+    "endpoint": "https://mcp.notion.com/mcp",
+    "version": "v1.2.0",
+    "transport": "streamable_http",
+    "authType": "oauth",
+    "authConfig": {},
+    "description": "Official Model Context Protocol server for Notion workspace databases, page trees, and document sync.",
+    "lastPingMs": 0,
+    "latencyMs": 0,
+    "tools": [
+      {
+        "id": "t-notion-1",
+        "name": "notion_search",
+        "description": "Search pages and database titles across Notion workspace",
+        "parametersSchema": {
+          "query": "string"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-notion-2",
+        "name": "notion_read_page",
+        "description": "Read blocks, markdown content, and page properties from Notion",
+        "parametersSchema": {
+          "pageId": "string"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-notion-3",
+        "name": "notion_create_page",
+        "description": "Create new child pages and structured document entries in Notion",
+        "parametersSchema": {
+          "parentId": "string",
+          "title": "string",
+          "content": "string"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-notion-4",
+        "name": "notion_update_database",
+        "description": "Insert records and update schema rows in Notion databases",
+        "parametersSchema": {
+          "databaseId": "string",
+          "properties": "object"
+        },
+        "readOnly": false
+      }
+    ]
+  }
+]

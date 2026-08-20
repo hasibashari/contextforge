@@ -56,7 +56,7 @@ interface BackendIntegration {
   connection_id?: string;
   connectionId?: string;
   name: string;
-  category: Integration['category'];
+  category?: string;
   status?: 'connected' | 'connecting' | 'disconnected' | 'error';
   endpoint: string;
   version?: string;
@@ -66,7 +66,19 @@ interface BackendIntegration {
   lastPingMs?: number;
   latency_ms?: number;
   latencyMs?: number;
-  transport?: 'stdio' | 'sse' | 'rest';
+  transport?: 'stdio' | 'streamable_http' | 'sse' | 'rest';
+  auth_type?: 'none' | 'bearer' | 'oauth' | 'api_key';
+  authType?: 'none' | 'bearer' | 'oauth' | 'api_key';
+  auth_config?: {
+    token?: string;
+    headers?: Record<string, string>;
+    env?: Record<string, string>;
+  };
+  authConfig?: {
+    token?: string;
+    headers?: Record<string, string>;
+    env?: Record<string, string>;
+  };
   is_custom?: boolean;
   isCustom?: boolean;
 }
@@ -134,6 +146,8 @@ function mapIntegrationFromBackend(row: BackendIntegration): Integration {
     lastPingMs: row.last_ping_ms ?? row.lastPingMs ?? 12,
     latencyMs: row.latency_ms ?? row.latencyMs ?? 12,
     transport: row.transport || 'stdio',
+    authType: row.auth_type || row.authType || 'none',
+    authConfig: row.auth_config || row.authConfig || {},
     isCustom: Boolean(row.is_custom || row.isCustom),
   };
 }
@@ -213,10 +227,16 @@ export const ecosystemApi = {
   async createIntegration(data: {
     connectionId?: string;
     name: string;
-    category: Integration['category'];
+    category?: string;
     endpoint: string;
     description: string;
-    transport?: 'stdio' | 'sse' | 'rest';
+    transport?: 'stdio' | 'streamable_http' | 'sse' | 'rest';
+    authType?: 'none' | 'bearer' | 'oauth' | 'api_key';
+    authConfig?: {
+      token?: string;
+      headers?: Record<string, string>;
+      env?: Record<string, string>;
+    };
     tools?: McpTool[];
   }): Promise<Integration> {
     const res = await fetch(`${API_BASE_URL}/ecosystem/integrations`, {
@@ -233,6 +253,9 @@ export const ecosystemApi = {
     if (updates.name !== undefined) payload.name = updates.name;
     if (updates.status !== undefined) payload.status = updates.status;
     if (updates.endpoint !== undefined) payload.endpoint = updates.endpoint;
+    if (updates.transport !== undefined) payload.transport = updates.transport;
+    if (updates.authType !== undefined) payload.auth_type = updates.authType;
+    if (updates.authConfig !== undefined) payload.auth_config = updates.authConfig;
     if (updates.description !== undefined) payload.description = updates.description;
     if (updates.tools !== undefined) payload.tools = updates.tools;
     if (updates.lastPingMs !== undefined) payload.last_ping_ms = updates.lastPingMs;
@@ -245,6 +268,23 @@ export const ecosystemApi = {
     });
     const data = await handleApiResponse<BackendIntegration>(res);
     return mapIntegrationFromBackend(data);
+  },
+
+  async discoverTools(id: string): Promise<{
+    id: string;
+    tools: McpTool[];
+    latencyMs: number;
+    message: string;
+  }> {
+    const res = await fetch(`${API_BASE_URL}/ecosystem/integrations/${encodeURIComponent(id)}/discover`, {
+      method: 'POST',
+    });
+    return handleApiResponse<{
+      id: string;
+      tools: McpTool[];
+      latencyMs: number;
+      message: string;
+    }>(res);
   },
 
   async testIntegration(id: string): Promise<{
@@ -269,5 +309,41 @@ export const ecosystemApi = {
       method: 'DELETE',
     });
     await handleApiResponse<{ success: boolean }>(res);
+  },
+
+  // ------------------------------------------
+  // NOTION REAL OAUTH 2.0 HELPERS
+  // ------------------------------------------
+  async getNotionOAuthUrl(): Promise<{
+    configured: boolean;
+    authUrl: string;
+    message?: string;
+  }> {
+    const res = await fetch(`${API_BASE_URL}/ecosystem/oauth/notion/authorize`);
+    return handleApiResponse<{
+      configured: boolean;
+      authUrl: string;
+      message?: string;
+    }>(res);
+  },
+
+  async verifyNotionToken(
+    token: string,
+    workspaceName?: string,
+  ): Promise<{
+    success: boolean;
+    workspaceName: string;
+    bot?: Record<string, unknown>;
+  }> {
+    const res = await fetch(`${API_BASE_URL}/ecosystem/oauth/notion/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, workspaceName }),
+    });
+    return handleApiResponse<{
+      success: boolean;
+      workspaceName: string;
+      bot?: Record<string, unknown>;
+    }>(res);
   },
 };

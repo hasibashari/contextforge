@@ -112,6 +112,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addCustomConnector: ecosystem.addCustomConnector,
         updateAgentCapabilities: ecosystem.updateAgentCapabilities,
         testIntegration: ecosystem.testIntegration,
+        discoverTools: ecosystem.discoverTools,
+        refreshIntegrations: ecosystem.refreshIntegrations,
 
         // Connection Actions
         addConnection: ecosystem.addConnection,

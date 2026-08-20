@@ -1,5 +1,8 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../common/database/database.service';
+import agentsSeed from '../../../database/seeds/agents.json';
+import skillsSeed from '../../../database/seeds/skills.json';
+import integrationsSeed from '../../../database/seeds/integrations.json';
 
 export interface WorkspaceAgentRow {
   id: string;
@@ -41,11 +44,21 @@ export interface WorkspaceIntegrationRow {
   id: string;
   connection_id?: string;
   name: string;
-  category: 'engineering' | 'security' | 'knowledge' | 'productivity';
+  category?: string;
   status: 'connected' | 'disconnected' | 'error';
   endpoint: string;
   version: string;
-  transport: 'stdio' | 'sse' | 'rest';
+  transport: 'stdio' | 'streamable_http' | 'sse' | 'rest';
+  auth_type?: 'none' | 'bearer' | 'oauth' | 'api_key';
+  auth_config?: {
+    token?: string;
+    workspaceName?: string;
+    workspaceId?: string;
+    workspaceIcon?: string;
+    botId?: string;
+    headers?: Record<string, string>;
+    env?: Record<string, string>;
+  };
   description: string;
   tools: any[];
   last_ping_ms: number;
@@ -67,7 +80,7 @@ export class EcosystemRepository implements OnModuleInit {
 
   async ensureTablesAndSeed() {
     try {
-      // 1. Create tables
+      // 1. Create tables & drop legacy constraints
       await this.db.query(`
         CREATE TABLE IF NOT EXISTS workspace_agents (
           id VARCHAR(100) PRIMARY KEY,
@@ -113,11 +126,13 @@ export class EcosystemRepository implements OnModuleInit {
           id VARCHAR(100) PRIMARY KEY,
           connection_id VARCHAR(100),
           name VARCHAR(150) NOT NULL,
-          category VARCHAR(50) NOT NULL,
+          category VARCHAR(50) DEFAULT 'mcp_server',
           status VARCHAR(30) DEFAULT 'connected',
           endpoint TEXT NOT NULL,
           version VARCHAR(50) DEFAULT 'v1.0.0',
-          transport VARCHAR(20) DEFAULT 'stdio',
+          transport VARCHAR(30) DEFAULT 'stdio',
+          auth_type VARCHAR(30) DEFAULT 'none',
+          auth_config JSONB DEFAULT '{}',
           description TEXT NOT NULL,
           tools JSONB DEFAULT '[]',
           last_ping_ms INTEGER DEFAULT 12,
@@ -126,46 +141,146 @@ export class EcosystemRepository implements OnModuleInit {
           created_at TIMESTAMPTZ DEFAULT NOW(),
           updated_at TIMESTAMPTZ DEFAULT NOW()
         );
+        ALTER TABLE workspace_integrations DROP CONSTRAINT IF EXISTS workspace_integrations_category_check;
+        ALTER TABLE workspace_integrations DROP CONSTRAINT IF EXISTS workspace_integrations_transport_check;
+        ALTER TABLE workspace_integrations ADD COLUMN IF NOT EXISTS auth_type VARCHAR(30) DEFAULT 'none';
+        ALTER TABLE workspace_integrations ADD COLUMN IF NOT EXISTS auth_config JSONB DEFAULT '{}';
       `);
 
-      // 2. Seed Default Agents
-      await this.db.query(`
-        INSERT INTO workspace_agents (id, name, role, agent_type, permissions, description, avatar_color, model, temperature, system_prompt, capabilities, assigned_tools, assigned_skills, status, total_tasks_completed, success_rate_pct)
-        VALUES
-          ('agent-sec-docs', 'ContextForge Core Orchestrator', 'Main Reasoning & Analysis Agent', 'orchestrator', 'read_only', 'Primary conversational brain for Q&A, live web research, memory retrieval, and formulating execution plans for Side Agents.', 'bg-primary', 'gemini-3.6-flash', 0.2, 'You are ContextForge Core Orchestrator. You handle general reasoning, conversational discussion, live web search, and analysis.', '[{"id":"c1","name":"Conversational Reasoning","description":"Deep reasoning, Q&A, and technical architecture analysis"},{"id":"c2","name":"Live Web Grounding","description":"Query web search engines and synthesize cited answers"},{"id":"c3","name":"Side Agent Delegation","description":"Formulate structured task specs and dispatch execution sandboxes"}]'::jsonb, ARRAY['web_search', 'read_file', 'query_memory', 'search_vault', 'dispatch_side_agent'], ARRAY['skill-rfc-architect', 'skill-deep-web-research'], 'idle', 128, 99.4),
-          ('agent-doc-crawl', 'Obsidian Vault Worker', 'Side Agent: Vault & Document Writer', 'execution_worker', 'sandbox_write', 'Ephemeral execution worker that writes structured Markdown notes, updates frontmatter, and syncs Obsidian vaults.', 'bg-[#9fbbe0]', 'gemini-3.6-flash', 0.2, 'You are Obsidian Vault Worker Side Agent. Execute file creation and note formatting in local Obsidian vaults.', '[{"id":"c4","name":"Obsidian Vault Writing","description":"Create and update Markdown notes with frontmatter in Obsidian"},{"id":"c5","name":"Note Formatting","description":"Apply consistent markdown templates, tags, and bi-directional links"}]'::jsonb, ARRAY['obsidian_vault_writer', 'obsidian_vault_reader'], ARRAY['skill-obsidian-vault-synthesis'], 'idle', 58, 99.2),
-          ('agent-code-reviewer', 'CLI & Code Sandbox Runner', 'Side Agent: Terminal & File Execution', 'execution_worker', 'full_system', 'Sandboxed execution worker that creates files, edits codebases, executes bash commands, and runs test suites.', 'bg-[#c0a8dd]', 'gemini-3.6-flash', 0.1, 'You are Code Sandbox Side Agent. Execute file mutations, run CLI commands, verify AST syntax, and return execution summaries.', '[{"id":"c8","name":"File Creation & Editing","description":"Write source code files and generate atomic git diffs"},{"id":"c9","name":"Bash Command Execution","description":"Run test suites, linting, and build commands in sandbox"},{"id":"c10","name":"AST Syntax Checking","description":"Parse and validate code syntax before committing changes"}]'::jsonb, ARRAY['code_editor', 'bash_executor', 'code_ast_checker', 'git_diff_generator'], ARRAY['skill-ast-code-patcher'], 'idle', 92, 98.7),
-          ('agent-workflow-planner', 'Calendar & Workflow Scheduler', 'Side Agent: Agenda & Schedule Mutator', 'execution_worker', 'sandbox_write', 'Ephemeral execution worker that inspects user schedule, books calendar events, and updates meeting agendas.', 'bg-[#9fc9a2]', 'gemini-3.6-flash', 0.2, 'You are Calendar & Workflow Scheduler Side Agent. Create, update, and manage Google Calendar events and task timelines.', '[{"id":"c11","name":"Calendar Scheduling","description":"Insert, reschedule, and update calendar agenda items"},{"id":"c12","name":"Meeting Agenda Preparation","description":"Draft briefing notes and attendees lists for upcoming meetings"}]'::jsonb, ARRAY['calendar_event_creator', 'calendar_event_updater', 'calendar_schedule_reader'], ARRAY['skill-calendar-workflow-sync'], 'idle', 41, 100.0),
-          ('agent-visual-artist', 'Visual Diagram & Asset Generator', 'Side Agent: Diagram & Media Creator', 'execution_worker', 'sandbox_write', 'Ephemeral execution worker that creates Mermaid architecture diagrams, system flows, and graphical visual assets.', 'bg-[#e0b09f]', 'gemini-3.6-flash', 0.3, 'You are Visual Diagram & Asset Generator Side Agent. Render precise Mermaid diagrams and generate visual concept assets.', '[{"id":"c13","name":"Mermaid Architecture Diagrams","description":"Generate sequence, flowchart, and ERD diagrams"},{"id":"c14","name":"Visual Asset Generation","description":"Synthesize UI mockups and visual asset specifications"}]'::jsonb, ARRAY['mermaid_renderer', 'image_asset_generator'], ARRAY[]::text[], 'idle', 34, 97.8)
-        ON CONFLICT (id) DO NOTHING;
-      `);
+      // 2. Seed Default Agents from JSON
+      interface AgentSeedItem {
+        id: string;
+        name: string;
+        role: string;
+        agentType: string;
+        permissions: string;
+        description: string;
+        avatarColor: string;
+        model: string;
+        temperature: number;
+        systemPrompt: string;
+        capabilities: any[];
+        assignedTools: string[];
+        assignedSkills: string[];
+        status: string;
+        totalTasksCompleted: number;
+        successRatePct: number;
+      }
+      const typedAgents = agentsSeed as unknown as AgentSeedItem[];
+      for (const agent of typedAgents) {
+        await this.db.query(
+          `INSERT INTO workspace_agents (
+            id, name, role, agent_type, permissions, description, avatar_color, model, temperature, system_prompt, capabilities, assigned_tools, assigned_skills, status, total_tasks_completed, success_rate_pct
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+          ON CONFLICT (id) DO NOTHING;`,
+          [
+            agent.id,
+            agent.name,
+            agent.role,
+            agent.agentType,
+            agent.permissions,
+            agent.description,
+            agent.avatarColor,
+            agent.model,
+            agent.temperature,
+            agent.systemPrompt,
+            JSON.stringify(agent.capabilities),
+            agent.assignedTools,
+            agent.assignedSkills,
+            agent.status,
+            agent.totalTasksCompleted,
+            agent.successRatePct,
+          ],
+        );
+      }
 
-      // 3. Seed Default Skills
-      await this.db.query(`
-        INSERT INTO workspace_skills (id, name, description, category, icon, sop_summary, instructions, assigned_tools, enabled, is_custom)
-        VALUES
-          ('skill-rfc-architect', 'Architecture RFC & Decision Records', 'Standard operating procedure for drafting comprehensive technical design docs (TDD) and architecture decision records (ADR).', 'engineering', 'book-open', 'Enforces strict section hierarchy: Executive Summary, System Architecture, SQL DDL Schema, API Specifications, and Rollout Strategy.', 'Follow the RFC template: 1. Executive Summary, 2. High-Level Mermaid Architecture, 3. Relational/Vector Schema, 4. REST & SSE Contract, 5. Step-by-Step Implementation.', ARRAY['read_file', 'obsidian_vault_writer'], true, false),
-          ('skill-deep-web-research', 'Deep Web Synthesis & Citation Grounding', 'Structured research playbook that queries search engines, evaluates source authority, and synthesizes cited answers.', 'knowledge', 'globe', 'Formulate multi-angle search queries, extract primary domain sources, filter commercial noise, and append numbered markdown footnotes.', 'Execute web search queries, verify 2+ sources, synthesize findings, cite domain URLs.', ARRAY['web_search'], true, false),
-          ('skill-obsidian-vault-synthesis', 'Obsidian Vault Note Ingestion & Linking', 'Playbook for writing bi-directionally linked Markdown files with frontmatter tags and Obsidian YAML metadata.', 'knowledge', 'book-open', 'Structures frontmatter YAML (created, tags, aliases), uses [[WikiLinks]] for cross-note referencing, and writes atomic notes.', 'Format YAML frontmatter with date and tags, write concise markdown, link related topics.', ARRAY['obsidian_vault_writer', 'obsidian_vault_reader'], true, false),
-          ('skill-ast-code-patcher', 'AST-Verified Code Patching & Refactoring', 'Strict code modification playbook that checks Abstract Syntax Trees (AST) before applying file diffs.', 'engineering', 'cpu', 'Generates minimal unified diffs, runs AST parsing to prevent syntax breakage, and verifies unit test passing.', 'Inspect original code, generate atomic diff, run syntax check, format output cleanly.', ARRAY['code_editor', 'code_ast_checker', 'bash_executor'], true, false),
-          ('skill-threat-model-review', 'CVE & Security Threat Model Review', 'Standard protocol for auditing authentication boundaries, SQL injection risks, and secret leakage.', 'security', 'shield', 'Applies STRIDE threat modeling methodology, checks for hardcoded tokens, and verifies SQL parameterization.', 'Audit code for unsanitized inputs, check CORS and auth boundaries, document mitigations.', ARRAY['code_ast_checker', 'read_file'], true, false),
-          ('skill-calendar-workflow-sync', 'Calendar & Agenda Intelligent Dispatch', 'Procedural standard for parsing conversational meeting requests, resolving timezones, and creating calendar events.', 'productivity', 'calendar', 'Resolves relative dates (tomorrow, next Monday), validates duration against free slots, and populates attendee metadata.', 'Extract event title, date, time, and attendees, verify slot availability, create calendar event.', ARRAY['calendar_event_creator', 'calendar_schedule_reader'], true, false)
-        ON CONFLICT (id) DO NOTHING;
-      `);
+      // 3. Seed Default Skills from JSON
+      interface SkillSeedItem {
+        id: string;
+        name: string;
+        description: string;
+        category: string;
+        icon: string;
+        sopSummary: string;
+        instructions: string;
+        assignedTools: string[];
+        enabled: boolean;
+        isCustom: boolean;
+      }
+      const typedSkills = skillsSeed as unknown as SkillSeedItem[];
+      for (const skill of typedSkills) {
+        await this.db.query(
+          `INSERT INTO workspace_skills (
+            id, name, description, category, icon, sop_summary, instructions, assigned_tools, enabled, is_custom
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          ON CONFLICT (id) DO NOTHING;`,
+          [
+            skill.id,
+            skill.name,
+            skill.description,
+            skill.category,
+            skill.icon,
+            skill.sopSummary,
+            skill.instructions,
+            skill.assignedTools,
+            skill.enabled,
+            skill.isCustom,
+          ],
+        );
+      }
 
-      // 4. Seed Default Integrations (MCP Connectors)
-      await this.db.query(`
-        INSERT INTO workspace_integrations (id, name, category, status, endpoint, version, transport, description, tools, last_ping_ms, latency_ms, is_custom)
-        VALUES
-          ('mcp-filesystem', 'Local Filesystem MCP Server', 'engineering', 'connected', 'npx -y @modelcontextprotocol/server-filesystem /home/azure/dev', 'v1.1.0', 'stdio', 'Grants secure sandboxed file read/write access to project directories.', '[{"id":"t-fs-1","name":"read_file","description":"Read UTF-8 file contents from workspace"},{"id":"t-fs-2","name":"write_file","description":"Write or overwrite file contents"},{"id":"t-fs-3","name":"list_directory","description":"List files and directories"}]'::jsonb, 8, 8, false),
-          ('mcp-github', 'GitHub API MCP Server', 'engineering', 'connected', 'npx -y @modelcontextprotocol/server-github', 'v2.0.4', 'stdio', 'Inspect pull requests, browse repositories, create issues, and manage git branches.', '[{"id":"t-gh-1","name":"get_pull_request","description":"Fetch PR diff and review comments"},{"id":"t-gh-2","name":"create_branch","description":"Create new git branch"},{"id":"t-gh-3","name":"search_code","description":"Search repository code"}]'::jsonb, 42, 42, false),
-          ('mcp-google-calendar', 'Google Calendar & Agenda MCP', 'productivity', 'connected', 'https://mcp.contextforge.internal/google-calendar/sse', 'v1.4.0', 'sse', 'Synchronize calendar events, check user availability, and schedule meetings.', '[{"id":"t-gc-1","name":"list_events","description":"Get today or upcoming calendar events"},{"id":"t-gc-2","name":"create_event","description":"Create new calendar entry"}]'::jsonb, 18, 18, false),
-          ('mcp-postgres', 'PostgreSQL Database MCP Server', 'knowledge', 'connected', 'npx -y @modelcontextprotocol/server-postgres postgresql://cloudsql/contextforge_prod', 'v1.0.2', 'stdio', 'Inspect relational schemas, run parameterized read-only queries, and verify table constraints.', '[{"id":"t-pg-1","name":"describe_table","description":"Get column types and foreign keys"},{"id":"t-pg-2","name":"execute_query","description":"Run parameterized SQL query"}]'::jsonb, 12, 12, false),
-          ('mcp-brave-search', 'Brave Web Search MCP Server', 'knowledge', 'connected', 'https://api.search.brave.com/res/v1/web', 'v1.0.0', 'rest', 'Live web search index providing factual grounding and cited documentation.', '[{"id":"t-bs-1","name":"web_search","description":"Execute live web search query"}]'::jsonb, 95, 95, false)
-        ON CONFLICT (id) DO NOTHING;
-      `);
+      // 4. Seed Default Integrations (MCP Connectors) from JSON
+      interface IntegrationSeedItem {
+        id: string;
+        name: string;
+        category: string;
+        status: string;
+        endpoint: string;
+        version: string;
+        transport: string;
+        auth_type: string;
+        auth_config: Record<string, any>;
+        description: string;
+        tools: any[];
+        last_ping_ms: number;
+        latency_ms: number;
+      }
+      const typedIntegrations =
+        integrationsSeed as unknown as IntegrationSeedItem[];
+      const defaultIds = typedIntegrations.map((i) => i.id);
+      await this.db.query(
+        `DELETE FROM workspace_integrations WHERE id NOT IN (${defaultIds.map((_, i) => `$${i + 1}`).join(',')}) AND (is_custom IS NOT TRUE OR is_custom IS NULL);`,
+        defaultIds,
+      );
 
-      this.logger.log('✨ Ecosystem tables and seeds verified in PostgreSQL');
+      for (const intg of typedIntegrations) {
+        await this.db.query(
+          `INSERT INTO workspace_integrations (
+            id, name, category, status, endpoint, version, transport, auth_type, auth_config, description, tools, last_ping_ms, latency_ms, is_custom
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          ON CONFLICT (id) DO NOTHING;`,
+          [
+            intg.id,
+            intg.name,
+            intg.category,
+            intg.status,
+            intg.endpoint,
+            intg.version,
+            intg.transport,
+            intg.auth_type,
+            JSON.stringify(intg.auth_config),
+            intg.description,
+            JSON.stringify(intg.tools),
+            intg.last_ping_ms,
+            intg.latency_ms,
+            false,
+          ],
+        );
+      }
+
+      this.logger.log(
+        '✨ Ecosystem tables and seeds verified in PostgreSQL via JSON seed files',
+      );
     } catch (err: unknown) {
       this.logger.error(
         'Failed to initialize ecosystem tables or seed data',
@@ -206,33 +321,45 @@ export class EcosystemRepository implements OnModuleInit {
     const agent = await this.getAgentById(id);
     if (!agent) return null;
 
-    const systemPrompt = updates.system_prompt ?? agent.system_prompt;
-    const temperature = updates.temperature ?? agent.temperature;
+    const name = updates.name ?? agent.name;
+    const role = updates.role ?? agent.role;
+    const description = updates.description ?? agent.description;
     const model = updates.model ?? agent.model;
-    const assignedTools = updates.assigned_tools ?? agent.assigned_tools;
-    const assignedSkills = updates.assigned_skills ?? agent.assigned_skills;
+    const temperature = updates.temperature ?? agent.temperature;
+    const system_prompt = updates.system_prompt ?? agent.system_prompt;
     const capabilities = updates.capabilities
       ? JSON.stringify(updates.capabilities)
       : JSON.stringify(agent.capabilities);
+    const assigned_tools = updates.assigned_tools ?? agent.assigned_tools;
+    const assigned_skills = updates.assigned_skills ?? agent.assigned_skills;
+    const status = updates.status ?? agent.status;
 
     const res = await this.db.query<WorkspaceAgentRow>(
       `UPDATE workspace_agents
-       SET system_prompt = $1,
-           temperature = $2,
-           model = $3,
-           assigned_tools = $4,
-           assigned_skills = $5,
-           capabilities = $6::jsonb,
+       SET name = $1,
+           role = $2,
+           description = $3,
+           model = $4,
+           temperature = $5,
+           system_prompt = $6,
+           capabilities = $7::jsonb,
+           assigned_tools = $8,
+           assigned_skills = $9,
+           status = $10,
            updated_at = NOW()
-       WHERE id = $7
+       WHERE id = $11
        RETURNING *;`,
       [
-        systemPrompt,
-        temperature,
+        name,
+        role,
+        description,
         model,
-        assignedTools,
-        assignedSkills,
+        temperature,
+        system_prompt,
         capabilities,
+        assigned_tools,
+        assigned_skills,
+        status,
         id,
       ],
     );
@@ -275,8 +402,7 @@ export class EcosystemRepository implements OnModuleInit {
     icon?: string;
   }): Promise<WorkspaceSkillRow> {
     const id =
-      data.id ||
-      `skill-${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`;
+      data.id || `skill-${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     const icon = data.icon || 'sparkles';
 
     const res = await this.db.query<WorkspaceSkillRow>(
@@ -303,8 +429,7 @@ export class EcosystemRepository implements OnModuleInit {
 
     const res = await this.db.query<WorkspaceSkillRow>(
       `UPDATE workspace_skills
-       SET enabled = NOT enabled,
-           updated_at = NOW()
+       SET enabled = NOT enabled, updated_at = NOW()
        WHERE id = $1
        RETURNING *;`,
       [id],
@@ -332,6 +457,13 @@ export class EcosystemRepository implements OnModuleInit {
   // ==========================================
 
   async getIntegrations(): Promise<WorkspaceIntegrationRow[]> {
+    // Purge any legacy un-customized integrations except Obsidian MCP
+    await this.db.query(`
+      DELETE FROM workspace_integrations 
+      WHERE id != 'int-obsidian-vault-mcp' 
+        AND (is_custom IS NOT TRUE OR is_custom IS NULL);
+    `);
+
     let res = await this.db.query<WorkspaceIntegrationRow>(
       `SELECT * FROM workspace_integrations ORDER BY created_at ASC;`,
     );
@@ -358,16 +490,25 @@ export class EcosystemRepository implements OnModuleInit {
     id?: string;
     connectionId?: string;
     name: string;
-    category: WorkspaceIntegrationRow['category'];
+    category?: string;
     endpoint: string;
     description: string;
-    transport?: 'stdio' | 'sse' | 'rest';
+    transport?: 'stdio' | 'streamable_http' | 'sse' | 'rest';
+    authType?: 'none' | 'bearer' | 'oauth' | 'api_key';
+    authConfig?: {
+      token?: string;
+      headers?: Record<string, string>;
+      env?: Record<string, string>;
+    };
     tools?: any[];
   }): Promise<WorkspaceIntegrationRow> {
     const id =
       data.id ||
       `mcp-${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`;
     const transport = data.transport || 'stdio';
+    const category = data.category || 'mcp_server';
+    const authType = data.authType || 'none';
+    const authConfig = JSON.stringify(data.authConfig || {});
     const tools = JSON.stringify(
       data.tools || [
         {
@@ -379,16 +520,18 @@ export class EcosystemRepository implements OnModuleInit {
     );
 
     const res = await this.db.query<WorkspaceIntegrationRow>(
-      `INSERT INTO workspace_integrations (id, connection_id, name, category, status, endpoint, version, transport, description, tools, is_custom)
-       VALUES ($1, $2, $3, $4, 'connected', $5, 'v1.0.0', $6, $7, $8::jsonb, true)
+      `INSERT INTO workspace_integrations (id, connection_id, name, category, status, endpoint, version, transport, auth_type, auth_config, description, tools, is_custom)
+       VALUES ($1, $2, $3, $4, 'connected', $5, 'v1.0.0', $6, $7, $8::jsonb, $9, $10::jsonb, true)
        RETURNING *;`,
       [
         id,
         data.connectionId || null,
         data.name,
-        data.category,
+        category,
         data.endpoint,
         transport,
+        authType,
+        authConfig,
         data.description,
         tools,
       ],
@@ -406,6 +549,11 @@ export class EcosystemRepository implements OnModuleInit {
     const name = updates.name ?? current.name;
     const status = updates.status ?? current.status;
     const endpoint = updates.endpoint ?? current.endpoint;
+    const transport = updates.transport ?? current.transport;
+    const authType = updates.auth_type ?? current.auth_type ?? 'none';
+    const authConfig = updates.auth_config
+      ? JSON.stringify(updates.auth_config)
+      : JSON.stringify(current.auth_config || {});
     const description = updates.description ?? current.description;
     const tools = updates.tools
       ? JSON.stringify(updates.tools)
@@ -418,14 +566,29 @@ export class EcosystemRepository implements OnModuleInit {
        SET name = $1,
            status = $2,
            endpoint = $3,
-           description = $4,
-           tools = $5::jsonb,
-           last_ping_ms = $6,
-           latency_ms = $7,
+           transport = $4,
+           auth_type = $5,
+           auth_config = $6::jsonb,
+           description = $7,
+           tools = $8::jsonb,
+           last_ping_ms = $9,
+           latency_ms = $10,
            updated_at = NOW()
-       WHERE id = $8
+       WHERE id = $11
        RETURNING *;`,
-      [name, status, endpoint, description, tools, lastPing, latency, id],
+      [
+        name,
+        status,
+        endpoint,
+        transport,
+        authType,
+        authConfig,
+        description,
+        tools,
+        lastPing,
+        latency,
+        id,
+      ],
     );
     return res.rows[0] || null;
   }

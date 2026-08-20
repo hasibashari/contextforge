@@ -1,34 +1,131 @@
 import React from 'react'
-import { Settings, Plus } from 'lucide-react'
+import { Settings, Zap, Terminal, Globe } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
-import { EcosystemCard } from '@/shared/components/EcosystemCard'
 import { IntegrationIconBox } from '@/shared/components/ui/IconBox'
+import { StatusPill } from '@/shared/components/ui/StatusPill'
 
 interface IntegrationCardProps {
   integration: Integration
   onOpenDetail: () => void
+  onConnect?: () => void
 }
 
 export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   integration,
   onOpenDetail,
+  onConnect,
 }) => {
   const isConnected = integration.status === 'connected'
+  const isRemote =
+    integration.transport === 'streamable_http' ||
+    integration.transport === 'sse' ||
+    integration.transport === 'rest'
 
   return (
-    <EcosystemCard
-      icon={<IntegrationIconBox integration={integration} size="sm" />}
-      title={integration.name}
-      description={integration.description}
-      metaLine={`${integration.tools.length} Tools Ready · ${integration.latencyMs}ms · ${integration.version}`}
-      actionIcon={isConnected ? <Settings size={16} /> : <Plus size={16} />}
-      onClick={onOpenDetail}
-      onActionClick={onOpenDetail}
-      actionTooltip={
+    <div
+      onClick={isConnected ? onOpenDetail : onConnect || onOpenDetail}
+      className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-surface-card border transition-all duration-200 cursor-pointer shadow-2xs hover:shadow-md ${
         isConnected
-          ? 'Connected: Configure & test connector'
-          : 'Connect MCP server'
-      }
-    />
+          ? 'border-hairline hover:border-primary/40'
+          : 'border-dashed border-hairline hover:border-primary/60 bg-canvas/40'
+      }`}
+    >
+      {/* Top Header: Icon, Name & Status */}
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <IntegrationIconBox integration={integration} size="md" />
+            <div>
+              <h3 className="text-sm font-semibold text-ink group-hover:text-primary transition-colors flex items-center gap-1.5 font-mono">
+                <span>{integration.name}</span>
+              </h3>
+              <div className="flex items-center gap-1.5 text-[11px] text-muted font-mono mt-0.5">
+                {isRemote ? (
+                  <span className="flex items-center gap-1">
+                    <Globe size={11} className="text-primary" />
+                    <span>Streamable HTTP</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <Terminal size={11} className="text-[#7c3aed]" />
+                    <span>stdio (Local)</span>
+                  </span>
+                )}
+                <span>·</span>
+                <span>{integration.version}</span>
+              </div>
+            </div>
+          </div>
+
+          <StatusPill
+            status={
+              isConnected
+                ? 'connected'
+                : integration.status === 'error'
+                ? 'error'
+                : 'disconnected'
+            }
+          />
+        </div>
+
+        {/* Description */}
+        <p className="text-xs text-body font-sans leading-relaxed line-clamp-2">
+          {integration.description}
+        </p>
+
+        {/* Connected Workspace Badge */}
+        {isConnected && integration.authConfig?.workspaceName && (
+          <div className="inline-flex items-center gap-1.5 text-[10px] text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md font-mono font-medium">
+            <span>Workspace: {integration.authConfig.workspaceName}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Meta & Action */}
+      <div className="pt-4 mt-4 border-t border-hairline/60 flex items-center justify-between gap-2">
+        <div className="text-[11px] font-mono text-muted flex items-center gap-2">
+          <span className="font-semibold text-ink">
+            {integration.tools.length} Tools
+          </span>
+          {isConnected && integration.latencyMs > 0 && (
+            <>
+              <span>·</span>
+              <span className="text-semantic-success">
+                {integration.latencyMs}ms latency
+              </span>
+            </>
+          )}
+        </div>
+
+        <div>
+          {isConnected ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenDetail()
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-ink bg-canvas-soft hover:bg-canvas border border-hairline rounded-xl transition-colors cursor-pointer"
+            >
+              <Settings size={12} className="text-muted group-hover:text-ink" />
+              <span>Manage & Sync</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onConnect) onConnect()
+                else onOpenDetail()
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-on-primary bg-primary hover:bg-primary-active rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              <Zap size={12} />
+              <span>Connect</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

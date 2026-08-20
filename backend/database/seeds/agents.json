@@ -1,0 +1,109 @@
+[
+  {
+    "id": "agent-sec-docs",
+    "name": "ContextForge Core Orchestrator",
+    "role": "Main Reasoning & Analysis Agent",
+    "agentType": "orchestrator",
+    "permissions": "read_only",
+    "description": "Primary conversational brain for Q&A, live web research, memory retrieval, and formulating execution plans for Side Agents.",
+    "avatarColor": "bg-primary",
+    "model": "gemini-3.6-flash",
+    "temperature": 0.2,
+    "systemPrompt": "You are ContextForge Core Orchestrator. You handle general reasoning, conversational discussion, live web search, and analysis. When mutations (file edits, Obsidian writes, CLI runs) are required, formulate a structured delegation spec for a Side Agent.",
+    "capabilities": [
+      { "id": "c1", "name": "Conversational Reasoning", "description": "Deep reasoning, Q&A, and technical architecture analysis" },
+      { "id": "c2", "name": "Live Web Grounding", "description": "Query web search engines and synthesize cited answers" },
+      { "id": "c3", "name": "Side Agent Delegation", "description": "Formulate structured task specs and dispatch execution sandboxes" }
+    ],
+    "assignedTools": ["web_search", "read_file", "query_memory", "search_vault", "dispatch_side_agent"],
+    "assignedSkills": ["skill-rfc-architect", "skill-deep-web-research"],
+    "status": "executing",
+    "totalTasksCompleted": 128,
+    "successRatePct": 99.4
+  },
+  {
+    "id": "agent-doc-crawl",
+    "name": "Obsidian Vault Worker",
+    "role": "Side Agent: Vault & Document Writer",
+    "agentType": "execution_worker",
+    "permissions": "sandbox_write",
+    "description": "Ephemeral execution worker that writes structured Markdown notes, updates frontmatter, and syncs Obsidian vaults.",
+    "avatarColor": "bg-[#9fbbe0]",
+    "model": "gemini-3.6-flash",
+    "temperature": 0.2,
+    "systemPrompt": "You are Obsidian Vault Worker Side Agent. Execute file creation and note formatting in local Obsidian vaults.",
+    "capabilities": [
+      { "id": "c4", "name": "Obsidian Vault Writing", "description": "Create and update Markdown notes with frontmatter in Obsidian" },
+      { "id": "c5", "name": "Note Formatting", "description": "Apply consistent markdown templates, tags, and bi-directional links" }
+    ],
+    "assignedTools": ["obsidian_vault_writer", "obsidian_vault_reader"],
+    "assignedSkills": ["skill-obsidian-vault-synthesis"],
+    "status": "idle",
+    "totalTasksCompleted": 58,
+    "successRatePct": 99.2
+  },
+  {
+    "id": "agent-code-reviewer",
+    "name": "CLI & Code Sandbox Runner",
+    "role": "Side Agent: Terminal & File Execution",
+    "agentType": "execution_worker",
+    "permissions": "full_system",
+    "description": "Sandboxed execution worker that creates files, edits codebases, executes bash commands, and runs test suites.",
+    "avatarColor": "bg-[#c0a8dd]",
+    "model": "gemini-3.6-flash",
+    "temperature": 0.1,
+    "systemPrompt": "You are Code Sandbox Side Agent. Execute file mutations, run CLI commands, verify AST syntax, and return execution summaries.",
+    "capabilities": [
+      { "id": "c8", "name": "File Creation & Editing", "description": "Write source code files and generate atomic git diffs" },
+      { "id": "c9", "name": "Bash Command Execution", "description": "Run test suites, linting, and build commands in sandbox" },
+      { "id": "c10", "name": "AST Syntax Checking", "description": "Parse and validate code syntax before committing changes" }
+    ],
+    "assignedTools": ["code_editor", "bash_executor", "code_ast_checker", "git_diff_generator"],
+    "assignedSkills": ["skill-ast-code-patcher"],
+    "status": "idle",
+    "totalTasksCompleted": 92,
+    "successRatePct": 98.7
+  },
+  {
+    "id": "agent-workflow-planner",
+    "name": "Calendar & Workflow Scheduler",
+    "role": "Side Agent: Agenda & Schedule Mutator",
+    "agentType": "execution_worker",
+    "permissions": "sandbox_write",
+    "description": "Ephemeral execution worker that inspects user schedule, books calendar events, and updates meeting agendas.",
+    "avatarColor": "bg-[#9fc9a2]",
+    "model": "gemini-3.6-flash",
+    "temperature": 0.2,
+    "systemPrompt": "You are Calendar & Workflow Scheduler Side Agent. Create, update, and manage Google Calendar events and task timelines.",
+    "capabilities": [
+      { "id": "c11", "name": "Calendar Scheduling", "description": "Insert, reschedule, and update calendar agenda items" },
+      { "id": "c12", "name": "Meeting Agenda Preparation", "description": "Draft briefing notes and attendees lists for upcoming meetings" }
+    ],
+    "assignedTools": ["calendar_event_creator", "calendar_event_updater", "calendar_schedule_reader"],
+    "assignedSkills": ["skill-calendar-workflow-sync"],
+    "status": "idle",
+    "totalTasksCompleted": 41,
+    "successRatePct": 100.0
+  },
+  {
+    "id": "agent-visual-artist",
+    "name": "Visual Diagram & Asset Generator",
+    "role": "Side Agent: Diagram & Media Creator",
+    "agentType": "execution_worker",
+    "permissions": "sandbox_write",
+    "description": "Ephemeral execution worker that creates Mermaid architecture diagrams, system flows, and graphical visual assets.",
+    "avatarColor": "bg-[#e0b09f]",
+    "model": "gemini-3.6-flash",
+    "temperature": 0.3,
+    "systemPrompt": "You are Visual Diagram & Asset Generator Side Agent. Render precise Mermaid diagrams and generate visual concept assets.",
+    "capabilities": [
+      { "id": "c13", "name": "Mermaid Architecture Diagrams", "description": "Generate sequence, flowchart, and ERD diagrams" },
+      { "id": "c14", "name": "Visual Asset Generation", "description": "Synthesize UI mockups and visual asset specifications" }
+    ],
+    "assignedTools": ["mermaid_renderer", "image_asset_generator"],
+    "assignedSkills": [],
+    "status": "idle",
+    "totalTasksCompleted": 34,
+    "successRatePct": 97.8
+  }
+]
