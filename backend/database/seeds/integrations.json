@@ -3,7 +3,7 @@
     "id": "int-obsidian-vault-mcp",
     "name": "Obsidian Vault MCP Bridge",
     "category": "mcp_server",
-    "status": "connected",
+    "status": "disconnected",
     "endpoint": "npx -y @modelcontextprotocol/server-obsidian ~/Documents/ObsidianVault",
     "version": "v2.1.0",
     "transport": "stdio",
@@ -33,6 +33,25 @@
           "query": "string"
         },
         "readOnly": true
+      },
+      {
+        "id": "t-obsidian-3",
+        "name": "obsidian_search_backlinks",
+        "description": "Extract bi-directional link graphs and wikilink references across vault",
+        "parametersSchema": {
+          "targetNote": "string"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-obsidian-4",
+        "name": "obsidian_create_daily_note",
+        "description": "Format and append entry to the current date daily note log",
+        "parametersSchema": {
+          "section": "string",
+          "text": "string"
+        },
+        "readOnly": false
       }
     ]
   },
@@ -40,14 +59,12 @@
     "id": "int-notion-mcp",
     "name": "Notion Workspace MCP Server",
     "category": "mcp_server",
-    "status": "connected",
+    "status": "disconnected",
     "endpoint": "https://mcp.notion.com/mcp",
     "version": "v1.2.0",
     "transport": "streamable_http",
     "auth_type": "oauth",
-    "auth_config": {
-      "workspaceName": "ContextForge Workspace"
-    },
+    "auth_config": {},
     "description": "Official Model Context Protocol server for Notion workspace databases, page trees, and document sync.",
     "last_ping_ms": 16,
     "latency_ms": 14,
@@ -57,7 +74,8 @@
         "name": "notion_search",
         "description": "Search pages and database titles across Notion workspace",
         "parametersSchema": {
-          "query": "string"
+          "query": "string",
+          "filter": "object"
         },
         "readOnly": true
       },
@@ -90,6 +108,17 @@
           "properties": "object"
         },
         "readOnly": false
+      },
+      {
+        "id": "t-notion-5",
+        "name": "notion_query_database",
+        "description": "Filter and sort structured records inside Notion databases",
+        "parametersSchema": {
+          "databaseId": "string",
+          "filter": "object",
+          "sorts": "array"
+        },
+        "readOnly": true
       }
     ]
   }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FolderOpen, Plus, Sparkles, BookOpen, HardDrive } from 'lucide-react'
+import { FolderOpen, Sparkles, BookOpen, HardDrive } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import {
@@ -69,11 +69,6 @@ export default function KnowledgeSourcesView() {
           }
           title="No Knowledge Bases Connected"
           description="Connect your Obsidian notes, project folders, or upload PDF/code documents to ground AI agent reasoning with 1536-dim vector RAG."
-          action={{
-            label: 'Connect Knowledge Base',
-            onClick: () => setIsAddModalOpen(true),
-            icon: <Plus size={14} />,
-          }}
           footerPills={[
             {
               icon: <BookOpen size={12} className="text-[#7c3aed]" />,

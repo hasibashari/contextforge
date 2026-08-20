@@ -46,9 +46,29 @@ async function runSeed() {
       ALTER TABLE IF EXISTS workspace_integrations ADD COLUMN IF NOT EXISTS auth_config JSONB DEFAULT '{}';
     `);
 
-    // 2. Seed Knowledge Sources
+    // 2. Seed Knowledge Sources (Clean - populated by real user documents/vaults)
     console.log('📚 Seeding Knowledge Sources...');
-    for (const item of knowledgeSeed) {
+    await client.query(`
+      DELETE FROM knowledge_sources WHERE id IN (
+        'c5881477-8df2-4217-a068-d069a319f390',
+        '50b297b8-2bfa-4c6e-8260-26463eb4c7e8',
+        '36bcbb30-4e31-419b-a36c-9418a096c4be'
+      );
+    `);
+    const knowledgeList = knowledgeSeed as Array<{
+      id: string;
+      type: string;
+      name: string;
+      description: string;
+      location: string;
+      meta: string;
+      filesCount: number;
+      chunksCount: number;
+      status: string;
+      iconType: string;
+      color: string;
+    }>;
+    for (const item of knowledgeList) {
       await client.query(
         `INSERT INTO knowledge_sources (
           id, type, name, description, location, meta, files_count, chunks_count, status, icon_type, color
@@ -76,7 +96,7 @@ async function runSeed() {
         ],
       );
     }
-    console.log(`   ✓ Seeded ${knowledgeSeed.length} knowledge sources`);
+    console.log(`   ✓ Seeded ${knowledgeList.length} knowledge sources`);
 
     // 3. Seed Calendar Events
     console.log('📅 Seeding Calendar Events...');

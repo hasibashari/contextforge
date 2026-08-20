@@ -175,7 +175,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
   }
 
   return (
-    <Modal isOpen={true} onClose={onClose} size="2xl">
+    <Modal isOpen={true} onClose={onClose} size="3xl">
       <ModalHeader
         icon={<IntegrationIconBox integration={integration} size="md" />}
         title={isEditing ? `Edit: ${formData.name}` : integration.name}
@@ -409,26 +409,31 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
           )}
 
           {/* Compact Connection Info Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono text-[11px] text-muted">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Server size={12} className="text-primary shrink-0" />
-              <span className="text-ink truncate">{currentIntegration.endpoint}</span>
+          <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 bg-canvas-soft rounded-xl border border-hairline font-mono text-[11px] text-muted">
+            <div className="flex items-center gap-2 min-w-0">
+              <Server size={13} className="text-primary shrink-0" />
+              <span className="text-ink truncate font-medium">{currentIntegration.endpoint}</span>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="flex items-center gap-1 text-semantic-success">
-                <Activity size={11} />
+            <div className="flex items-center gap-3.5 shrink-0">
+              <span className="flex items-center gap-1.5 text-semantic-success font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse" />
                 <span>{currentIntegration.latencyMs}ms</span>
               </span>
-              <span className="uppercase text-ink font-semibold">
+              <span className="uppercase text-ink font-semibold px-2 py-0.5 rounded bg-canvas border border-hairline text-[10px]">
                 {currentIntegration.transport || 'stdio'}
               </span>
             </div>
           </div>
 
           {/* Exposed Tools List */}
-          <div className="space-y-2 pt-1">
+          <div className="space-y-2.5 pt-1">
             <div className="text-[11px] font-mono font-semibold uppercase tracking-caption text-muted flex items-center justify-between">
-              <span>Available Tools ({currentIntegration.tools.length})</span>
+              <span className="flex items-center gap-1.5 text-ink">
+                <span>Available MCP Tools</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-primary/10 text-primary text-[10px] font-mono">
+                  {currentIntegration.tools.length}
+                </span>
+              </span>
               <button
                 type="button"
                 onClick={async () => {
@@ -437,18 +442,18 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                   setIsSyncing(false)
                 }}
                 disabled={isSyncing}
-                className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw size={11} className={isSyncing ? 'animate-spin' : ''} />
                 <span>{isSyncing ? 'Syncing...' : 'Sync Tools (tools/list)'}</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {currentIntegration.tools.map((tool) => (
                 <div
                   key={tool.name}
-                  className="p-2.5 rounded-lg bg-canvas border border-hairline flex flex-col justify-between space-y-1.5"
+                  className="p-3 rounded-xl bg-canvas border border-hairline hover:border-primary/40 hover:bg-canvas-soft/40 transition-all flex flex-col justify-between space-y-2 shadow-2xs"
                 >
                   <div className="flex items-center justify-between gap-1.5 font-mono">
                     <span className="font-semibold text-ink flex items-center gap-1.5 text-xs truncate">
@@ -456,10 +461,10 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                       <span className="truncate">{tool.name}</span>
                     </span>
                     <span
-                      className={`text-[9px] uppercase px-1.5 py-0.2 rounded font-semibold shrink-0 ${
+                      className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-semibold shrink-0 tracking-wide ${
                         tool.readOnly
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-semantic-success/10 text-semantic-success'
+                          ? 'bg-primary/10 text-primary border border-primary/20'
+                          : 'bg-semantic-success/10 text-semantic-success border border-semantic-success/20'
                       }`}
                     >
                       {tool.readOnly ? 'read' : 'write'}

@@ -3,13 +3,8 @@
 -- Based on 5 Pillars: Knowledge, MCP, Skills, Connections, Agents
 -- =====================================================================
 
--- 1. Initial Knowledge Sources (1. Knowledge)
-INSERT INTO knowledge_sources (id, type, name, description, location, meta, files_count, chunks_count, status, icon_type, color)
-VALUES
-    ('c5881477-8df2-4217-a068-d069a319f390', 'obsidian_vault', 'Engineering HQ Vault', 'Team architecture decision records, RFC drafts, and system guidelines', 'obsidian://vault/Engineering-HQ', 'Markdown · 142 notes', 142, 580, 'synced', 'book-open', 'text-[#9fbbe0]'),
-    ('50b297b8-2bfa-4c6e-8260-26463eb4c7e8', 'github_repo', 'contextforge-core', 'Core orchestrator and worker execution engine repository', 'github.com/contextforge/core', 'TypeScript · main branch', 86, 320, 'synced', 'terminal', 'text-[#c0a8dd]'),
-    ('36bcbb30-4e31-419b-a36c-9418a096c4be', 'database_schema', 'Cloud SQL PostgreSQL', 'Production relational schema and telemetry data catalog', 'postgresql://cloudsql/contextforge_prod', 'PostgreSQL 16 · 14 tables', 14, 45, 'synced', 'database', 'text-[#9fc9a2]')
-ON CONFLICT (id) DO NOTHING;
+-- 1. Initial Knowledge Sources (Clean by default - populated dynamically by user)
+-- No dummy rows inserted
 
 -- 2. Initial Calendar Events
 INSERT INTO calendar_events (id, title, event_date, event_time, duration, location, status, category, attendees)

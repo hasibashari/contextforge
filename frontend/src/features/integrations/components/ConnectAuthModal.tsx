@@ -3,11 +3,8 @@ import {
   Folder,
   Zap,
   Terminal,
-  Globe,
   Cpu,
   ExternalLink,
-  ShieldCheck,
-  CheckCircle2,
   Sparkles,
 } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
@@ -182,7 +179,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
         {/* Notion: Direct Browser Authorization Design */}
         {isNotion && (
           <div className="space-y-4">
-            <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-3">
+            <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2">
               <div className="flex items-center gap-2 font-semibold text-ink text-xs">
                 <div className="w-5 h-5 rounded bg-black text-white flex items-center justify-center font-bold text-xs shrink-0">
                   N
@@ -193,45 +190,8 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                 Connect your Notion workspace directly. Clicking{' '}
                 <strong className="text-ink">Connect in Browser</strong> will
                 open Notion&apos;s official authorization page in your browser
-                where you can grant workspace access to ContextForge.
+                where you can select workspace access for ContextForge.
               </p>
-
-              <div className="space-y-2 pt-2 font-sans text-[11px] border-t border-hairline">
-                <div className="flex items-start gap-2 text-ink">
-                  <ShieldCheck
-                    size={14}
-                    className="text-semantic-success shrink-0 mt-0.5"
-                  />
-                  <span>
-                    <strong className="font-semibold">
-                      Direct Browser Login:
-                    </strong>{' '}
-                    Authenticate directly on Notion. ContextForge never asks for
-                    or stores your account password.
-                  </span>
-                </div>
-                <div className="flex items-start gap-2 text-ink">
-                  <Globe size={14} className="text-primary shrink-0 mt-0.5" />
-                  <span>
-                    <strong className="font-semibold">
-                      Streamable HTTP MCP:
-                    </strong>{' '}
-                    Communicates with Notion&apos;s live MCP server to query
-                    databases and format page blocks.
-                  </span>
-                </div>
-                <div className="flex items-start gap-2 text-ink">
-                  <CheckCircle2
-                    size={14}
-                    className="text-primary shrink-0 mt-0.5"
-                  />
-                  <span>
-                    <strong className="font-semibold">Granular Access:</strong>{' '}
-                    You choose exactly which pages and databases are shared with
-                    ContextForge agents.
-                  </span>
-                </div>
-              </div>
             </div>
 
             <ModalFooter className="justify-end pt-2">

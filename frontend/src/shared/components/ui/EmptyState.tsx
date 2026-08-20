@@ -21,6 +21,7 @@ export interface EmptyStateProps {
   footerPills?: EmptyStateFooterPill[]
   className?: string
   compact?: boolean
+  fullWidth?: boolean
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
@@ -32,11 +33,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   footerPills,
   className = '',
   compact = false,
+  fullWidth = true,
 }) => {
   return (
     <div
       className={`bg-surface-card border border-hairline rounded-2xl text-center space-y-3.5 shadow-2xs ${
-        compact ? 'p-6 max-w-md mx-auto' : 'p-8 sm:p-12 max-w-2xl mx-auto'
+        compact
+          ? 'p-6 max-w-md mx-auto'
+          : fullWidth
+          ? 'w-full p-8 sm:p-12'
+          : 'p-8 sm:p-12 max-w-2xl mx-auto'
       } ${className}`}
     >
       {/* Centered Icon Wrapper */}

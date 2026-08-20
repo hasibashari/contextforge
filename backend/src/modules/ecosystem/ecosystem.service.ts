@@ -11,6 +11,15 @@ import {
   WorkspaceIntegrationRow,
 } from './ecosystem.repository';
 
+export interface McpDiscoveredTool {
+  id?: string;
+  name: string;
+  description?: string;
+  inputSchema?: Record<string, unknown>;
+  parametersSchema?: Record<string, unknown>;
+  readOnly?: boolean;
+}
+
 @Injectable()
 export class EcosystemService {
   private readonly logger = new Logger(EcosystemService.name);
@@ -317,171 +326,226 @@ export class EcosystemService {
       throw new NotFoundException(`MCP Connector with ID "${id}" not found`);
     }
 
-    let latencyMs = Math.floor(Math.random() * 15) + 6;
+    let latencyMs = 14;
+    let discoveredTools: any[] = [];
 
+    const isNotion =
+      integration.id === 'int-notion-mcp' ||
+      integration.name.toLowerCase().includes('notion') ||
+      integration.endpoint.includes('notion');
+
+    const isObsidian =
+      integration.id === 'int-obsidian-vault-mcp' ||
+      integration.name.toLowerCase().includes('obsidian') ||
+      integration.endpoint.includes('obsidian');
+
+    // 1. DYNAMIC REMOTE MCP SERVER DISCOVERY VIA JSON-RPC 2.0 (tools/list)
     if (
-      (integration.id === 'int-notion-mcp' ||
-        integration.endpoint.includes('notion')) &&
-      integration.auth_config?.token
+      !isObsidian &&
+      integration.endpoint &&
+      (integration.endpoint.startsWith('http://') ||
+        integration.endpoint.startsWith('https://'))
     ) {
       const startTime = Date.now();
       try {
-        const res = await fetch('https://api.notion.com/v1/users/me', {
-          headers: {
-            Authorization: `Bearer ${integration.auth_config.token}`,
-            'Notion-Version': '2022-06-28',
-          },
-        });
-        const elapsed = Date.now() - startTime;
-        if (res.ok) {
-          latencyMs = Math.max(10, elapsed);
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          Accept: 'application/json, text/event-stream',
+        };
+
+        if (integration.auth_config?.token) {
+          headers['Authorization'] = `Bearer ${integration.auth_config.token}`;
         }
-      } catch {
-        latencyMs = 28;
+        if (isNotion) {
+          headers['Notion-Version'] = '2022-06-28';
+        }
+
+        // Official MCP JSON-RPC 2.0 tools/list request
+        const rpcPayload = {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/list',
+          params: {},
+        };
+
+        const res = await fetch(integration.endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(rpcPayload),
+          signal: AbortSignal.timeout(3000),
+        });
+
+        const elapsed = Date.now() - startTime;
+        latencyMs = Math.max(8, elapsed);
+
+        if (res.ok) {
+          const body = (await res.json()) as {
+            result?: { tools?: McpDiscoveredTool[] };
+            tools?: McpDiscoveredTool[];
+          };
+          const rawTools = body?.result?.tools || body?.tools;
+          if (Array.isArray(rawTools) && rawTools.length > 0) {
+            discoveredTools = rawTools.map((t, idx) => ({
+              id: t.id || `t-${id}-${idx + 1}`,
+              name: t.name,
+              description:
+                t.description || `Tool exposed by ${integration.name}`,
+              parametersSchema: t.inputSchema || t.parametersSchema || {},
+              readOnly:
+                typeof t.readOnly === 'boolean'
+                  ? t.readOnly
+                  : !t.name.includes('create') &&
+                    !t.name.includes('update') &&
+                    !t.name.includes('write') &&
+                    !t.name.includes('delete'),
+            }));
+            this.logger.log(
+              `✨ Dynamically discovered ${discoveredTools.length} tools from live MCP endpoint: ${integration.endpoint}`,
+            );
+          }
+        }
+      } catch (err: unknown) {
+        this.logger.debug(
+          `Live MCP JSON-RPC discovery fallback for ${integration.name}: ${String(err)}`,
+        );
       }
     }
-    let discoveredTools = integration.tools || [];
 
-    // Parse / Discover tools dynamically based on name and endpoint
-    if (discoveredTools.length === 0 || integration.is_custom) {
+    // 2. NOTION MCP WORKSPACE LIVE VERIFICATION & STANDARD SUITE
+    if (isNotion && discoveredTools.length === 0) {
+      if (integration.auth_config?.token) {
+        const startTime = Date.now();
+        try {
+          const res = await fetch('https://api.notion.com/v1/users/me', {
+            headers: {
+              Authorization: `Bearer ${integration.auth_config.token}`,
+              'Notion-Version': '2022-06-28',
+            },
+          });
+          const elapsed = Date.now() - startTime;
+          if (res.ok) {
+            latencyMs = Math.max(10, elapsed);
+          }
+        } catch {
+          latencyMs = 24;
+        }
+      }
+
+      discoveredTools = [
+        {
+          id: `t-${id}-1`,
+          name: 'notion_search',
+          description:
+            'Search pages and database titles across Notion workspace',
+          parametersSchema: { query: 'string', filter: 'object' },
+          readOnly: true,
+        },
+        {
+          id: `t-${id}-2`,
+          name: 'notion_read_page',
+          description:
+            'Read blocks, markdown content, and page properties from Notion',
+          parametersSchema: { pageId: 'string' },
+          readOnly: true,
+        },
+        {
+          id: `t-${id}-3`,
+          name: 'notion_create_page',
+          description:
+            'Create new child pages and structured document entries in Notion',
+          parametersSchema: {
+            parentId: 'string',
+            title: 'string',
+            content: 'string',
+          },
+          readOnly: false,
+        },
+        {
+          id: `t-${id}-4`,
+          name: 'notion_update_database',
+          description:
+            'Insert records and update schema rows in Notion databases',
+          parametersSchema: { databaseId: 'string', properties: 'object' },
+          readOnly: false,
+        },
+        {
+          id: `t-${id}-5`,
+          name: 'notion_query_database',
+          description:
+            'Filter and sort structured records inside Notion databases',
+          parametersSchema: {
+            databaseId: 'string',
+            filter: 'object',
+            sorts: 'array',
+          },
+          readOnly: true,
+        },
+      ];
+    }
+
+    // 3. OBSIDIAN MCP VAULT LOCAL BRIDGE
+    if (isObsidian && discoveredTools.length === 0) {
+      discoveredTools = [
+        {
+          id: `t-${id}-1`,
+          name: 'obsidian_vault_writer',
+          description:
+            'Append or create structured Markdown files with frontmatter inside Obsidian',
+          parametersSchema: {
+            vaultName: 'string',
+            path: 'string',
+            content: 'string',
+          },
+          readOnly: false,
+        },
+        {
+          id: `t-${id}-2`,
+          name: 'obsidian_vault_reader',
+          description:
+            'Read and search note contents, backlinks, and tags across markdown files',
+          parametersSchema: { vaultName: 'string', query: 'string' },
+          readOnly: true,
+        },
+        {
+          id: `t-${id}-3`,
+          name: 'obsidian_search_backlinks',
+          description:
+            'Extract bi-directional link graphs and wikilink references across vault',
+          parametersSchema: { targetNote: 'string' },
+          readOnly: true,
+        },
+        {
+          id: `t-${id}-4`,
+          name: 'obsidian_create_daily_note',
+          description:
+            'Format and append entry to the current date daily note log',
+          parametersSchema: { section: 'string', text: 'string' },
+          readOnly: false,
+        },
+      ];
+    }
+
+    // 4. FALLBACK FOR CUSTOM MCP OR OTHER INTEGRATIONS
+    if (discoveredTools.length === 0) {
       const baseName = integration.name
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '_');
-      if (
-        integration.endpoint.includes('obsidian') ||
-        integration.name.toLowerCase().includes('obsidian')
-      ) {
-        discoveredTools = [
-          {
-            id: `t-${id}-1`,
-            name: 'obsidian_vault_writer',
-            description:
-              'Append or create structured Markdown files with frontmatter inside Obsidian',
-            parametersSchema: {
-              vaultName: 'string',
-              path: 'string',
-              content: 'string',
-            },
-            readOnly: false,
-          },
-          {
-            id: `t-${id}-2`,
-            name: 'obsidian_vault_reader',
-            description:
-              'Read and search note contents, backlinks, and tags across markdown files',
-            parametersSchema: { vaultName: 'string', query: 'string' },
-            readOnly: true,
-          },
-        ];
-      } else if (
-        integration.endpoint.includes('notion') ||
-        integration.name.toLowerCase().includes('notion')
-      ) {
-        discoveredTools = [
-          {
-            id: `t-${id}-1`,
-            name: 'notion_search',
-            description:
-              'Search pages and database titles across Notion workspace',
-            parametersSchema: { query: 'string' },
-            readOnly: true,
-          },
-          {
-            id: `t-${id}-2`,
-            name: 'notion_read_page',
-            description:
-              'Read blocks, markdown content, and page properties from Notion',
-            parametersSchema: { pageId: 'string' },
-            readOnly: true,
-          },
-          {
-            id: `t-${id}-3`,
-            name: 'notion_create_page',
-            description:
-              'Create new child pages and structured document entries in Notion',
-            parametersSchema: {
-              parentId: 'string',
-              title: 'string',
-              content: 'string',
-            },
-            readOnly: false,
-          },
-          {
-            id: `t-${id}-4`,
-            name: 'notion_update_database',
-            description:
-              'Insert records and update schema rows in Notion databases',
-            parametersSchema: { databaseId: 'string', properties: 'object' },
-            readOnly: false,
-          },
-        ];
-      } else if (
-        integration.endpoint.includes('github') ||
-        integration.name.toLowerCase().includes('github')
-      ) {
-        discoveredTools = [
-          {
-            id: `t-${id}-1`,
-            name: 'github_search_code',
-            description: 'Query codebase and inspect repository AST files',
-            parametersSchema: { query: 'string', repo: 'string' },
-            readOnly: true,
-          },
-          {
-            id: `t-${id}-2`,
-            name: 'github_create_pull_request',
-            description:
-              'Submit an automated branch and pull request for reviewed changes',
-            parametersSchema: {
-              branch: 'string',
-              title: 'string',
-              body: 'string',
-            },
-            readOnly: false,
-          },
-        ];
-      } else if (
-        integration.endpoint.includes('sqlite') ||
-        integration.endpoint.includes('postgres') ||
-        integration.name.toLowerCase().includes('database') ||
-        integration.name.toLowerCase().includes('sql')
-      ) {
-        discoveredTools = [
-          {
-            id: `t-${id}-1`,
-            name: `${baseName}_describe_tables`,
-            description:
-              'Inspect relational schemas, list tables, column definitions, and foreign keys',
-            parametersSchema: {},
-            readOnly: true,
-          },
-          {
-            id: `t-${id}-2`,
-            name: `${baseName}_execute_query`,
-            description:
-              'Execute parameterized read-only analytical SQL query against database',
-            parametersSchema: { sql: 'string' },
-            readOnly: true,
-          },
-        ];
-      } else {
-        discoveredTools = [
-          {
-            id: `t-${id}-1`,
-            name: `${baseName}_query`,
-            description: `Query and inspect resources provided by ${integration.name}`,
-            parametersSchema: { query: 'string' },
-            readOnly: true,
-          },
-          {
-            id: `t-${id}-2`,
-            name: `${baseName}_execute`,
-            description: `Execute action or mutations on ${integration.name}`,
-            parametersSchema: { action: 'string', payload: 'object' },
-            readOnly: false,
-          },
-        ];
-      }
+      discoveredTools = [
+        {
+          id: `t-${id}-1`,
+          name: `${baseName}_query`,
+          description: `Query and inspect resources provided by ${integration.name}`,
+          parametersSchema: { query: 'string' },
+          readOnly: true,
+        },
+        {
+          id: `t-${id}-2`,
+          name: `${baseName}_execute`,
+          description: `Execute action or mutations on ${integration.name}`,
+          parametersSchema: { action: 'string', payload: 'object' },
+          readOnly: false,
+        },
+      ];
     }
 
     await this.repo.updateIntegration(id, {
