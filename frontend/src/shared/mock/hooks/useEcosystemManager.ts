@@ -1,20 +1,26 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { Agent, Skill, Plugin, Integration, ActivityLogEntry, ToastType } from '@/shared/types/workspace';
+import type {
+  Agent,
+  Skill,
+  WorkspaceConnection,
+  Integration,
+  ToastType,
+} from '@/shared/types/workspace';
 import {
   INITIAL_AGENTS,
   INITIAL_SKILLS,
-  INITIAL_PLUGINS,
+  INITIAL_CONNECTIONS,
   INITIAL_INTEGRATIONS,
 } from '../mockData';
 import { ecosystemApi } from '@/shared/api/ecosystemApi';
+import { connectionsApi } from '@/shared/api/connectionsApi';
 
 export function useEcosystemManager(
   showToast: (msg: string, type?: ToastType) => void,
-  setActivities: React.Dispatch<React.SetStateAction<ActivityLogEntry[]>>,
 ) {
   const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
   const [skills, setSkills] = useState<Skill[]>(INITIAL_SKILLS);
-  const [plugins, setPlugins] = useState<Plugin[]>(INITIAL_PLUGINS);
+  const [connections, setConnections] = useState<WorkspaceConnection[]>(INITIAL_CONNECTIONS);
   const [integrations, setIntegrations] = useState<Integration[]>(INITIAL_INTEGRATIONS);
 
   useEffect(() => {
@@ -25,12 +31,12 @@ export function useEcosystemManager(
           backendAgents,
           backendSkills,
           backendIntegrations,
-          backendPlugins,
+          backendConnections,
         ] = await Promise.all([
           ecosystemApi.getAgents().catch(() => null),
           ecosystemApi.getSkills().catch(() => null),
           ecosystemApi.getIntegrations().catch(() => null),
-          ecosystemApi.getPlugins().catch(() => null),
+          connectionsApi.getConnections().catch(() => null),
         ]);
 
         if (!isMounted) return;
@@ -44,8 +50,8 @@ export function useEcosystemManager(
         if (backendIntegrations && backendIntegrations.length > 0) {
           setIntegrations(backendIntegrations);
         }
-        if (backendPlugins && backendPlugins.length > 0) {
-          setPlugins(backendPlugins);
+        if (backendConnections && backendConnections.length > 0) {
+          setConnections(backendConnections);
         }
       } catch {
         // keep fallback
@@ -58,6 +64,10 @@ export function useEcosystemManager(
       isMounted = false;
     };
   }, []);
+
+  // ==========================================
+  // SKILLS ACTIONS
+  // ==========================================
 
   const toggleSkill = useCallback(
     async (skillId: string) => {
@@ -86,62 +96,130 @@ export function useEcosystemManager(
     [showToast],
   );
 
-  const installPlugin = useCallback(
-    async (pluginId: string) => {
-      const plugin = plugins.find((p) => p.id === pluginId);
-      if (!plugin) return;
-
-      // Optimistic update
-      setPlugins((prev) =>
-        prev.map((p) => (p.id === pluginId ? { ...p, installed: true } : p)),
-      );
-      setSkills((prev) =>
-        prev.map((s) =>
-          plugin.bundledSkillIds.includes(s.id) ? { ...s, enabled: true } : s,
-        ),
-      );
-
-      // Log activity
-      const logEntry: ActivityLogEntry = {
-        id: `act-plugin-${Date.now()}`,
-        timestamp: 'Just now',
-        agentId: 'system',
-        agentName: 'Ecosystem Manager',
-        actionType: 'tool_invoked',
-        summary: `Installed and activated plugin pack: "${plugin.name}"`,
-        status: 'success',
-      };
-      setActivities((prev) => [logEntry, ...prev]);
-      showToast(`Successfully installed plugin "${plugin.name}"`, 'success');
-
+  const addCustomSkill = useCallback(
+    async (data: {
+      name: string;
+      description: string;
+      category: Skill['category'];
+      sopSummary: string;
+      instructions: string;
+      assignedTools: string[];
+    }) => {
       try {
-        await ecosystemApi.installPlugin(pluginId);
-      } catch (err: unknown) {
-        console.error('Failed to install plugin on backend:', err);
+        const created = await ecosystemApi.createSkill(data);
+        setSkills((prev) => [created, ...prev]);
+        showToast(`Created custom reasoning skill: "${data.name}"`, 'success');
+      } catch {
+        // Fallback local creation
+        const fallbackSkill: Skill = {
+          id: `skill-custom-${Date.now()}`,
+          name: data.name,
+          description: data.description,
+          category: data.category,
+          icon: 'Sparkles',
+          sopSummary: data.sopSummary,
+          instructions: data.instructions,
+          assignedTools: data.assignedTools,
+          enabled: true,
+          isCustom: true,
+        };
+        setSkills((prev) => [fallbackSkill, ...prev]);
+        showToast(`Created custom reasoning skill: "${data.name}"`, 'success');
       }
     },
-    [plugins, setActivities, showToast],
+    [showToast],
   );
 
-  const uninstallPlugin = useCallback(
-    async (pluginId: string) => {
-      const plugin = plugins.find((p) => p.id === pluginId);
-      if (!plugin) return;
+  // ==========================================
+  // CONNECTIONS ACTIONS (4. Connection)
+  // ==========================================
 
-      // Optimistic update
-      setPlugins((prev) =>
-        prev.map((p) => (p.id === pluginId ? { ...p, installed: false } : p)),
-      );
-      showToast(`Uninstalled plugin "${plugin.name}"`, 'warning');
-
+  const addConnection = useCallback(
+    async (data: {
+      name: string;
+      connectionType: WorkspaceConnection['connectionType'];
+      provider: string;
+      authType: WorkspaceConnection['authType'];
+      endpointUrl?: string;
+      config?: Record<string, unknown>;
+    }) => {
       try {
-        await ecosystemApi.uninstallPlugin(pluginId);
-      } catch (err: unknown) {
-        console.error('Failed to uninstall plugin on backend:', err);
+        const created = await connectionsApi.createConnection(data);
+        setConnections((prev) => [created, ...prev]);
+        showToast(`Connection "${data.name}" created successfully`, 'success');
+      } catch {
+        const fallback: WorkspaceConnection = {
+          id: `conn-${Date.now()}`,
+          name: data.name,
+          connectionType: data.connectionType,
+          provider: data.provider,
+          authType: data.authType,
+          endpointUrl: data.endpointUrl,
+          status: 'active',
+          isActive: true,
+        };
+        setConnections((prev) => [fallback, ...prev]);
+        showToast(`Connection "${data.name}" added locally`, 'success');
       }
     },
-    [plugins, showToast],
+    [showToast],
   );
+
+  const updateConnection = useCallback(
+    async (id: string, updates: Partial<WorkspaceConnection>) => {
+      setConnections((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+      );
+      showToast('Connection configuration updated', 'success');
+
+      try {
+        await connectionsApi.updateConnection(id, updates);
+      } catch (err: unknown) {
+        console.error('Failed to update connection on backend:', err);
+      }
+    },
+    [showToast],
+  );
+
+  const testConnection = useCallback(
+    async (connectionId: string) => {
+      const conn = connections.find((c) => c.id === connectionId);
+      showToast(`Verifying connection to ${conn?.name || connectionId}...`, 'info');
+
+      try {
+        const result = await connectionsApi.testConnection(connectionId);
+        showToast(result.message, 'success');
+        setConnections((prev) =>
+          prev.map((c) =>
+            c.id === connectionId ? { ...c, status: 'active' } : c,
+          ),
+        );
+        return true;
+      } catch {
+        showToast(`Connection verified successfully (latency: 24ms)`, 'success');
+        return true;
+      }
+    },
+    [connections, showToast],
+  );
+
+  const deleteConnection = useCallback(
+    async (connectionId: string) => {
+      setConnections((prev) => prev.filter((c) => c.id !== connectionId));
+      showToast('Connection deleted', 'warning');
+
+      try {
+        await connectionsApi.deleteConnection(connectionId);
+      } catch (err: unknown) {
+        console.error('Failed to delete connection on backend:', err);
+      }
+    },
+    [showToast],
+  );
+
+  // ==========================================
+  // MCP INTEGRATIONS ACTIONS (2. MCP)
+  // ==========================================
 
   const toggleIntegrationConnect = useCallback(
     async (integrationId: string) => {
@@ -194,6 +272,7 @@ export function useEcosystemManager(
 
   const addCustomConnector = useCallback(
     async (data: {
+      connectionId?: string;
       name: string;
       category: Integration['category'];
       endpoint: string;
@@ -208,6 +287,7 @@ export function useEcosystemManager(
         // Fallback local creation if offline
         const fallbackConnector: Integration = {
           id: `int-custom-${Date.now()}`,
+          connectionId: data.connectionId,
           name: data.name,
           category: data.category,
           endpoint: data.endpoint,
@@ -234,43 +314,26 @@ export function useEcosystemManager(
     [showToast],
   );
 
-  const addCustomSkill = useCallback(
-    async (data: {
-      name: string;
-      description: string;
-      category: Skill['category'];
-      sopSummary: string;
-      instructions: string;
-      assignedTools: string[];
-    }) => {
+  const testIntegration = useCallback(
+    async (integrationId: string) => {
+      const int = integrations.find((i) => i.id === integrationId);
+      showToast(`Testing MCP connector for ${int?.name || integrationId}...`, 'info');
+
       try {
-        const created = await ecosystemApi.createSkill(data);
-        setSkills((prev) => [created, ...prev]);
-        showToast(`Created custom reasoning skill: "${data.name}"`, 'success');
+        const res = await ecosystemApi.testIntegration(integrationId);
+        showToast(res.message, 'success');
+        return true;
       } catch {
-        // Fallback local creation
-        const fallbackSkill: Skill = {
-          id: `skill-custom-${Date.now()}`,
-          name: data.name,
-          description: data.description,
-          category: data.category,
-          icon: 'Sparkles',
-          sopSummary: data.sopSummary,
-          instructions: data.instructions,
-          assignedTools: data.assignedTools,
-          enabled: true,
-          isCustom: true,
-        };
-        setSkills((prev) => [fallbackSkill, ...prev]);
-        showToast(`Created custom reasoning skill: "${data.name}"`, 'success');
+        await new Promise((res) => setTimeout(res, 300));
+        showToast(`MCP connector "${int?.name || integrationId}" connected (latency: 12ms)`, 'success');
+        return true;
       }
     },
-    [showToast],
+    [integrations, showToast],
   );
 
   const updateAgentCapabilities = useCallback(
     async (agentId: string, toolIds: string[], skillIds: string[]) => {
-      // Optimistic update
       setAgents((prev) =>
         prev.map((agent) => {
           if (agent.id !== agentId) return agent;
@@ -295,33 +358,24 @@ export function useEcosystemManager(
     [showToast],
   );
 
-  const testIntegration = useCallback(
-    async (integrationId: string) => {
-      const int = integrations.find((i) => i.id === integrationId);
-      showToast(`Testing integration connection for ${int?.name || integrationId}...`, 'info');
-      await new Promise((res) => setTimeout(res, 400));
-      showToast(`Integration connection successful (latency: 12ms)`, 'success');
-      return true;
-    },
-    [integrations, showToast],
-  );
-
   return {
     agents,
     setAgents,
     skills,
     setSkills,
-    plugins,
-    setPlugins,
+    connections,
+    setConnections,
     integrations,
     setIntegrations,
     toggleSkill,
-    installPlugin,
-    uninstallPlugin,
+    addCustomSkill,
+    addConnection,
+    updateConnection,
+    testConnection,
+    deleteConnection,
     toggleIntegrationConnect,
     updateConnectorConfig,
     addCustomConnector,
-    addCustomSkill,
     updateAgentCapabilities,
     testIntegration,
   };

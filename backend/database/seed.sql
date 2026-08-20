@@ -1,8 +1,9 @@
 -- =====================================================================
--- ContextForge: Initial Seed Data
+-- ContextForge: Initial Seed Data (v2.0.0)
+-- Based on 5 Pillars: Knowledge, MCP, Skills, Connections, Agents
 -- =====================================================================
 
--- 1. Initial Knowledge Sources
+-- 1. Initial Knowledge Sources (1. Knowledge)
 INSERT INTO knowledge_sources (id, type, name, description, location, meta, files_count, chunks_count, status, icon_type, color)
 VALUES
     ('c5881477-8df2-4217-a068-d069a319f390', 'obsidian_vault', 'Engineering HQ Vault', 'Team architecture decision records, RFC drafts, and system guidelines', 'obsidian://vault/Engineering-HQ', 'Markdown · 142 notes', 142, 580, 'synced', 'book-open', 'text-[#9fbbe0]'),
@@ -32,7 +33,16 @@ VALUES
     ('d9283f50-cb2d-4ba6-a496-e2aa21919864', 'agent-sec-docs', 'Core Orchestrator', 'task_dispatched', 'Initialized ContextForge backend workspace and database connection.', '{"environment": "local_dev"}', 'info')
 ON CONFLICT (id) DO NOTHING;
 
--- 5. Initial Workspace Agents
+-- 5. Initial Workspace Connections (4. Connection)
+INSERT INTO workspace_connections (id, name, connection_type, provider, auth_type, endpoint_url, config_encrypted, status, is_active)
+VALUES
+    ('conn-gemini-primary', 'Google Gemini 3.x Flash', 'llm_provider', 'google_gemini', 'api_key', 'https://generativelanguage.googleapis.com', '{"masked_key": "AIzaSy••••••••••••••••••••••••••••••••"}'::jsonb, 'active', true),
+    ('conn-github-oauth', 'GitHub Engineering Workspace', 'oauth_service', 'github', 'oauth2', 'https://api.github.com', '{"scope": ["repo", "workflow"]}'::jsonb, 'active', true),
+    ('conn-google-calendar', 'Google Calendar Sync', 'oauth_service', 'google_calendar', 'oauth2', 'https://www.googleapis.com/calendar/v3', '{"scope": ["calendar.events"]}'::jsonb, 'active', true),
+    ('conn-postgres-prod', 'Cloud SQL PostgreSQL Instance', 'database', 'postgres', 'connection_string', 'postgresql://cloudsql/contextforge_prod', '{"ssl": true}'::jsonb, 'active', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 6. Initial Workspace Agents (5. Agent)
 INSERT INTO workspace_agents (id, name, role, agent_type, permissions, description, avatar_color, model, temperature, system_prompt, capabilities, assigned_tools, assigned_skills, status, total_tasks_completed, success_rate_pct)
 VALUES
     ('agent-sec-docs', 'ContextForge Core Orchestrator', 'Main Reasoning & Analysis Agent', 'orchestrator', 'read_only', 'Primary conversational brain for Q&A, live web research, memory retrieval, and formulating execution plans for Side Agents.', 'bg-primary', 'gemini-3.6-flash', 0.2, 'You are ContextForge Core Orchestrator. You handle general reasoning, conversational discussion, live web search, and analysis.', '[{"id":"c1","name":"Conversational Reasoning","description":"Deep reasoning, Q&A, and technical architecture analysis"},{"id":"c2","name":"Live Web Grounding","description":"Query web search engines and synthesize cited answers"},{"id":"c3","name":"Side Agent Delegation","description":"Formulate structured task specs and dispatch execution sandboxes"}]'::jsonb, ARRAY['web_search', 'read_file', 'query_memory', 'search_vault', 'dispatch_side_agent'], ARRAY['skill-rfc-architect', 'skill-deep-web-research'], 'idle', 128, 99.4),
@@ -42,7 +52,7 @@ VALUES
     ('agent-visual-artist', 'Visual Diagram & Asset Generator', 'Side Agent: Diagram & Media Creator', 'execution_worker', 'sandbox_write', 'Ephemeral execution worker that creates Mermaid architecture diagrams, system flows, and graphical visual assets.', 'bg-[#e0b09f]', 'gemini-3.6-flash', 0.3, 'You are Visual Diagram & Asset Generator Side Agent. Render precise Mermaid diagrams and generate visual concept assets.', '[{"id":"c13","name":"Mermaid Architecture Diagrams","description":"Generate sequence, flowchart, and ERD diagrams"},{"id":"c14","name":"Visual Asset Generation","description":"Synthesize UI mockups and visual asset specifications"}]'::jsonb, ARRAY['mermaid_renderer', 'image_asset_generator'], ARRAY[]::text[], 'idle', 34, 97.8)
 ON CONFLICT (id) DO NOTHING;
 
--- 6. Initial Workspace Skills
+-- 7. Initial Workspace Skills (3. Skill)
 INSERT INTO workspace_skills (id, name, description, category, icon, sop_summary, instructions, assigned_tools, enabled, is_custom)
 VALUES
     ('skill-rfc-architect', 'Architecture RFC & Decision Records', 'Standard operating procedure for drafting comprehensive technical design docs (TDD) and architecture decision records (ADR).', 'engineering', 'book-open', 'Enforces strict section hierarchy: Executive Summary, System Architecture, SQL DDL Schema, API Specifications, and Rollout Strategy.', 'Follow the RFC template: 1. Executive Summary, 2. High-Level Mermaid Architecture, 3. Relational/Vector Schema, 4. REST & SSE Contract, 5. Step-by-Step Implementation.', ARRAY['read_file', 'obsidian_vault_writer'], true, false),
@@ -53,21 +63,12 @@ VALUES
     ('skill-calendar-workflow-sync', 'Calendar & Agenda Intelligent Dispatch', 'Procedural standard for parsing conversational meeting requests, resolving timezones, and creating calendar events.', 'productivity', 'calendar', 'Resolves relative dates (tomorrow, next Monday), validates duration against free slots, and populates attendee metadata.', 'Extract event title, date, time, and attendees, verify slot availability, create calendar event.', ARRAY['calendar_event_creator', 'calendar_schedule_reader'], true, false)
 ON CONFLICT (id) DO NOTHING;
 
--- 7. Initial Workspace Integrations (MCP Connectors)
-INSERT INTO workspace_integrations (id, name, category, status, endpoint, version, transport, description, tools, last_ping_ms, latency_ms, is_custom)
+-- 8. Initial Workspace Integrations (2. MCP Connectors)
+INSERT INTO workspace_integrations (id, connection_id, name, category, status, endpoint, version, transport, description, tools, last_ping_ms, latency_ms, is_custom)
 VALUES
-    ('mcp-filesystem', 'Local Filesystem MCP Server', 'engineering', 'connected', 'npx -y @modelcontextprotocol/server-filesystem /home/azure/dev', 'v1.1.0', 'stdio', 'Grants secure sandboxed file read/write access to project directories.', '[{"id":"t-fs-1","name":"read_file","description":"Read UTF-8 file contents from workspace"},{"id":"t-fs-2","name":"write_file","description":"Write or overwrite file contents"},{"id":"t-fs-3","name":"list_directory","description":"List files and directories"}]'::jsonb, 8, 8, false),
-    ('mcp-github', 'GitHub API MCP Server', 'engineering', 'connected', 'npx -y @modelcontextprotocol/server-github', 'v2.0.4', 'stdio', 'Inspect pull requests, browse repositories, create issues, and manage git branches.', '[{"id":"t-gh-1","name":"get_pull_request","description":"Fetch PR diff and review comments"},{"id":"t-gh-2","name":"create_branch","description":"Create new git branch"},{"id":"t-gh-3","name":"search_code","description":"Search repository code"}]'::jsonb, 42, 42, false),
-    ('mcp-google-calendar', 'Google Calendar & Agenda MCP', 'productivity', 'connected', 'https://mcp.contextforge.internal/google-calendar/sse', 'v1.4.0', 'sse', 'Synchronize calendar events, check user availability, and schedule meetings.', '[{"id":"t-gc-1","name":"list_events","description":"Get today or upcoming calendar events"},{"id":"t-gc-2","name":"create_event","description":"Create new calendar entry"}]'::jsonb, 18, 18, false),
-    ('mcp-postgres', 'PostgreSQL Database MCP Server', 'knowledge', 'connected', 'npx -y @modelcontextprotocol/server-postgres postgresql://cloudsql/contextforge_prod', 'v1.0.2', 'stdio', 'Inspect relational schemas, run parameterized read-only queries, and verify table constraints.', '[{"id":"t-pg-1","name":"describe_table","description":"Get column types and foreign keys"},{"id":"t-pg-2","name":"execute_query","description":"Run parameterized SQL query"}]'::jsonb, 12, 12, false),
-    ('mcp-brave-search', 'Brave Web Search MCP Server', 'knowledge', 'connected', 'https://api.search.brave.com/res/v1/web', 'v1.0.0', 'rest', 'Live web search index providing factual grounding and cited documentation.', '[{"id":"t-bs-1","name":"web_search","description":"Execute live web search query"}]'::jsonb, 95, 95, false)
-ON CONFLICT (id) DO NOTHING;
-
--- 8. Initial Workspace Plugins
-INSERT INTO workspace_plugins (id, name, description, category, icon, author, version, installed, badge, bundled_connector_ids, bundled_skill_ids)
-VALUES
-    ('plug-obsidian-powerhouse', 'Obsidian Powerhouse Suite', 'Complete knowledge management pack for syncing local vaults, generating bidirectional links, and drafting RFCs.', 'knowledge', 'book-open', 'ContextForge Team', 'v1.2.0', true, 'Official Pack', ARRAY['mcp-filesystem'], ARRAY['skill-rfc-architect', 'skill-obsidian-vault-synthesis']),
-    ('plug-devops-git', 'Full-Stack DevOps & Git Workflow', 'Equips agents with GitHub integration, AST syntax verification, and automated atomic diff generation.', 'engineering', 'git-branch', 'ContextForge Team', 'v2.1.0', true, 'Official Pack', ARRAY['mcp-filesystem', 'mcp-github'], ARRAY['skill-ast-code-patcher']),
-    ('plug-executive-assistant', 'Personal Executive Assistant', 'Integrates Google Calendar scheduling, morning briefing synthesis, and long-term user memory recall.', 'productivity', 'calendar', 'ContextForge Team', 'v1.0.4', true, 'Productivity', ARRAY['mcp-google-calendar'], ARRAY['skill-calendar-workflow-sync']),
-    ('plug-security-sentinel', 'Security Sentinel & CVE Auditor', 'Audits codebase for OWASP vulnerabilities, hardcoded secrets, injection paths, and dependency risks.', 'security', 'shield', 'ContextForge Team', 'v1.1.0', false, 'Security Pack', ARRAY['mcp-filesystem', 'mcp-github', 'mcp-postgres'], ARRAY['skill-threat-model-review'])
+    ('mcp-filesystem', NULL, 'Local Filesystem MCP Server', 'engineering', 'connected', 'npx -y @modelcontextprotocol/server-filesystem /home/azure/dev', 'v1.1.0', 'stdio', 'Grants secure sandboxed file read/write access to project directories.', '[{"id":"t-fs-1","name":"read_file","description":"Read UTF-8 file contents from workspace"},{"id":"t-fs-2","name":"write_file","description":"Write or overwrite file contents"},{"id":"t-fs-3","name":"list_directory","description":"List files and directories"}]'::jsonb, 8, 8, false),
+    ('mcp-github', 'conn-github-oauth', 'GitHub API MCP Server', 'engineering', 'connected', 'npx -y @modelcontextprotocol/server-github', 'v2.0.4', 'stdio', 'Inspect pull requests, browse repositories, create issues, and manage git branches.', '[{"id":"t-gh-1","name":"get_pull_request","description":"Fetch PR diff and review comments"},{"id":"t-gh-2","name":"create_branch","description":"Create new git branch"},{"id":"t-gh-3","name":"search_code","description":"Search repository code"}]'::jsonb, 42, 42, false),
+    ('mcp-google-calendar', 'conn-google-calendar', 'Google Calendar & Agenda MCP', 'productivity', 'connected', 'https://mcp.contextforge.internal/google-calendar/sse', 'v1.4.0', 'sse', 'Synchronize calendar events, check user availability, and schedule meetings.', '[{"id":"t-gc-1","name":"list_events","description":"Get today or upcoming calendar events"},{"id":"t-gc-2","name":"create_event","description":"Create new calendar entry"}]'::jsonb, 18, 18, false),
+    ('mcp-postgres', 'conn-postgres-prod', 'PostgreSQL Database MCP Server', 'knowledge', 'connected', 'npx -y @modelcontextprotocol/server-postgres postgresql://cloudsql/contextforge_prod', 'v1.0.2', 'stdio', 'Inspect relational schemas, run parameterized read-only queries, and verify table constraints.', '[{"id":"t-pg-1","name":"describe_table","description":"Get column types and foreign keys"},{"id":"t-pg-2","name":"execute_query","description":"Run parameterized SQL query"}]'::jsonb, 12, 12, false),
+    ('mcp-brave-search', NULL, 'Brave Web Search MCP Server', 'knowledge', 'connected', 'https://api.search.brave.com/res/v1/web', 'v1.0.0', 'rest', 'Live web search index providing factual grounding and cited documentation.', '[{"id":"t-bs-1","name":"web_search","description":"Execute live web search query"}]'::jsonb, 95, 95, false)
 ON CONFLICT (id) DO NOTHING;

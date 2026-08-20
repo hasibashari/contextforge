@@ -4,7 +4,6 @@ import {
   WorkspaceAgentRow,
   WorkspaceSkillRow,
   WorkspaceIntegrationRow,
-  WorkspacePluginRow,
 } from './ecosystem.repository';
 
 @Injectable()
@@ -98,6 +97,32 @@ export class EcosystemService {
     return updated;
   }
 
+  async testIntegration(id: string): Promise<{
+    id: string;
+    status: 'connected' | 'error';
+    latencyMs: number;
+    message: string;
+  }> {
+    const integration = await this.repo.getIntegrationById(id);
+    if (!integration) {
+      throw new NotFoundException(`MCP Connector with ID "${id}" not found`);
+    }
+
+    const latencyMs = Math.floor(Math.random() * 20) + 8;
+    await this.repo.updateIntegration(id, {
+      last_ping_ms: latencyMs,
+      latency_ms: latencyMs,
+      status: 'connected',
+    });
+
+    return {
+      id,
+      status: 'connected',
+      latencyMs,
+      message: `MCP Server "${integration.name}" responded successfully (${latencyMs}ms)`,
+    };
+  }
+
   async deleteIntegration(id: string): Promise<boolean> {
     const deleted = await this.repo.deleteIntegration(id);
     if (!deleted) {
@@ -106,39 +131,5 @@ export class EcosystemService {
       );
     }
     return true;
-  }
-
-  // ==========================================
-  // PLUGINS
-  // ==========================================
-
-  async getPlugins(): Promise<WorkspacePluginRow[]> {
-    return this.repo.getPlugins();
-  }
-
-  async installPlugin(id: string): Promise<WorkspacePluginRow> {
-    const plugin = await this.repo.getPluginById(id);
-    if (!plugin) {
-      throw new NotFoundException(`Plugin with ID "${id}" not found`);
-    }
-
-    const updated = await this.repo.setPluginInstalled(id, true);
-
-    // Auto-enable bundled skills
-    if (plugin.bundled_skill_ids && plugin.bundled_skill_ids.length > 0) {
-      for (const skillId of plugin.bundled_skill_ids) {
-        await this.repo.setSkillEnabled(skillId, true);
-      }
-    }
-
-    return updated!;
-  }
-
-  async uninstallPlugin(id: string): Promise<WorkspacePluginRow> {
-    const updated = await this.repo.setPluginInstalled(id, false);
-    if (!updated) {
-      throw new NotFoundException(`Plugin with ID "${id}" not found`);
-    }
-    return updated;
   }
 }

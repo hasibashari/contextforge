@@ -110,7 +110,7 @@ export interface Agent {
   description: string
   avatarColor: string
   model: string
-  temperature: number
+  temperature?: number
   systemPrompt: string
   capabilities: AgentCapability[]
   assignedTools: string[]
@@ -133,18 +133,27 @@ export interface Skill {
   isCustom?: boolean
 }
 
-export interface Plugin {
+export interface WorkspaceConnection {
   id: string
+  userId?: string
   name: string
-  description: string
-  category: 'engineering' | 'security' | 'knowledge' | 'devops' | 'productivity'
-  icon: string
-  author: string
-  version: string
-  installed: boolean
-  bundledConnectorIds: string[]
-  bundledSkillIds: string[]
-  badge?: string
+  connectionType: 'llm_provider' | 'mcp_server' | 'database' | 'oauth_service'
+  provider:
+    | 'google_gemini'
+    | 'anthropic'
+    | 'openai'
+    | 'github'
+    | 'google_calendar'
+    | 'postgres'
+    | 'custom_mcp'
+    | string
+  authType: 'api_key' | 'oauth2' | 'connection_string' | 'bearer_token' | 'none'
+  endpointUrl?: string
+  configEncrypted?: Record<string, unknown>
+  status: 'active' | 'invalid' | 'testing' | 'disabled'
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface KnowledgeSource {
@@ -186,8 +195,9 @@ export interface McpTool {
 
 export interface Integration {
   id: string
+  connectionId?: string
   name: string
-  category: 'mcp_server' | 'git_provider' | 'documentation' | 'notification' | 'telemetry' | 'productivity'
+  category: 'mcp_server' | 'git_provider' | 'documentation' | 'notification' | 'telemetry' | 'productivity' | 'engineering' | 'security' | 'knowledge'
   status: 'connected' | 'connecting' | 'disconnected' | 'error'
   endpoint: string
   version: string

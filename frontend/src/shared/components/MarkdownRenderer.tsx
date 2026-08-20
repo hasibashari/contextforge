@@ -1,17 +1,38 @@
 import React, { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Check, Copy } from 'lucide-react'
+import {
+  Check,
+  Copy,
+  BookOpen,
+  Info,
+  Lightbulb,
+  AlertTriangle,
+  AlertCircle,
+} from 'lucide-react'
 
 interface MarkdownRendererProps {
   content: string
   className?: string
 }
 
+// Pre-process Obsidian wikilinks: [[Note Title]] or [[Note Title|Custom Alias]]
+function preprocessObsidianWikilinks(text: string): string {
+  if (!text) return ''
+  return text.replace(/\[\[(.*?)\]\]/g, (_, match: string) => {
+    const parts = match.split('|')
+    const noteName = parts[0].trim()
+    const alias = parts[1]?.trim() || noteName
+    return `[📚 ${alias}](#obsidian-note:${encodeURIComponent(noteName)})`
+  })
+}
+
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
   className = '',
 }) => {
+  const processedContent = preprocessObsidianWikilinks(content)
+
   return (
     <div className={`markdown-body space-y-2 text-ink text-xs sm:text-sm leading-relaxed ${className}`}>
       <ReactMarkdown
@@ -52,11 +73,63 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
               {children}
             </li>
           ),
-          blockquote: ({ children }) => (
-            <blockquote className="border-l-3 border-primary/60 bg-canvas-soft/80 px-3 py-2 rounded-r-lg my-2 text-muted italic font-sans text-xs">
-              {children}
-            </blockquote>
-          ),
+          blockquote: ({ children }) => {
+            // Check for Callout syntax in text
+            const raw = React.Children.toArray(children)
+              .map((c) => (typeof c === 'string' ? c : ''))
+              .join(' ')
+
+            if (raw.includes('[!NOTE]') || raw.includes('[!INFO]')) {
+              return (
+                <div className="border-l-3 border-primary bg-primary/5 px-3 py-2.5 rounded-r-xl my-2.5 text-xs text-ink space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-primary font-mono text-[11px] uppercase">
+                    <Info size={13} />
+                    <span>Note</span>
+                  </div>
+                  <div className="text-body leading-relaxed">{children}</div>
+                </div>
+              )
+            }
+            if (raw.includes('[!TIP]')) {
+              return (
+                <div className="border-l-3 border-emerald-500 bg-emerald-500/5 px-3 py-2.5 rounded-r-xl my-2.5 text-xs text-ink space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400 font-mono text-[11px] uppercase">
+                    <Lightbulb size={13} />
+                    <span>Tip</span>
+                  </div>
+                  <div className="text-body leading-relaxed">{children}</div>
+                </div>
+              )
+            }
+            if (raw.includes('[!WARNING]') || raw.includes('[!CAUTION]')) {
+              return (
+                <div className="border-l-3 border-amber-500 bg-amber-500/5 px-3 py-2.5 rounded-r-xl my-2.5 text-xs text-ink space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400 font-mono text-[11px] uppercase">
+                    <AlertTriangle size={13} />
+                    <span>Warning</span>
+                  </div>
+                  <div className="text-body leading-relaxed">{children}</div>
+                </div>
+              )
+            }
+            if (raw.includes('[!IMPORTANT]')) {
+              return (
+                <div className="border-l-3 border-purple-500 bg-purple-500/5 px-3 py-2.5 rounded-r-xl my-2.5 text-xs text-ink space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-purple-600 dark:text-purple-400 font-mono text-[11px] uppercase">
+                    <AlertCircle size={13} />
+                    <span>Important</span>
+                  </div>
+                  <div className="text-body leading-relaxed">{children}</div>
+                </div>
+              )
+            }
+
+            return (
+              <blockquote className="border-l-3 border-primary/60 bg-canvas-soft/80 px-3 py-2 rounded-r-lg my-2 text-muted italic font-sans text-xs">
+                {children}
+              </blockquote>
+            )
+          },
           table: ({ children }) => (
             <div className="overflow-x-auto my-3 rounded-lg border border-hairline shadow-2xs">
               <table className="w-full text-left text-xs font-sans border-collapse">
@@ -92,16 +165,28 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           hr: () => (
             <hr className="my-3 border-hairline" />
           ),
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noreferrer"
-              className="text-primary underline underline-offset-2 hover:text-primary-active transition-colors font-medium"
-            >
-              {children}
-            </a>
-          ),
+          a: ({ href, children }) => {
+            const isWikilink = href?.startsWith('#obsidian-note:')
+            if (isWikilink) {
+              return (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/25 font-mono text-[11px] font-semibold hover:bg-[#7c3aed]/20 transition-colors cursor-pointer select-none">
+                  <BookOpen size={11} className="shrink-0" />
+                  <span>{String(children).replace(/^📚\s*/, '')}</span>
+                </span>
+              )
+            }
+
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline underline-offset-2 hover:text-primary-active transition-colors font-medium"
+              >
+                {children}
+              </a>
+            )
+          },
           code: ({ className: codeClassName, children, ...props }) => {
             const match = /language-(\w+)/.exec(codeClassName || '')
             const isInline = !match && !String(children).includes('\n')
@@ -140,7 +225,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           },
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   )

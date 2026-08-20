@@ -48,7 +48,7 @@ export class EcosystemController {
   }
 
   // ==========================================
-  // SKILLS
+  // SKILLS (SOPs)
   // ==========================================
 
   @Get('skills')
@@ -89,7 +89,7 @@ export class EcosystemController {
   }
 
   // ==========================================
-  // MCP INTEGRATIONS
+  // MCP INTEGRATIONS & TOOLS
   // ==========================================
 
   @Get('integrations')
@@ -98,10 +98,18 @@ export class EcosystemController {
     return { success: true, data };
   }
 
+  // Alias for semantic clarity in MCP architecture
+  @Get('mcp-tools')
+  async getMcpTools() {
+    const data = await this.service.getIntegrations();
+    return { success: true, data };
+  }
+
   @Post('integrations')
   async createIntegration(
     @Body()
     body: {
+      connectionId?: string;
       name: string;
       category: WorkspaceIntegrationRow['category'];
       endpoint: string;
@@ -131,42 +139,32 @@ export class EcosystemController {
     };
   }
 
+  @Post('integrations/:id/test')
+  async testIntegration(@Param('id') id: string) {
+    const data = await this.service.testIntegration(id);
+    return {
+      success: true,
+      data,
+      message: data.message,
+    };
+  }
+
+  @Post('mcp-tools/:id/test')
+  async testMcpTool(@Param('id') id: string) {
+    const data = await this.service.testIntegration(id);
+    return {
+      success: true,
+      data,
+      message: data.message,
+    };
+  }
+
   @Delete('integrations/:id')
   async deleteIntegration(@Param('id') id: string) {
     await this.service.deleteIntegration(id);
     return {
       success: true,
       message: `Integration connector ${id} deleted successfully`,
-    };
-  }
-
-  // ==========================================
-  // PLUGINS
-  // ==========================================
-
-  @Get('plugins')
-  async getPlugins() {
-    const data = await this.service.getPlugins();
-    return { success: true, data };
-  }
-
-  @Post('plugins/:id/install')
-  async installPlugin(@Param('id') id: string) {
-    const data = await this.service.installPlugin(id);
-    return {
-      success: true,
-      data,
-      message: `Plugin pack ${id} installed successfully`,
-    };
-  }
-
-  @Post('plugins/:id/uninstall')
-  async uninstallPlugin(@Param('id') id: string) {
-    const data = await this.service.uninstallPlugin(id);
-    return {
-      success: true,
-      data,
-      message: `Plugin pack ${id} uninstalled successfully`,
     };
   }
 }

@@ -79,7 +79,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Domain Hooks
   const calendarMemory = useCalendarMemory(showToast)
-  const ecosystem = useEcosystemManager(showToast, setActivities)
+  const ecosystem = useEcosystemManager(showToast)
   const knowledge = useKnowledgeManager(showToast)
   const taskManager = useTaskManager(ecosystem.agents, showToast)
   const chatEngine = useChatEngine(
@@ -92,11 +92,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   return (
     <WorkspaceContext.Provider
       value={{
-        // Legacy / Entity State
+        // 5 Pillars State
         tasks: taskManager.tasks,
         agents: ecosystem.agents,
         skills: ecosystem.skills,
-        plugins: ecosystem.plugins,
+        connections: ecosystem.connections,
         knowledgeSources: knowledge.knowledgeSources,
         integrations: ecosystem.integrations,
         activities,
@@ -106,14 +106,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         // Ecosystem Actions
         toggleSkill: ecosystem.toggleSkill,
-        installPlugin: ecosystem.installPlugin,
-        uninstallPlugin: ecosystem.uninstallPlugin,
+        addCustomSkill: ecosystem.addCustomSkill,
         toggleIntegrationConnect: ecosystem.toggleIntegrationConnect,
         updateConnectorConfig: ecosystem.updateConnectorConfig,
         addCustomConnector: ecosystem.addCustomConnector,
-        addCustomSkill: ecosystem.addCustomSkill,
         updateAgentCapabilities: ecosystem.updateAgentCapabilities,
         testIntegration: ecosystem.testIntegration,
+
+        // Connection Actions
+        addConnection: ecosystem.addConnection,
+        updateConnection: ecosystem.updateConnection,
+        testConnection: ecosystem.testConnection,
+        deleteConnection: ecosystem.deleteConnection,
 
         // Conversational Agentic State
         chatSessions: chatEngine.chatSessions,
@@ -152,15 +156,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         uploadKnowledgeFiles: knowledge.uploadKnowledgeFiles,
         deleteKnowledgeSource: knowledge.deleteKnowledgeSource,
 
-        // Personal Hub Grounding Context
+        // Personal Hub State & Actions
         calendarEvents: calendarMemory.calendarEvents,
+        userMemories: calendarMemory.userMemories,
         addCalendarEvent: calendarMemory.addCalendarEvent,
         updateCalendarEventStatus: calendarMemory.updateCalendarEventStatus,
-        userMemories: calendarMemory.userMemories,
         addUserMemory: calendarMemory.addUserMemory,
         deleteUserMemory: calendarMemory.deleteUserMemory,
 
-        // Task Formulation & Autonomous Planner State
+        // Task Actions
         createTask: taskManager.createTask,
         getTaskById: taskManager.getTaskById,
         approveTask: taskManager.approveTask,

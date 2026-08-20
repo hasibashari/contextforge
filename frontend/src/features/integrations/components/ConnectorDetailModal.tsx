@@ -194,7 +194,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    transport: e.target.value as Integration['transport'],
+                    transport: e.target.value as 'stdio' | 'sse' | 'rest',
                   })
                 }
                 className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs cursor-pointer"

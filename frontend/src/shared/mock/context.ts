@@ -3,7 +3,7 @@ import type {
   Task,
   Agent,
   Skill,
-  Plugin,
+  WorkspaceConnection,
   KnowledgeSource,
   Integration,
   ActivityLogEntry,
@@ -21,7 +21,7 @@ export interface WorkspaceContextType {
   tasks: Task[]
   agents: Agent[]
   skills: Skill[]
-  plugins: Plugin[]
+  connections: WorkspaceConnection[]
   knowledgeSources: KnowledgeSource[]
   integrations: Integration[]
   activities: ActivityLogEntry[]
@@ -49,22 +49,8 @@ export interface WorkspaceContextType {
   addUserMemory: (memory: Omit<UserMemoryItem, 'id' | 'lastUpdated'>) => void
   deleteUserMemory: (id: string) => void
 
-  // Ecosystem & Skills Actions
+  // Ecosystem, MCP & Skills Actions
   toggleSkill: (skillId: string) => void
-  installPlugin: (pluginId: string) => void
-  uninstallPlugin: (pluginId: string) => void
-  toggleIntegrationConnect: (integrationId: string) => void
-  updateConnectorConfig: (
-    connectorId: string,
-    updates: Partial<Integration>
-  ) => void
-  addCustomConnector: (data: {
-    name: string
-    category: Integration['category']
-    endpoint: string
-    description: string
-    transport?: 'stdio' | 'sse' | 'rest'
-  }) => void
   addCustomSkill: (data: {
     name: string
     description: string
@@ -73,11 +59,38 @@ export interface WorkspaceContextType {
     instructions: string
     assignedTools: string[]
   }) => void
+  toggleIntegrationConnect: (integrationId: string) => void
+  updateConnectorConfig: (
+    connectorId: string,
+    updates: Partial<Integration>
+  ) => void
+  addCustomConnector: (data: {
+    connectionId?: string
+    name: string
+    category: Integration['category']
+    endpoint: string
+    description: string
+    transport?: 'stdio' | 'sse' | 'rest'
+  }) => void
   updateAgentCapabilities: (
     agentId: string,
     toolIds: string[],
     skillIds: string[]
   ) => void
+  testIntegration: (integrationId: string) => Promise<boolean>
+
+  // Connections Actions (4. Connection)
+  addConnection: (data: {
+    name: string
+    connectionType: WorkspaceConnection['connectionType']
+    provider: string
+    authType: WorkspaceConnection['authType']
+    endpointUrl?: string
+    config?: Record<string, unknown>
+  }) => Promise<void>
+  updateConnection: (id: string, updates: Partial<WorkspaceConnection>) => Promise<void>
+  testConnection: (connectionId: string) => Promise<boolean>
+  deleteConnection: (connectionId: string) => Promise<void>
 
   // Conversational Actions
   sendChatMessage: (
@@ -125,7 +138,6 @@ export interface WorkspaceContextType {
     sourceId?: string
   ) => Promise<KnowledgeSource>
   deleteKnowledgeSource: (sourceId: string) => void
-  testIntegration: (integrationId: string) => Promise<boolean>
   clearToast: () => void
 }
 

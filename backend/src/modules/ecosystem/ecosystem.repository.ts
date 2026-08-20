@@ -39,6 +39,7 @@ export interface WorkspaceSkillRow {
 
 export interface WorkspaceIntegrationRow {
   id: string;
+  connection_id?: string;
   name: string;
   category: 'engineering' | 'security' | 'knowledge' | 'productivity';
   status: 'connected' | 'disconnected' | 'error';
@@ -50,22 +51,6 @@ export interface WorkspaceIntegrationRow {
   last_ping_ms: number;
   latency_ms: number;
   is_custom: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface WorkspacePluginRow {
-  id: string;
-  name: string;
-  description: string;
-  category: 'engineering' | 'security' | 'knowledge' | 'productivity';
-  icon: string;
-  author: string;
-  version: string;
-  installed: boolean;
-  badge: string;
-  bundled_connector_ids: string[];
-  bundled_skill_ids: string[];
   created_at: string;
   updated_at: string;
 }
@@ -126,6 +111,7 @@ export class EcosystemRepository implements OnModuleInit {
       await this.db.query(`
         CREATE TABLE IF NOT EXISTS workspace_integrations (
           id VARCHAR(100) PRIMARY KEY,
+          connection_id VARCHAR(100),
           name VARCHAR(150) NOT NULL,
           category VARCHAR(50) NOT NULL,
           status VARCHAR(30) DEFAULT 'connected',
@@ -137,24 +123,6 @@ export class EcosystemRepository implements OnModuleInit {
           last_ping_ms INTEGER DEFAULT 12,
           latency_ms INTEGER DEFAULT 12,
           is_custom BOOLEAN DEFAULT false,
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-        );
-      `);
-
-      await this.db.query(`
-        CREATE TABLE IF NOT EXISTS workspace_plugins (
-          id VARCHAR(100) PRIMARY KEY,
-          name VARCHAR(150) NOT NULL,
-          description TEXT NOT NULL,
-          category VARCHAR(50) NOT NULL,
-          icon VARCHAR(50) DEFAULT 'package',
-          author VARCHAR(100) DEFAULT 'ContextForge Official',
-          version VARCHAR(50) DEFAULT 'v1.0.0',
-          installed BOOLEAN DEFAULT false,
-          badge VARCHAR(50) DEFAULT 'Official Pack',
-          bundled_connector_ids TEXT[] DEFAULT '{}',
-          bundled_skill_ids TEXT[] DEFAULT '{}',
           created_at TIMESTAMPTZ DEFAULT NOW(),
           updated_at TIMESTAMPTZ DEFAULT NOW()
         );
@@ -185,7 +153,7 @@ export class EcosystemRepository implements OnModuleInit {
         ON CONFLICT (id) DO NOTHING;
       `);
 
-      // 4. Seed Default Integrations
+      // 4. Seed Default Integrations (MCP Connectors)
       await this.db.query(`
         INSERT INTO workspace_integrations (id, name, category, status, endpoint, version, transport, description, tools, last_ping_ms, latency_ms, is_custom)
         VALUES
@@ -194,17 +162,6 @@ export class EcosystemRepository implements OnModuleInit {
           ('mcp-google-calendar', 'Google Calendar & Agenda MCP', 'productivity', 'connected', 'https://mcp.contextforge.internal/google-calendar/sse', 'v1.4.0', 'sse', 'Synchronize calendar events, check user availability, and schedule meetings.', '[{"id":"t-gc-1","name":"list_events","description":"Get today or upcoming calendar events"},{"id":"t-gc-2","name":"create_event","description":"Create new calendar entry"}]'::jsonb, 18, 18, false),
           ('mcp-postgres', 'PostgreSQL Database MCP Server', 'knowledge', 'connected', 'npx -y @modelcontextprotocol/server-postgres postgresql://cloudsql/contextforge_prod', 'v1.0.2', 'stdio', 'Inspect relational schemas, run parameterized read-only queries, and verify table constraints.', '[{"id":"t-pg-1","name":"describe_table","description":"Get column types and foreign keys"},{"id":"t-pg-2","name":"execute_query","description":"Run parameterized SQL query"}]'::jsonb, 12, 12, false),
           ('mcp-brave-search', 'Brave Web Search MCP Server', 'knowledge', 'connected', 'https://api.search.brave.com/res/v1/web', 'v1.0.0', 'rest', 'Live web search index providing factual grounding and cited documentation.', '[{"id":"t-bs-1","name":"web_search","description":"Execute live web search query"}]'::jsonb, 95, 95, false)
-        ON CONFLICT (id) DO NOTHING;
-      `);
-
-      // 5. Seed Default Plugins
-      await this.db.query(`
-        INSERT INTO workspace_plugins (id, name, description, category, icon, author, version, installed, badge, bundled_connector_ids, bundled_skill_ids)
-        VALUES
-          ('plug-obsidian-powerhouse', 'Obsidian Powerhouse Suite', 'Complete knowledge management pack for syncing local vaults, generating bidirectional links, and drafting RFCs.', 'knowledge', 'book-open', 'ContextForge Team', 'v1.2.0', true, 'Official Pack', ARRAY['mcp-filesystem'], ARRAY['skill-rfc-architect', 'skill-obsidian-vault-synthesis']),
-          ('plug-devops-git', 'Full-Stack DevOps & Git Workflow', 'Equips agents with GitHub integration, AST syntax verification, and automated atomic diff generation.', 'engineering', 'git-branch', 'ContextForge Team', 'v2.1.0', true, 'Official Pack', ARRAY['mcp-filesystem', 'mcp-github'], ARRAY['skill-ast-code-patcher']),
-          ('plug-executive-assistant', 'Personal Executive Assistant', 'Integrates Google Calendar scheduling, morning briefing synthesis, and long-term user memory recall.', 'productivity', 'calendar', 'ContextForge Team', 'v1.0.4', true, 'Productivity', ARRAY['mcp-google-calendar'], ARRAY['skill-calendar-workflow-sync']),
-          ('plug-security-sentinel', 'Security Sentinel & CVE Auditor', 'Audits codebase for OWASP vulnerabilities, hardcoded secrets, injection paths, and dependency risks.', 'security', 'shield', 'ContextForge Team', 'v1.1.0', false, 'Security Pack', ARRAY['mcp-filesystem', 'mcp-github', 'mcp-postgres'], ARRAY['skill-threat-model-review'])
         ON CONFLICT (id) DO NOTHING;
       `);
 
@@ -399,6 +356,7 @@ export class EcosystemRepository implements OnModuleInit {
 
   async createIntegration(data: {
     id?: string;
+    connectionId?: string;
     name: string;
     category: WorkspaceIntegrationRow['category'];
     endpoint: string;
@@ -421,11 +379,12 @@ export class EcosystemRepository implements OnModuleInit {
     );
 
     const res = await this.db.query<WorkspaceIntegrationRow>(
-      `INSERT INTO workspace_integrations (id, name, category, status, endpoint, version, transport, description, tools, is_custom)
-       VALUES ($1, $2, $3, 'connected', $4, 'v1.0.0', $5, $6, $7::jsonb, true)
+      `INSERT INTO workspace_integrations (id, connection_id, name, category, status, endpoint, version, transport, description, tools, is_custom)
+       VALUES ($1, $2, $3, $4, 'connected', $5, 'v1.0.0', $6, $7, $8::jsonb, true)
        RETURNING *;`,
       [
         id,
+        data.connectionId || null,
         data.name,
         data.category,
         data.endpoint,
@@ -477,45 +436,5 @@ export class EcosystemRepository implements OnModuleInit {
       [id],
     );
     return (res.rowCount ?? 0) > 0;
-  }
-
-  // ==========================================
-  // PLUGINS CRUD
-  // ==========================================
-
-  async getPlugins(): Promise<WorkspacePluginRow[]> {
-    let res = await this.db.query<WorkspacePluginRow>(
-      `SELECT * FROM workspace_plugins ORDER BY created_at ASC;`,
-    );
-    if (res.rows.length === 0) {
-      await this.ensureTablesAndSeed();
-      res = await this.db.query<WorkspacePluginRow>(
-        `SELECT * FROM workspace_plugins ORDER BY created_at ASC;`,
-      );
-    }
-    return res.rows;
-  }
-
-  async getPluginById(id: string): Promise<WorkspacePluginRow | null> {
-    const res = await this.db.query<WorkspacePluginRow>(
-      `SELECT * FROM workspace_plugins WHERE id = $1;`,
-      [id],
-    );
-    return res.rows[0] || null;
-  }
-
-  async setPluginInstalled(
-    id: string,
-    installed: boolean,
-  ): Promise<WorkspacePluginRow | null> {
-    const res = await this.db.query<WorkspacePluginRow>(
-      `UPDATE workspace_plugins
-       SET installed = $1,
-           updated_at = NOW()
-       WHERE id = $2
-       RETURNING *;`,
-      [installed, id],
-    );
-    return res.rows[0] || null;
   }
 }

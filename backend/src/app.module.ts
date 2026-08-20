@@ -11,6 +11,7 @@ import { ArtifactsModule } from './modules/artifacts/artifacts.module';
 import { PersonalHubModule } from './modules/personal-hub/personal-hub.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { ActivityModule } from './modules/activity/activity.module';
+import { ConnectionsModule } from './modules/connections/connections.module';
 import { EcosystemModule } from './modules/ecosystem/ecosystem.module';
 import { AppController } from './app.controller';
 
@@ -28,6 +29,7 @@ import { AppController } from './app.controller';
     ArtifactsModule,
     PersonalHubModule,
     KnowledgeModule,
+    ConnectionsModule,
     ActivityModule,
     EcosystemModule,
   ],

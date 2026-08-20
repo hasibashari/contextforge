@@ -1,6 +1,7 @@
 -- =====================================================================
--- ContextForge: Native PostgreSQL Schema Definition
+-- ContextForge: Native PostgreSQL Schema Definition (v2.0.0)
 -- Multi-environment resilient schema (Local Dev & Google Cloud SQL)
+-- Based on 5 Pillars: Knowledge, MCP, Skills, Connections, Agents
 -- =====================================================================
 
 -- 1. Inisialisasi Ekstensi Wajib
@@ -146,7 +147,7 @@ CREATE TABLE IF NOT EXISTS user_memories (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. Entitas Multi-Source Knowledge
+-- 5. Entitas Multi-Source Knowledge (1. Knowledge)
 CREATE TABLE IF NOT EXISTS knowledge_sources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID,
@@ -189,7 +190,23 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     status VARCHAR(20) NOT NULL DEFAULT 'info' CHECK (status IN ('info', 'success', 'warning', 'error'))
 );
 
--- 7. Entitas Ecosystem & Extensibility Hub (Agents, Skills, Connectors, Plugins)
+-- 7. Entitas Connections & Credential Vault (4. Connection)
+CREATE TABLE IF NOT EXISTS workspace_connections (
+    id VARCHAR(100) PRIMARY KEY,
+    user_id UUID,
+    name VARCHAR(150) NOT NULL,
+    connection_type VARCHAR(50) NOT NULL CHECK (connection_type IN ('llm_provider', 'mcp_server', 'database', 'oauth_service')),
+    provider VARCHAR(50) NOT NULL,
+    auth_type VARCHAR(50) NOT NULL CHECK (auth_type IN ('api_key', 'oauth2', 'connection_string', 'bearer_token', 'none')),
+    endpoint_url TEXT,
+    config_encrypted JSONB DEFAULT '{}',
+    status VARCHAR(30) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'invalid', 'testing', 'disabled')),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. Entitas Workspace Agents (5. Agent)
 CREATE TABLE IF NOT EXISTS workspace_agents (
     id VARCHAR(100) PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
@@ -211,6 +228,7 @@ CREATE TABLE IF NOT EXISTS workspace_agents (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 9. Entitas Workspace Skills (3. Skill)
 CREATE TABLE IF NOT EXISTS workspace_skills (
     id VARCHAR(100) PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
@@ -226,8 +244,10 @@ CREATE TABLE IF NOT EXISTS workspace_skills (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 10. Entitas Workspace Integrations (2. MCP Server)
 CREATE TABLE IF NOT EXISTS workspace_integrations (
     id VARCHAR(100) PRIMARY KEY,
+    connection_id VARCHAR(100) REFERENCES workspace_connections(id) ON DELETE SET NULL,
     name VARCHAR(150) NOT NULL,
     category VARCHAR(50) NOT NULL CHECK (category IN ('engineering', 'security', 'knowledge', 'productivity')),
     status VARCHAR(30) DEFAULT 'connected' CHECK (status IN ('connected', 'disconnected', 'error')),
@@ -243,24 +263,8 @@ CREATE TABLE IF NOT EXISTS workspace_integrations (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS workspace_plugins (
-    id VARCHAR(100) PRIMARY KEY,
-    name VARCHAR(150) NOT NULL,
-    description TEXT NOT NULL,
-    category VARCHAR(50) NOT NULL CHECK (category IN ('engineering', 'security', 'knowledge', 'productivity')),
-    icon VARCHAR(50) DEFAULT 'package',
-    author VARCHAR(100) DEFAULT 'ContextForge Official',
-    version VARCHAR(50) DEFAULT 'v1.0.0',
-    installed BOOLEAN DEFAULT false,
-    badge VARCHAR(50) DEFAULT 'Official Pack',
-    bundled_connector_ids TEXT[] DEFAULT '{}',
-    bundled_skill_ids TEXT[] DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- =====================================================================
--- 8. Performance Indexing
+-- 11. Performance Indexing
 -- =====================================================================
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at ASC);
@@ -270,7 +274,6 @@ CREATE INDEX IF NOT EXISTS idx_tool_calls_step ON tool_calls(step_id);
 CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events(event_date, status);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_time ON activity_logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source ON knowledge_chunks(source_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_connections_provider ON workspace_connections(provider, is_active);
 CREATE INDEX IF NOT EXISTS idx_workspace_skills_category ON workspace_skills(category, enabled);
 CREATE INDEX IF NOT EXISTS idx_workspace_integrations_status ON workspace_integrations(status);
-CREATE INDEX IF NOT EXISTS idx_workspace_plugins_installed ON workspace_plugins(installed);
-

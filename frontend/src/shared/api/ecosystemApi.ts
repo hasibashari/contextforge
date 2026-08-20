@@ -3,7 +3,6 @@ import type {
   Agent,
   Skill,
   Integration,
-  Plugin,
   AgentCapability,
   AgentRoleType,
   AgentPermissionType,
@@ -54,6 +53,8 @@ interface BackendSkill {
 
 interface BackendIntegration {
   id: string;
+  connection_id?: string;
+  connectionId?: string;
   name: string;
   category: Integration['category'];
   status?: 'connected' | 'connecting' | 'disconnected' | 'error';
@@ -68,22 +69,6 @@ interface BackendIntegration {
   transport?: 'stdio' | 'sse' | 'rest';
   is_custom?: boolean;
   isCustom?: boolean;
-}
-
-interface BackendPlugin {
-  id: string;
-  name: string;
-  description: string;
-  category: Plugin['category'];
-  icon?: string;
-  author?: string;
-  version?: string;
-  installed?: boolean;
-  badge?: string;
-  bundled_connector_ids?: string[];
-  bundledConnectorIds?: string[];
-  bundled_skill_ids?: string[];
-  bundledSkillIds?: string[];
 }
 
 // Helper to normalize backend rows to frontend models
@@ -138,6 +123,7 @@ function mapSkillFromBackend(row: BackendSkill): Skill {
 function mapIntegrationFromBackend(row: BackendIntegration): Integration {
   return {
     id: row.id,
+    connectionId: row.connection_id || row.connectionId,
     name: row.name,
     category: row.category,
     status: row.status || 'connected',
@@ -149,22 +135,6 @@ function mapIntegrationFromBackend(row: BackendIntegration): Integration {
     latencyMs: row.latency_ms ?? row.latencyMs ?? 12,
     transport: row.transport || 'stdio',
     isCustom: Boolean(row.is_custom || row.isCustom),
-  };
-}
-
-function mapPluginFromBackend(row: BackendPlugin): Plugin {
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    category: row.category,
-    icon: row.icon || 'package',
-    author: row.author || 'ContextForge Team',
-    version: row.version || 'v1.0.0',
-    installed: Boolean(row.installed),
-    badge: row.badge || 'Official Pack',
-    bundledConnectorIds: row.bundled_connector_ids || row.bundledConnectorIds || [],
-    bundledSkillIds: row.bundled_skill_ids || row.bundledSkillIds || [],
   };
 }
 
@@ -197,7 +167,7 @@ export const ecosystemApi = {
   },
 
   // ------------------------------------------
-  // SKILLS
+  // SKILLS (SOPs)
   // ------------------------------------------
   async getSkills(): Promise<Skill[]> {
     const res = await fetch(`${API_BASE_URL}/ecosystem/skills`);
@@ -241,6 +211,7 @@ export const ecosystemApi = {
   },
 
   async createIntegration(data: {
+    connectionId?: string;
     name: string;
     category: Integration['category'];
     endpoint: string;
@@ -276,35 +247,27 @@ export const ecosystemApi = {
     return mapIntegrationFromBackend(data);
   },
 
+  async testIntegration(id: string): Promise<{
+    id: string;
+    status: 'connected' | 'error';
+    latencyMs: number;
+    message: string;
+  }> {
+    const res = await fetch(`${API_BASE_URL}/ecosystem/integrations/${encodeURIComponent(id)}/test`, {
+      method: 'POST',
+    });
+    return handleApiResponse<{
+      id: string;
+      status: 'connected' | 'error';
+      latencyMs: number;
+      message: string;
+    }>(res);
+  },
+
   async deleteIntegration(id: string): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/ecosystem/integrations/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
     await handleApiResponse<{ success: boolean }>(res);
-  },
-
-  // ------------------------------------------
-  // PLUGINS
-  // ------------------------------------------
-  async getPlugins(): Promise<Plugin[]> {
-    const res = await fetch(`${API_BASE_URL}/ecosystem/plugins`);
-    const data = await handleApiResponse<BackendPlugin[]>(res);
-    return Array.isArray(data) ? data.map(mapPluginFromBackend) : [];
-  },
-
-  async installPlugin(id: string): Promise<Plugin> {
-    const res = await fetch(`${API_BASE_URL}/ecosystem/plugins/${encodeURIComponent(id)}/install`, {
-      method: 'POST',
-    });
-    const data = await handleApiResponse<BackendPlugin>(res);
-    return mapPluginFromBackend(data);
-  },
-
-  async uninstallPlugin(id: string): Promise<Plugin> {
-    const res = await fetch(`${API_BASE_URL}/ecosystem/plugins/${encodeURIComponent(id)}/uninstall`, {
-      method: 'POST',
-    });
-    const data = await handleApiResponse<BackendPlugin>(res);
-    return mapPluginFromBackend(data);
   },
 };

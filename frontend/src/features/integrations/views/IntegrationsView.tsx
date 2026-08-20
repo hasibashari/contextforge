@@ -1,45 +1,39 @@
 import { useState, useMemo } from 'react'
 import {
-  Package,
   Cpu,
+  Sparkles,
   Search,
   Plus,
-  Sparkles,
   RotateCcw,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
-import type { Skill, Integration, Plugin } from '@/shared/types/workspace'
+import type { Skill, Integration } from '@/shared/types/workspace'
 import {
   IntegrationsHeader,
   IntegrationCard,
-  PluginCard,
   SkillCard,
   SkillDetailDrawer,
   ConnectorDetailModal,
-  PluginDetailModal,
   AddConnectorModal,
   AddSkillModal,
 } from '@/features/integrations'
 import { EmptyState, IconBox } from '@/shared/components'
 
-type TabType = 'plugins' | 'connectors' | 'skills'
+type TabType = 'connectors' | 'skills'
 
 export default function IntegrationsView() {
   const {
     integrations,
     skills,
-    plugins,
     testIntegration,
     toggleSkill,
-    installPlugin,
-    uninstallPlugin,
     toggleIntegrationConnect,
     updateConnectorConfig,
     addCustomConnector,
     addCustomSkill,
   } = useWorkspace()
 
-  const [activeTab, setActiveTab] = useState<TabType>('plugins')
+  const [activeTab, setActiveTab] = useState<TabType>('connectors')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
@@ -48,7 +42,6 @@ export default function IntegrationsView() {
   const [isAddSkillOpen, setIsAddSkillOpen] = useState(false)
   const [inspectedSkill, setInspectedSkill] = useState<Skill | null>(null)
   const [selectedConnector, setSelectedConnector] = useState<Integration | null>(null)
-  const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
 
   // Testing State
   const [testingId, setTestingId] = useState<string | null>(null)
@@ -60,17 +53,6 @@ export default function IntegrationsView() {
   }
 
   // Filtered Lists
-  const filteredPlugins = useMemo(() => {
-    return plugins.filter((p) => {
-      const matchesSearch =
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCat =
-        selectedCategory === 'all' || p.category === selectedCategory
-      return matchesSearch && matchesCat
-    })
-  }, [plugins, searchQuery, selectedCategory])
-
   const filteredConnectors = useMemo(() => {
     return integrations.filter((c) => {
       const matchesSearch =
@@ -101,27 +83,17 @@ export default function IntegrationsView() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
       {/* Top Banner Header */}
       <IntegrationsHeader
-        pluginsCount={plugins.length}
         connectorsCount={integrations.length}
         activeSkillsCount={activeSkillsCount}
       />
 
-      {/* Tab Navigation */}
+      {/* Tab Navigation (2 Clean Pillars: MCP Tools & Skills SOP) */}
       <div className="flex items-center gap-2 border-b border-hairline pb-2 text-xs font-mono font-semibold overflow-x-auto">
         <button
-          onClick={() => setActiveTab('plugins')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 ${
-            activeTab === 'plugins'
-              ? 'bg-ink text-canvas shadow-xs'
-              : 'text-muted hover:text-ink hover:bg-canvas-soft'
-          }`}
-        >
-          <Package size={14} />
-          <span>Curated Packs ({plugins.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('connectors')}
+          onClick={() => {
+            setActiveTab('connectors')
+            setSelectedCategory('all')
+          }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 ${
             activeTab === 'connectors'
               ? 'bg-ink text-canvas shadow-xs'
@@ -129,11 +101,14 @@ export default function IntegrationsView() {
           }`}
         >
           <Cpu size={14} />
-          <span>MCP Connectors ({integrations.length})</span>
+          <span>MCP Tool Connectors ({integrations.length})</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('skills')}
+          onClick={() => {
+            setActiveTab('skills')
+            setSelectedCategory('all')
+          }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0 ${
             activeTab === 'skills'
               ? 'bg-ink text-canvas shadow-xs'
@@ -141,7 +116,7 @@ export default function IntegrationsView() {
           }`}
         >
           <Sparkles size={14} />
-          <span>Reasoning Skills ({skills.length})</span>
+          <span>Reasoning Skills SOP ({skills.length})</span>
         </button>
       </div>
 
@@ -186,67 +161,12 @@ export default function IntegrationsView() {
         </div>
       </div>
 
-      {/* Tab 1: Plugins */}
-      {activeTab === 'plugins' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs font-mono text-muted">
-            <span>
-              Showing <strong>{filteredPlugins.length}</strong> Curated Plugin Packs
-            </span>
-          </div>
-
-          {filteredPlugins.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-              {filteredPlugins.map((plugin) => (
-                <PluginCard
-                  key={plugin.id}
-                  plugin={plugin}
-                  allConnectors={integrations}
-                  allSkills={skills}
-                  onOpenDetail={() => setSelectedPlugin(plugin)}
-                  onToggleInstall={() => {
-                    if (plugin.installed) {
-                      setSelectedPlugin(plugin)
-                    } else {
-                      installPlugin(plugin.id)
-                    }
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={<IconBox size="lg" variant="primary" icon={<Package size={22} />} />}
-              title="No Plugin Packs Found"
-              description={
-                searchQuery || selectedCategory !== 'all'
-                  ? `No plugin packs match your search "${searchQuery}" or selected category.`
-                  : 'No plugin packs are currently available.'
-              }
-              action={
-                searchQuery || selectedCategory !== 'all'
-                  ? {
-                      label: 'Clear Filters',
-                      onClick: () => {
-                        setSearchQuery('')
-                        setSelectedCategory('all')
-                      },
-                      icon: <RotateCcw size={13} />,
-                      variant: 'secondary',
-                    }
-                  : undefined
-              }
-            />
-          )}
-        </div>
-      )}
-
-      {/* Tab 2: Connectors (MCP) */}
+      {/* Tab 1: Connectors (MCP Tools) */}
       {activeTab === 'connectors' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs font-mono text-muted">
             <span>
-              Showing <strong>{filteredConnectors.length}</strong> MCP Connectors
+              Showing <strong>{filteredConnectors.length}</strong> MCP Server Connectors
             </span>
             <button
               onClick={() => setIsAddConnectorOpen(true)}
@@ -298,7 +218,7 @@ export default function IntegrationsView() {
         </div>
       )}
 
-      {/* Tab 3: Skills */}
+      {/* Tab 2: Skills (SOPs) */}
       {activeTab === 'skills' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs font-mono text-muted">
@@ -357,21 +277,6 @@ export default function IntegrationsView() {
       )}
 
       {/* Modals & Drawers */}
-      <PluginDetailModal
-        plugin={selectedPlugin}
-        allConnectors={integrations}
-        allSkills={skills}
-        onClose={() => setSelectedPlugin(null)}
-        onInstall={(id) => {
-          installPlugin(id)
-          setSelectedPlugin((prev) => (prev ? { ...prev, installed: true } : null))
-        }}
-        onUninstall={(id) => {
-          uninstallPlugin(id)
-          setSelectedPlugin((prev) => (prev ? { ...prev, installed: false } : null))
-        }}
-      />
-
       <ConnectorDetailModal
         integration={selectedConnector}
         onClose={() => setSelectedConnector(null)}

@@ -95,11 +95,11 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
         <div className="grid grid-cols-3 gap-2 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono text-[11px]">
           <div>
             <div className="text-muted text-[10px] uppercase">Base LLM</div>
-            <div className="font-semibold text-ink">{agent.model}</div>
+            <div className="font-semibold text-ink truncate">{agent.model}</div>
           </div>
           <div>
-            <div className="text-muted text-[10px] uppercase">Temperature</div>
-            <div className="font-semibold text-ink">{agent.temperature}</div>
+            <div className="text-muted text-[10px] uppercase">Tasks Done</div>
+            <div className="font-semibold text-ink">{agent.totalTasksCompleted}</div>
           </div>
           <div>
             <div className="text-muted text-[10px] uppercase">Success Rate</div>
