@@ -14,6 +14,7 @@ import { CodeToolHandler } from '../handlers/code-tool.handler';
 import { CalendarToolHandler } from '../handlers/calendar-tool.handler';
 import { VisualToolHandler } from '../handlers/visual-tool.handler';
 import { WebSearchToolHandler } from '../handlers/web-search-tool.handler';
+import { KnowledgeToolHandler } from '../handlers/knowledge-tool.handler';
 
 export type { StreamEvent, OrchestrationResult };
 
@@ -29,6 +30,7 @@ export class CoreOrchestratorService {
     private readonly calendarHandler: CalendarToolHandler,
     private readonly visualHandler: VisualToolHandler,
     private readonly webSearchHandler: WebSearchToolHandler,
+    private readonly knowledgeHandler: KnowledgeToolHandler,
   ) {}
 
   /**
@@ -138,6 +140,9 @@ export class CoreOrchestratorService {
 
       case 'web_search':
         return this.webSearchHandler.execute(prompt, args, emit);
+
+      case 'search_knowledge_vault':
+        return this.knowledgeHandler.handle(prompt, args, emit);
 
       default:
         this.logger.warn(`Unrecognized tool requested: ${toolName}`);

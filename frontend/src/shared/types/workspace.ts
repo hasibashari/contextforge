@@ -149,7 +149,16 @@ export interface Plugin {
 
 export interface KnowledgeSource {
   id: string
-  type: 'obsidian_vault' | 'github_repo' | 'notion_workspace' | 'openapi_spec' | 'database_schema' | 'web_search' | 'document'
+  type:
+    | 'document_upload'
+    | 'obsidian_vault'
+    | 'local_folder'
+    | 'github_repo'
+    | 'database_schema'
+    | 'notion_workspace'
+    | 'openapi_spec'
+    | 'web_search'
+    | 'document'
   name: string
   description: string
   location: string
@@ -157,9 +166,13 @@ export interface KnowledgeSource {
   filesCount: number
   chunksCount: number
   lastSynced: string
-  status: 'synced' | 'syncing' | 'error'
-  iconType: 'terminal' | 'layers' | 'globe' | 'database' | 'file' | 'book-open'
+  status: 'synced' | 'syncing' | 'disconnected' | 'error'
+  iconType: 'terminal' | 'layers' | 'globe' | 'database' | 'file' | 'book-open' | 'upload' | 'folder'
   color: string
+  isLocalSandbox?: boolean
+  embeddingModel?: string
+  embeddingDimension?: number
+  fileList?: Array<{ name: string; size: number; mimeType?: string }>
 }
 
 export interface McpTool {

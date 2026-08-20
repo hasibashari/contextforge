@@ -83,4 +83,18 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
       required: ['query'],
     },
   },
+  {
+    name: 'search_knowledge_vault',
+    description:
+      'Searches internal knowledge base, indexed documents, specifications, and notes for relevant technical context using semantic vector similarity.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        query: strProp(
+          'Semantic search query or topic to look up in knowledge base',
+        ),
+      },
+      required: ['query'],
+    },
+  },
 ];

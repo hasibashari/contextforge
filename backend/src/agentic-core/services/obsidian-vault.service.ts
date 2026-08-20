@@ -19,12 +19,11 @@ export class ObsidianVaultService implements OnModuleInit {
   private vaultRoot: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.vaultRoot = path.resolve(
-      this.configService.get<string>(
-        'app.obsidianVaultPath',
-        path.resolve(process.cwd(), 'vault'),
-      ),
-    );
+    const configuredPath =
+      this.configService.get<string>('OBSIDIAN_VAULT_PATH') ||
+      this.configService.get<string>('app.obsidianVaultPath') ||
+      path.resolve(process.cwd(), '..', 'vault');
+    this.vaultRoot = path.resolve(configuredPath);
   }
 
   async onModuleInit() {

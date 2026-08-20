@@ -14,9 +14,14 @@ export default function KnowledgeSourcesView() {
     toggleKnowledgeSync,
     toggleKnowledgeSourceConnect,
     addKnowledgeSource,
+    uploadKnowledgeFiles,
+    deleteKnowledgeSource,
   } = useWorkspace()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [selectedSource, setSelectedSource] = useState<KnowledgeSource | null>(null)
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
+
+  const selectedSource =
+    knowledgeSources.find((s) => s.id === selectedSourceId) || null
 
   const handleAddSource = (data: {
     name: string
@@ -24,6 +29,14 @@ export default function KnowledgeSourcesView() {
     location: string
   }) => {
     addKnowledgeSource(data)
+  }
+
+  const handleUploadFiles = async (
+    files: File[],
+    name: string,
+    sourceId?: string,
+  ) => {
+    return uploadKnowledgeFiles(files, name, sourceId)
   }
 
   return (
@@ -37,7 +50,7 @@ export default function KnowledgeSourcesView() {
           <KnowledgeSourceCard
             key={src.id}
             source={src}
-            onOpenDetail={() => setSelectedSource(src)}
+            onOpenDetail={() => setSelectedSourceId(src.id)}
           />
         ))}
       </div>
@@ -45,29 +58,11 @@ export default function KnowledgeSourcesView() {
       {/* Grounding Source Detail & Vector Modal */}
       <KnowledgeSourceDetailModal
         source={selectedSource}
-        onClose={() => setSelectedSource(null)}
-        onSync={(id) => {
-          toggleKnowledgeSync(id)
-          setSelectedSource((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  status: prev.status === 'synced' ? 'syncing' : 'synced',
-                }
-              : null
-          )
-        }}
-        onToggleConnect={(id) => {
-          toggleKnowledgeSourceConnect(id)
-          setSelectedSource((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  status: prev.status === 'synced' ? 'error' : 'synced',
-                }
-              : null
-          )
-        }}
+        onClose={() => setSelectedSourceId(null)}
+        onSync={(id) => toggleKnowledgeSync(id)}
+        onToggleConnect={(id) => toggleKnowledgeSourceConnect(id)}
+        onDelete={(id) => deleteKnowledgeSource(id)}
+        onUploadMore={handleUploadFiles}
       />
 
       {/* Connect New Source Modal */}
@@ -75,6 +70,7 @@ export default function KnowledgeSourcesView() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddSource}
+        onUpload={handleUploadFiles}
       />
     </div>
   )

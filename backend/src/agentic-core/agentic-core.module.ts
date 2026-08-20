@@ -11,6 +11,7 @@ import { CodeToolHandler } from './handlers/code-tool.handler';
 import { CalendarToolHandler } from './handlers/calendar-tool.handler';
 import { VisualToolHandler } from './handlers/visual-tool.handler';
 import { WebSearchToolHandler } from './handlers/web-search-tool.handler';
+import { KnowledgeToolHandler } from './handlers/knowledge-tool.handler';
 
 @Module({
   providers: [
@@ -26,6 +27,7 @@ import { WebSearchToolHandler } from './handlers/web-search-tool.handler';
     CalendarToolHandler,
     VisualToolHandler,
     WebSearchToolHandler,
+    KnowledgeToolHandler,
   ],
   exports: [
     GeminiClientProvider,
@@ -40,6 +42,7 @@ import { WebSearchToolHandler } from './handlers/web-search-tool.handler';
     CalendarToolHandler,
     VisualToolHandler,
     WebSearchToolHandler,
+    KnowledgeToolHandler,
   ],
 })
 export class AgenticCoreModule {}

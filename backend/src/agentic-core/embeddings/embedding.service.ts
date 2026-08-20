@@ -7,6 +7,9 @@ interface EmbedContentResponse {
   embedding?: {
     values?: number[];
   };
+  embeddings?: Array<{
+    values?: number[];
+  }>;
 }
 
 @Injectable()
@@ -19,29 +22,39 @@ export class EmbeddingService {
   ) {}
 
   /**
-   * Generate 768-dimensional embedding vector using Google text-embedding-004
+   * Generate 1536-dimensional embedding vector using Google gemini-embedding-002
    */
   async embedText(text: string): Promise<number[]> {
     const model = this.configService.get<string>(
       'gemini.embeddingModel',
-      'text-embedding-004',
+      'gemini-embedding-002',
+    );
+    const dimension = this.configService.get<number>(
+      'gemini.embeddingDimension',
+      1536,
     );
 
     try {
       const response = (await this.ai.models.embedContent({
         model,
         contents: text,
+        config: {
+          outputDimensionality: dimension,
+        },
       })) as unknown as EmbedContentResponse;
 
-      const values = response?.embedding?.values;
-      if (Array.isArray(values)) {
+      const values =
+        response?.embedding?.values || response?.embeddings?.[0]?.values;
+      if (Array.isArray(values) && values.length > 0) {
         return values;
       }
-      return new Array<number>(768).fill(0);
+      return new Array<number>(dimension).fill(0);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Failed to generate embedding: ${errorMsg}`);
-      return new Array<number>(768).fill(0);
+      this.logger.error(
+        `Failed to generate embedding with ${model}: ${errorMsg}`,
+      );
+      return new Array<number>(dimension).fill(0);
     }
   }
 

@@ -21,6 +21,7 @@ import {
 import { useWorkspace } from '@/shared/mock'
 import { MarkdownRenderer } from '@/shared/components'
 import type { Artifact, CalendarEvent, UserMemoryItem, ToastType } from '@/shared/types/workspace'
+import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 
 export default function DashboardContextAside() {
   const {
@@ -544,6 +545,43 @@ function ArtifactViewerAndEditor({
           </div>
 
           <div className="flex items-center gap-1">
+            {/* Open in Obsidian App Protocol */}
+            <button
+              onClick={() => {
+                obsidianBridgeService.openInObsidianApp(
+                  'Engineering-HQ',
+                  artifact.locationPath || artifact.title,
+                  artifact.content,
+                )
+                showToast('Triggered Obsidian protocol: Opening note in desktop app', 'info')
+              }}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#7c3aed]/10 hover:bg-[#7c3aed]/20 border border-[#7c3aed]/30 text-[#7c3aed] text-[11px] font-semibold transition-colors cursor-pointer"
+              title="Open or create directly in Obsidian Desktop application"
+            >
+              <BookOpen size={12} />
+              <span className="hidden sm:inline">Open in Obsidian</span>
+            </button>
+
+            {/* Save directly to Paired Vault Handle if active */}
+            {obsidianBridgeService.getPairedDirectoryHandle() && (
+              <button
+                onClick={async () => {
+                  const pathName = artifact.locationPath || `Vault/Work/Notes/${artifact.title}.md`
+                  const ok = await obsidianBridgeService.writeNoteToLocalVault(pathName, artifact.content)
+                  if (ok) {
+                    showToast('Note written directly to paired local Obsidian Vault disk!', 'success')
+                  } else {
+                    showToast('Failed to write to local vault. Try re-pairing folder.', 'error')
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-semantic-success/10 hover:bg-semantic-success/20 border border-semantic-success/30 text-semantic-success text-[11px] font-semibold transition-colors cursor-pointer"
+                title="Write directly to paired local folder on disk"
+              >
+                <CheckCircle2 size={12} />
+                <span>Save to Vault</span>
+              </button>
+            )}
+
             <button
               onClick={handleCopy}
               className="p-1.5 rounded bg-canvas-soft border border-hairline hover:border-hairline-strong text-muted hover:text-ink transition-colors cursor-pointer"
@@ -554,7 +592,7 @@ function ArtifactViewerAndEditor({
             <button
               onClick={handleDownload}
               className="p-1.5 rounded bg-canvas-soft border border-hairline hover:border-hairline-strong text-muted hover:text-ink transition-colors cursor-pointer"
-              title="Download File"
+              title="Download File (.md)"
             >
               <Download size={13} />
             </button>

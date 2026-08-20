@@ -3,22 +3,35 @@ import type { KnowledgeSource, ToastType } from '@/shared/types/workspace';
 import { INITIAL_KNOWLEDGE_SOURCES } from '../mockData';
 import { knowledgeApi } from '@/shared/api/knowledgeApi';
 
-export function useKnowledgeManager(showToast: (msg: string, type?: ToastType) => void) {
+export function useKnowledgeManager(
+  showToast: (msg: string, type?: ToastType) => void,
+) {
   const [knowledgeSources, setKnowledgeSources] = useState<KnowledgeSource[]>(
     INITIAL_KNOWLEDGE_SOURCES,
   );
   const [activeSourceFilters, setActiveSourceFilters] = useState<string[]>([
-    'source-obsidian-vault',
-    'source-web-search',
-    'source-github-core',
+    'c5881477-8df2-4217-a068-d069a319f390',
+    '50b297b8-2bfa-4c6e-8260-26463eb4c7e8',
+    '36bcbb30-4e31-419b-a36c-9418a096c4be',
   ]);
+
+  const refreshSources = useCallback(async () => {
+    try {
+      const sources = await knowledgeApi.getAllSources();
+      if (Array.isArray(sources) && sources.length > 0) {
+        setKnowledgeSources(sources);
+      }
+    } catch {
+      // keep fallback
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
     async function loadSources() {
       try {
         const sources = await knowledgeApi.getAllSources();
-        if (sources && sources.length > 0 && isMounted) {
+        if (Array.isArray(sources) && sources.length > 0 && isMounted) {
           setKnowledgeSources(sources);
         }
       } catch {
@@ -33,89 +46,186 @@ export function useKnowledgeManager(showToast: (msg: string, type?: ToastType) =
 
   const toggleSourceFilter = useCallback((sourceId: string) => {
     setActiveSourceFilters((prev) =>
-      prev.includes(sourceId) ? prev.filter((id) => id !== sourceId) : [...prev, sourceId],
+      prev.includes(sourceId)
+        ? prev.filter((id) => id !== sourceId)
+        : [...prev, sourceId],
     );
   }, []);
 
   const toggleKnowledgeSync = useCallback(
-    (sourceId: string) => {
+    async (sourceId: string) => {
+      // Set temporary syncing status
       setKnowledgeSources((prev) =>
         prev.map((src) => {
           if (src.id !== sourceId) return src;
-          const newStatus = src.status === 'synced' ? 'syncing' : 'synced';
-          return { ...src, status: newStatus, lastSynced: 'Just now' };
+          return { ...src, status: 'syncing' };
         }),
       );
-      showToast(`Data source status updated`, 'info');
+
+      try {
+        const result = await knowledgeApi.syncSource(sourceId);
+        await refreshSources();
+        const count = result?.chunksCount ?? 0;
+        showToast(
+          `Re-indexed ${count} chunks with gemini-embedding-002 (1536-dim)`,
+          'success',
+        );
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setKnowledgeSources((prev) =>
+          prev.map((src) => {
+            if (src.id !== sourceId) return src;
+            return { ...src, status: 'error' };
+          }),
+        );
+        showToast(`Sync failed: ${msg}`, 'error');
+      }
     },
-    [showToast],
+    [refreshSources, showToast],
   );
 
   const toggleKnowledgeSourceConnect = useCallback(
-    (sourceId: string) => {
+    async (sourceId: string) => {
+      const current = knowledgeSources.find((s) => s.id === sourceId);
+      if (!current) return;
+
+      const isCurrentlyActive = current.status === 'synced';
+      const newStatus = isCurrentlyActive ? 'disconnected' : 'synced';
+
       setKnowledgeSources((prev) =>
         prev.map((src) => {
           if (src.id !== sourceId) return src;
-          const isSynced = src.status === 'synced';
-          const newStatus = isSynced ? 'error' : 'synced';
-          showToast(
-            isSynced
-              ? `Disconnected knowledge source "${src.name}"`
-              : `Connected & grounded source "${src.name}"`,
-            isSynced ? 'warning' : 'success',
-          );
-          return { ...src, status: newStatus, lastSynced: isSynced ? src.lastSynced : 'Just now' };
+          return {
+            ...src,
+            status: newStatus,
+            lastSynced: isCurrentlyActive ? src.lastSynced : 'Just now',
+          };
         }),
       );
+
+      try {
+        await knowledgeApi.updateSourceStatus(sourceId, newStatus);
+        showToast(
+          isCurrentlyActive
+            ? `Grounding muted for "${current.name}"`
+            : `Grounding active for "${current.name}"`,
+          isCurrentlyActive ? 'warning' : 'success',
+        );
+      } catch {
+        showToast(
+          isCurrentlyActive
+            ? `Disconnected knowledge source "${current.name}"`
+            : `Connected & grounded source "${current.name}"`,
+          isCurrentlyActive ? 'warning' : 'success',
+        );
+      }
     },
-    [showToast],
+    [knowledgeSources, showToast],
+  );
+
+  const deleteKnowledgeSource = useCallback(
+    async (sourceId: string) => {
+      const target = knowledgeSources.find((s) => s.id === sourceId);
+      setKnowledgeSources((prev) => prev.filter((s) => s.id !== sourceId));
+
+      try {
+        await knowledgeApi.deleteSource(sourceId);
+        showToast(
+          `Knowledge source "${target?.name || ''}" and vectors deleted`,
+          'info',
+        );
+      } catch {
+        showToast(
+          `Removed knowledge source "${target?.name || ''}"`,
+          'info',
+        );
+      }
+    },
+    [knowledgeSources, showToast],
   );
 
   const addKnowledgeSource = useCallback(
-    async (data: { name: string; type: KnowledgeSource['type']; location: string }) => {
-      const getIconType = (t: KnowledgeSource['type']): KnowledgeSource['iconType'] => {
-        if (t === 'github_repo') return 'terminal';
+    async (data: {
+      name: string;
+      type: KnowledgeSource['type'];
+      location: string;
+    }) => {
+      const getIconType = (
+        t: KnowledgeSource['type'],
+      ): KnowledgeSource['iconType'] => {
+        if (t === 'document_upload' || t === 'document') return 'upload';
         if (t === 'obsidian_vault') return 'book-open';
+        if (t === 'local_folder') return 'folder';
+        if (t === 'github_repo') return 'terminal';
         if (t === 'web_search') return 'globe';
         if (t === 'database_schema') return 'database';
         if (t === 'notion_workspace') return 'layers';
         return 'file';
       };
 
-      const tempId = `source-custom-${Date.now()}`;
-      const newSource: KnowledgeSource = {
-        id: tempId,
-        name: data.name,
-        type: data.type,
-        location: data.location,
-        description: `Connected ${data.type.replace('_', ' ')} grounding knowledge repository.`,
-        meta: '0 files indexed · Just connected',
-        filesCount: 1,
-        chunksCount: 24,
-        lastSynced: 'Just now',
-        status: 'synced',
-        iconType: getIconType(data.type),
-        color: 'text-primary',
-      };
-
-      setKnowledgeSources((prev) => [newSource, ...prev]);
-
       try {
         const created = await knowledgeApi.createSource({
           name: data.name,
           type: data.type,
           location: data.location,
-          description: newSource.description,
-          iconType: newSource.iconType,
-          color: newSource.color,
+          description: `Connected ${data.type.replace('_', ' ')} grounding knowledge repository.`,
+          iconType: getIconType(data.type),
+          color: 'text-primary',
         });
-        setKnowledgeSources((prev) => prev.map((s) => (s.id === tempId ? created : s)));
-        showToast(`Knowledge source "${data.name}" saved to database`, 'success');
+        await refreshSources();
+        showToast(
+          `Knowledge source "${data.name}" connected & indexed`,
+          'success',
+        );
+        return created;
       } catch {
-        showToast(`Knowledge source "${data.name}" connected locally`, 'success');
+        const tempId = `source-custom-${Date.now()}`;
+        const newSource: KnowledgeSource = {
+          id: tempId,
+          name: data.name,
+          type: data.type,
+          location: data.location,
+          description: `Connected ${data.type.replace('_', ' ')} grounding knowledge repository.`,
+          meta: '0 files indexed · Just connected',
+          filesCount: 1,
+          chunksCount: 24,
+          lastSynced: 'Just now',
+          status: 'synced',
+          iconType: getIconType(data.type),
+          color: 'text-primary',
+        };
+        setKnowledgeSources((prev) => [newSource, ...prev]);
+        showToast(
+          `Knowledge source "${data.name}" connected locally`,
+          'success',
+        );
+        return newSource;
       }
     },
-    [showToast],
+    [refreshSources, showToast],
+  );
+
+  const uploadKnowledgeFiles = useCallback(
+    async (files: File[], name: string, sourceId?: string) => {
+      try {
+        const created = await knowledgeApi.uploadDocuments(
+          files,
+          name,
+          sourceId,
+        );
+        await refreshSources();
+        showToast(
+          `Uploaded & indexed ${files.length} documents into 1536-dim vector embeddings`,
+          'success',
+        );
+        return created;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        showToast(`Upload failed: ${msg}`, 'error');
+        throw err;
+      }
+    },
+    [refreshSources, showToast],
   );
 
   return {
@@ -126,6 +236,9 @@ export function useKnowledgeManager(showToast: (msg: string, type?: ToastType) =
     toggleSourceFilter,
     toggleKnowledgeSync,
     toggleKnowledgeSourceConnect,
+    deleteKnowledgeSource,
     addKnowledgeSource,
+    uploadKnowledgeFiles,
+    refreshSources,
   };
 }

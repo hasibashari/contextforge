@@ -24,8 +24,10 @@ import {
   Lock,
   Eye,
   EyeOff,
+  FolderOpen,
 } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
+import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 
 interface ConnectorDetailModalProps {
   integration: Integration | null
@@ -389,6 +391,49 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
             <div className="p-3.5 bg-canvas-soft rounded-xl border border-hairline text-xs text-body leading-relaxed">
               {integration.description}
             </div>
+
+            {/* Obsidian Vault Pairing & Desktop App Actions (If Obsidian MCP) */}
+            {integration.id.includes('obsidian') && (
+              <div className="p-3.5 bg-[#7c3aed]/5 rounded-xl border border-[#7c3aed]/20 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
+                    <BookOpen size={14} className="text-[#7c3aed]" />
+                    <span>Obsidian Desktop &amp; Local Vault Bridge</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20">
+                    Active MCP Connector
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Pair your local Obsidian vault folder to allow AI agents to write notes, format frontmatter, and open drafts directly in Obsidian Desktop via <code className="font-mono text-ink">obsidian://</code> protocol.
+                </p>
+
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await obsidianBridgeService.requestVaultDirectory('Engineering-HQ')
+                    }}
+                    className="px-3 py-1.5 bg-[#7c3aed] hover:bg-[#7c3aed]/90 text-white font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-xs shadow-2xs"
+                  >
+                    <FolderOpen size={13} />
+                    <span>Pair Local Vault Folder</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      obsidianBridgeService.openInObsidianApp('Engineering-HQ', '')
+                    }}
+                    className="px-3 py-1.5 bg-canvas-soft hover:bg-canvas text-ink font-semibold rounded-lg border border-hairline transition-colors cursor-pointer flex items-center gap-1.5 text-xs shadow-2xs"
+                  >
+                    <BookOpen size={13} className="text-[#7c3aed]" />
+                    <span>Open Obsidian App</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Connection Telemetry & Config Details */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">

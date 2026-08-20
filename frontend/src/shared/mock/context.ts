@@ -119,6 +119,12 @@ export interface WorkspaceContextType {
     type: KnowledgeSource['type']
     location: string
   }) => void
+  uploadKnowledgeFiles: (
+    files: File[],
+    name: string,
+    sourceId?: string
+  ) => Promise<KnowledgeSource>
+  deleteKnowledgeSource: (sourceId: string) => void
   testIntegration: (integrationId: string) => Promise<boolean>
   clearToast: () => void
 }
