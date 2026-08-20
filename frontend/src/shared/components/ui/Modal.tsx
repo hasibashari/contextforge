@@ -54,7 +54,7 @@ export const Modal: React.FC<ModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         className={`bg-surface-card border border-hairline rounded-xl sm:rounded-2xl ${
           sizeClasses[size] || 'max-w-2xl'
-        } w-full p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150 my-auto ${className}`}
+        } w-full p-4 sm:p-5 space-y-3.5 shadow-2xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150 my-auto ${className}`}
       >
         {children}
       </div>

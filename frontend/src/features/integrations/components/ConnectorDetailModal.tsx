@@ -444,19 +444,19 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
               </button>
             </div>
 
-            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {currentIntegration.tools.map((tool) => (
                 <div
                   key={tool.name}
-                  className="p-2.5 rounded-lg bg-canvas border border-hairline space-y-1"
+                  className="p-2.5 rounded-lg bg-canvas border border-hairline flex flex-col justify-between space-y-1.5"
                 >
-                  <div className="flex items-center justify-between gap-2 font-mono">
-                    <span className="font-semibold text-ink flex items-center gap-1.5 text-xs">
-                      <Terminal size={12} className="text-primary" />
-                      <span>{tool.name}</span>
+                  <div className="flex items-center justify-between gap-1.5 font-mono">
+                    <span className="font-semibold text-ink flex items-center gap-1.5 text-xs truncate">
+                      <Terminal size={12} className="text-primary shrink-0" />
+                      <span className="truncate">{tool.name}</span>
                     </span>
                     <span
-                      className={`text-[9px] uppercase px-1.5 py-0.2 rounded font-semibold ${
+                      className={`text-[9px] uppercase px-1.5 py-0.2 rounded font-semibold shrink-0 ${
                         tool.readOnly
                           ? 'bg-primary/10 text-primary'
                           : 'bg-semantic-success/10 text-semantic-success'
@@ -465,7 +465,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                       {tool.readOnly ? 'read' : 'write'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-muted leading-relaxed">
+                  <p className="text-[11px] text-muted leading-relaxed line-clamp-2">
                     {tool.description}
                   </p>
                 </div>

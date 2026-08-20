@@ -55,12 +55,12 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
       const res = await ecosystemApi.getNotionOAuthUrl().catch(() => ({
         configured: false,
         authUrl:
-          'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback',
+          'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback',
       }))
 
       const targetUrl =
         res.authUrl ||
-        'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback'
+        'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback'
 
       // 2. Direct browser opening for Notion authorization
       window.open(targetUrl, '_blank', 'noopener,noreferrer')
@@ -376,7 +376,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
             <span>({integration.tools?.length || 0} Tools)</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-32 overflow-y-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             {integration.tools?.map((tool) => (
               <div
                 key={tool.name}
