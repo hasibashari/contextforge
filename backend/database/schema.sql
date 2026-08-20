@@ -189,8 +189,78 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     status VARCHAR(20) NOT NULL DEFAULT 'info' CHECK (status IN ('info', 'success', 'warning', 'error'))
 );
 
+-- 7. Entitas Ecosystem & Extensibility Hub (Agents, Skills, Connectors, Plugins)
+CREATE TABLE IF NOT EXISTS workspace_agents (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    role VARCHAR(150) NOT NULL,
+    agent_type VARCHAR(50) NOT NULL CHECK (agent_type IN ('orchestrator', 'execution_worker', 'planner')),
+    permissions VARCHAR(50) NOT NULL CHECK (permissions IN ('read_only', 'sandbox_write', 'full_system')),
+    description TEXT NOT NULL,
+    avatar_color VARCHAR(50) DEFAULT 'bg-primary',
+    model VARCHAR(100) DEFAULT 'gemini-3.6-flash',
+    temperature NUMERIC(3,2) DEFAULT 0.2,
+    system_prompt TEXT NOT NULL,
+    capabilities JSONB DEFAULT '[]',
+    assigned_tools TEXT[] DEFAULT '{}',
+    assigned_skills TEXT[] DEFAULT '{}',
+    status VARCHAR(30) DEFAULT 'idle' CHECK (status IN ('idle', 'busy', 'waiting_approval', 'offline')),
+    total_tasks_completed INTEGER DEFAULT 0,
+    success_rate_pct NUMERIC(5,2) DEFAULT 100.0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS workspace_skills (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    description TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL CHECK (category IN ('engineering', 'security', 'knowledge', 'productivity')),
+    icon VARCHAR(50) DEFAULT 'sparkles',
+    sop_summary TEXT NOT NULL,
+    instructions TEXT NOT NULL,
+    assigned_tools TEXT[] DEFAULT '{}',
+    enabled BOOLEAN DEFAULT true,
+    is_custom BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS workspace_integrations (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    category VARCHAR(50) NOT NULL CHECK (category IN ('engineering', 'security', 'knowledge', 'productivity')),
+    status VARCHAR(30) DEFAULT 'connected' CHECK (status IN ('connected', 'disconnected', 'error')),
+    endpoint TEXT NOT NULL,
+    version VARCHAR(50) DEFAULT 'v1.0.0',
+    transport VARCHAR(20) DEFAULT 'stdio' CHECK (transport IN ('stdio', 'sse', 'rest')),
+    description TEXT NOT NULL,
+    tools JSONB DEFAULT '[]',
+    last_ping_ms INTEGER DEFAULT 12,
+    latency_ms INTEGER DEFAULT 12,
+    is_custom BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS workspace_plugins (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    description TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL CHECK (category IN ('engineering', 'security', 'knowledge', 'productivity')),
+    icon VARCHAR(50) DEFAULT 'package',
+    author VARCHAR(100) DEFAULT 'ContextForge Official',
+    version VARCHAR(50) DEFAULT 'v1.0.0',
+    installed BOOLEAN DEFAULT false,
+    badge VARCHAR(50) DEFAULT 'Official Pack',
+    bundled_connector_ids TEXT[] DEFAULT '{}',
+    bundled_skill_ids TEXT[] DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- =====================================================================
--- 7. Performance Indexing
+-- 8. Performance Indexing
 -- =====================================================================
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at ASC);
@@ -200,3 +270,7 @@ CREATE INDEX IF NOT EXISTS idx_tool_calls_step ON tool_calls(step_id);
 CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events(event_date, status);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_time ON activity_logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source ON knowledge_chunks(source_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_skills_category ON workspace_skills(category, enabled);
+CREATE INDEX IF NOT EXISTS idx_workspace_integrations_status ON workspace_integrations(status);
+CREATE INDEX IF NOT EXISTS idx_workspace_plugins_installed ON workspace_plugins(installed);
+
