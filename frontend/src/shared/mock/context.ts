@@ -7,7 +7,6 @@ import type {
   KnowledgeSource,
   Integration,
   McpTool,
-  ActivityLogEntry,
   Artifact,
   ChatSession,
   ActionCardData,
@@ -15,6 +14,7 @@ import type {
   UserMemoryItem,
   ToastNotification,
   ToastType,
+  AutomationWorkflow,
 } from '@/shared/types/workspace'
 
 export interface WorkspaceContextType {
@@ -25,10 +25,19 @@ export interface WorkspaceContextType {
   connections: WorkspaceConnection[]
   knowledgeSources: KnowledgeSource[]
   integrations: Integration[]
-  activities: ActivityLogEntry[]
   toastMessage: string | null
   toasts: ToastNotification[]
   activeRunningTaskId: string | null
+
+  // Automation & Trigger State (Autonomous AI Pillar)
+  automations: AutomationWorkflow[]
+  activeAutomationsCount: number
+  runningAutomationId: string | null
+  createAutomation: (data: Omit<AutomationWorkflow, 'id' | 'totalRuns' | 'createdAt'>) => Promise<AutomationWorkflow> | AutomationWorkflow
+  updateAutomation: (id: string, updates: Partial<AutomationWorkflow>) => void
+  deleteAutomation: (id: string) => void
+  toggleAutomationActive: (id: string) => void
+  runAutomationNow: (id: string) => Promise<void>
 
   // Conversational State
   chatSessions: ChatSession[]

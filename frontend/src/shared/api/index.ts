@@ -6,4 +6,4 @@ export * from './personalHubApi';
 export * from './knowledgeApi';
 export * from './connectionsApi';
 export * from './ecosystemApi';
-export * from './activityApi';
+export * from './automationApi';

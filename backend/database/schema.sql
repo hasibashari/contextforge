@@ -265,8 +265,49 @@ CREATE TABLE IF NOT EXISTS workspace_integrations (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 11. Entitas Autonomous Workflows & Trigger Scheduler
+CREATE TABLE IF NOT EXISTS automations (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    agent_id VARCHAR(100) NOT NULL,
+    agent_name VARCHAR(150),
+    mcp_server_id VARCHAR(100),
+    mcp_tools TEXT[] DEFAULT '{}',
+    trigger_type VARCHAR(50) NOT NULL CHECK (trigger_type IN ('schedule', 'event', 'manual')),
+    schedule_cron VARCHAR(100),
+    schedule_label VARCHAR(150),
+    event_source VARCHAR(100),
+    prompt_template TEXT NOT NULL,
+    guardrail_strict_hitl BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    last_run_at TIMESTAMPTZ,
+    last_run_status VARCHAR(30) DEFAULT 'idle' CHECK (last_run_status IN ('idle', 'running', 'success', 'failed')),
+    total_runs INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS automation_runs (
+    id VARCHAR(100) PRIMARY KEY,
+    workflow_id VARCHAR(100) REFERENCES automations(id) ON DELETE CASCADE,
+    workflow_name VARCHAR(255) NOT NULL,
+    agent_id VARCHAR(100) NOT NULL,
+    agent_name VARCHAR(150) NOT NULL,
+    trigger_source VARCHAR(150) NOT NULL,
+    status VARCHAR(30) NOT NULL CHECK (status IN ('idle', 'running', 'success', 'failed')),
+    started_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    duration_ms INTEGER DEFAULT 0,
+    tokens_used JSONB DEFAULT '{}',
+    steps JSONB DEFAULT '[]',
+    output_summary TEXT NOT NULL,
+    output_artifact_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- =====================================================================
--- 11. Performance Indexing
+-- 12. Performance Indexing
 -- =====================================================================
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at ASC);
@@ -279,3 +320,5 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source ON knowledge_chunks(sourc
 CREATE INDEX IF NOT EXISTS idx_workspace_connections_provider ON workspace_connections(provider, is_active);
 CREATE INDEX IF NOT EXISTS idx_workspace_skills_category ON workspace_skills(category, enabled);
 CREATE INDEX IF NOT EXISTS idx_workspace_integrations_status ON workspace_integrations(status);
+CREATE INDEX IF NOT EXISTS idx_automations_active ON automations(is_active, trigger_type);
+CREATE INDEX IF NOT EXISTS idx_automation_runs_workflow ON automation_runs(workflow_id, started_at DESC);

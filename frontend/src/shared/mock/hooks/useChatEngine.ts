@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import type {
   ChatSession,
   ChatMessage,
@@ -6,6 +6,7 @@ import type {
   ActionCardData,
   ActivityLogEntry,
   CalendarEvent,
+  AutomationWorkflow,
 } from '@/shared/types/workspace';
 import { chatApi } from '@/shared/api/chatApi';
 import { artifactsApi } from '@/shared/api/artifactsApi';
@@ -15,8 +16,9 @@ import { generateGeneralReasoningOutput } from '../generators/responseGenerators
 export function useChatEngine(
   calendarEvents: CalendarEvent[],
   showToast: (msg: string) => void,
-  setActivities: React.Dispatch<React.SetStateAction<ActivityLogEntry[]>>,
-  setIsAsideOpen: (open: boolean) => void,
+  setActivities?: React.Dispatch<React.SetStateAction<ActivityLogEntry[]>>,
+  setIsAsideOpen?: (open: boolean) => void,
+  createAutomation?: (data: Omit<AutomationWorkflow, 'id' | 'totalRuns' | 'createdAt'>) => Promise<AutomationWorkflow> | AutomationWorkflow,
 ) {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
@@ -217,7 +219,7 @@ export function useChatEngine(
   const executeCardAction = useCallback(
     (actionKey: string, card: ActionCardData) => {
       if (actionKey === 'open_aside' || actionKey === 'open_schedule') {
-        setIsAsideOpen(true);
+        setIsAsideOpen?.(true);
         showToast('📌 Opened in Workspace Aside');
       } else if (actionKey === 'copy_content' || actionKey === 'copy_citations') {
         showToast('📋 Copied content to clipboard');
@@ -403,12 +405,12 @@ export function useChatEngine(
               summary: log,
               status: riskLevel === 'high_risk' ? 'warning' : 'success',
             };
-            setActivities((prev) => [newAct, ...prev]);
+            setActivities?.((prev) => [newAct, ...prev]);
           },
           onArtifactCreated: (createdArtifact) => {
             setArtifacts((prev) => [createdArtifact, ...prev.filter((a) => a.id !== createdArtifact.id)]);
             setActiveArtifact(createdArtifact);
-            setIsAsideOpen(true);
+            setIsAsideOpen?.(true);
 
             // Direct Disk Write-Back to laptop folder (Scenario B)
             const pathName = createdArtifact.locationPath || `${createdArtifact.title}.md`;
@@ -424,6 +426,10 @@ export function useChatEngine(
               .catch(() => {
                 showToast(`📦 Artifact Created: ${createdArtifact.title}`);
               });
+          },
+          onAutomationCreated: (createdAuto) => {
+            createAutomation?.(createdAuto);
+            showToast(`⏰ Automation Scheduled: "${createdAuto.name}"`);
           },
           onAssistantMessage: (backendMsg) => {
             setChatSessions((prev) =>
@@ -447,6 +453,9 @@ export function useChatEngine(
             console.error('SSE Stream Error:', streamErr);
             // Fallback gracefully
             const fallback = generateGeneralReasoningOutput(prompt);
+            if (fallback.createdAutomation) {
+              createAutomation?.(fallback.createdAutomation);
+            }
             setChatSessions((prev) =>
               prev.map((session) =>
                 session.id === activeSessionId
@@ -471,6 +480,9 @@ export function useChatEngine(
       } catch (err: unknown) {
         console.error('Failed to send message stream:', err);
         const fallback = generateGeneralReasoningOutput(prompt);
+        if (fallback.createdAutomation) {
+          createAutomation?.(fallback.createdAutomation);
+        }
         setChatSessions((prev) =>
           prev.map((session) =>
             session.id === activeSessionId
@@ -492,7 +504,7 @@ export function useChatEngine(
         setIsGeneratingResponse(false);
       }
     },
-    [activeSessionId, isGeneratingResponse, setActivities, setIsAsideOpen, showToast],
+    [activeSessionId, createAutomation, isGeneratingResponse, setActivities, setIsAsideOpen, showToast],
   );
 
   return {

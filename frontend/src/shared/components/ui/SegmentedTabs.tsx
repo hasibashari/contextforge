@@ -24,12 +24,11 @@ export const SegmentedTabs: React.FC<SegmentedTabsProps> = ({
 }) => {
   return (
     <div
+      style={{
+        gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
+      }}
       className={cn(
-        'grid gap-1 bg-canvas-soft p-1 rounded-xl border border-hairline text-[11px] font-medium',
-        tabs.length === 2 && 'grid-cols-2',
-        tabs.length === 3 && 'grid-cols-3',
-        tabs.length === 4 && 'grid-cols-4',
-        tabs.length >= 5 && `grid-cols-${tabs.length}`,
+        'grid gap-1 bg-canvas-soft p-1 rounded-xl border border-hairline text-[11px] font-medium w-full overflow-x-auto',
         className,
       )}
     >

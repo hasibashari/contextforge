@@ -7,6 +7,7 @@ export interface StreamEvent {
     | 'tool_call_start'
     | 'side_agent_log'
     | 'artifact_created'
+    | 'automation_created'
     | 'execution_done'
     | 'error';
   data: Record<string, unknown>;

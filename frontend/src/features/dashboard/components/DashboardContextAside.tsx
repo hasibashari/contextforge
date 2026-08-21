@@ -3,7 +3,6 @@ import { Sparkles, FileText } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
 import { SegmentedTabs, Badge, EmptyState, IconBox } from '@/shared/components'
 import { ArtifactViewerAndEditor } from './ArtifactViewerAndEditor'
-import { AgendaTab } from './AgendaTab'
 import { MemoryTab } from './MemoryTab'
 
 export default function DashboardContextAside() {
@@ -13,10 +12,9 @@ export default function DashboardContextAside() {
     setActiveArtifact,
     saveArtifactContent,
     showToast,
-    calendarEvents,
     userMemories,
   } = useWorkspace()
-  const [activeTab, setActiveTab] = useState<'artifact' | 'schedule' | 'memories'>('artifact')
+  const [activeTab, setActiveTab] = useState<'artifact' | 'memories'>('artifact')
 
   return (
     <div className="flex flex-col h-full bg-canvas-soft border-l border-hairline text-ink font-sans text-xs">
@@ -30,22 +28,16 @@ export default function DashboardContextAside() {
           <Badge variant="success" size="xs">Live Sync</Badge>
         </div>
 
-        {/* 3 Segmented Tab Buttons */}
+        {/* 2 Segmented Tab Buttons: Docs & Memory */}
         <SegmentedTabs
           value={activeTab}
-          onChange={(val) => setActiveTab(val as 'artifact' | 'schedule' | 'memories')}
+          onChange={(val) => setActiveTab(val as 'artifact' | 'memories')}
           tabs={[
             {
               id: 'artifact',
               label: 'Docs',
               count: artifacts.length,
               title: 'Documents & Artifacts',
-            },
-            {
-              id: 'schedule',
-              label: 'Agenda',
-              count: calendarEvents.length,
-              title: 'Google Calendar Schedule',
             },
             {
               id: 'memories',
@@ -83,9 +75,9 @@ export default function DashboardContextAside() {
               description="Type an instruction in chat (e.g. 'Create note in Obsidian' or 'Generate diagram') to preview artifacts here."
             />
           ))}
-        {activeTab === 'schedule' && <AgendaTab />}
         {activeTab === 'memories' && <MemoryTab />}
       </div>
     </div>
   )
 }
+

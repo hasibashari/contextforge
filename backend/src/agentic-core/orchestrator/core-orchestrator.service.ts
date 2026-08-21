@@ -9,9 +9,10 @@ import {
   OrchestrationResult,
   StreamEmitter,
 } from './orchestrator.types';
-import { ActionToolHandler } from '../handlers/action-tool.handler';
+import { UniversalMcpToolHandler } from '../handlers/universal-mcp-tool.handler';
 import { WebSearchToolHandler } from '../handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from '../handlers/knowledge-tool.handler';
+import { AutomationToolHandler } from '../handlers/automation-tool.handler';
 
 export type { StreamEvent, OrchestrationResult };
 
@@ -22,9 +23,10 @@ export class CoreOrchestratorService {
   constructor(
     @Inject(GEMINI_CLIENT) private readonly ai: GoogleGenAI,
     private readonly configService: ConfigService,
-    private readonly actionHandler: ActionToolHandler,
+    private readonly mcpHandler: UniversalMcpToolHandler,
     private readonly webSearchHandler: WebSearchToolHandler,
     private readonly knowledgeHandler: KnowledgeToolHandler,
+    private readonly automationHandler: AutomationToolHandler,
   ) {}
 
   /**
@@ -75,11 +77,11 @@ export class CoreOrchestratorService {
 
       const functionCalls = response.functionCalls;
 
-      // Case A: Model invoked a Tool / Side Agent
+      // Case A: Model invoked a Tool / Action Worker via MCP
       if (functionCalls && functionCalls.length > 0) {
         const call = functionCalls[0];
         const toolName = call.name || '';
-        const args = call.args || {};
+        const args = (call.args || {}) as Record<string, any>;
 
         this.logger.log(
           `Tool invoked: ${toolName} with args: ${JSON.stringify(args)}`,
@@ -116,13 +118,12 @@ export class CoreOrchestratorService {
   private async dispatchTool(
     toolName: string,
     prompt: string,
-    args: Record<string, unknown>,
+    args: Record<string, any>,
     emit: StreamEmitter,
   ): Promise<OrchestrationResult> {
     switch (toolName) {
-      case 'dispatch_action_worker':
-      case 'dispatch_obsidian_worker':
-        return this.actionHandler.execute(prompt, args, emit);
+      case 'create_scheduled_automation':
+        return this.automationHandler.execute(prompt, args, emit);
 
       case 'web_search':
         return this.webSearchHandler.execute(prompt, args, emit);
@@ -130,7 +131,26 @@ export class CoreOrchestratorService {
       case 'search_knowledge_vault':
         return this.knowledgeHandler.handle(prompt, args, emit);
 
+      // Universal MCP Tool Invocation (Notion & Obsidian)
+      case 'query_notion_workspace':
+      case 'notion_get_tasks':
+      case 'notion_search':
+      case 'notion_read_page':
+      case 'notion_create_page':
+      case 'notion_update_database':
+      case 'dispatch_action_worker':
+      case 'dispatch_obsidian_worker':
+      case 'obsidian_vault_writer':
+      case 'obsidian_vault_reader':
+      case 'obsidian_create_daily_note':
+        return this.mcpHandler.execute(toolName, prompt, args, emit);
+
       default:
+        // Dynamic fallback: if tool name matches MCP patterns, route to MCP Gateway
+        if (toolName.startsWith('obsidian_') || toolName.startsWith('notion_')) {
+          return this.mcpHandler.execute(toolName, prompt, args, emit);
+        }
+
         this.logger.warn(`Unrecognized tool requested: ${toolName}`);
         return {
           textContent: `Tool "${toolName}" executed with standard parameters.`,

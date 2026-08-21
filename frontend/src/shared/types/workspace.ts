@@ -322,7 +322,7 @@ export interface ChatMessage {
   timestamp: string
   intent?: {
     toolName: string
-    service: 'obsidian' | 'web' | 'calendar' | 'github' | 'database' | 'imagen' | 'briefing'
+    service: 'obsidian' | 'web' | 'calendar' | 'github' | 'database' | 'imagen' | 'briefing' | 'notion' | 'automation' | 'gdrive'
     status: 'executing' | 'completed'
     summaryText: string
   }
@@ -373,5 +373,61 @@ export interface ToastNotification {
   message: string
   type: ToastType
   duration?: number
+}
+
+export type AutomationTriggerType = 'schedule' | 'event' | 'manual'
+export type AutomationStatus = 'idle' | 'running' | 'success' | 'failed'
+
+export interface AutomationStep {
+  stage: StepStage | 'trigger_evaluation' | 'tool_execution' | 'deliverable'
+  title: string
+  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+  toolName?: string
+  logs: string[]
+  durationMs?: number
+}
+
+export interface AutomationWorkflow {
+  id: string
+  name: string
+  description: string
+  agentId: string
+  agentName?: string
+  mcpServerId?: string
+  mcpTools: string[]
+  triggerType: AutomationTriggerType
+  scheduleCron?: string
+  scheduleLabel: string
+  eventSource?: string
+  promptTemplate: string
+  guardrailStrictHITL: boolean
+  isActive: boolean
+  lastRunAt?: string
+  lastRunStatus?: AutomationStatus
+  totalRuns: number
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface AutomationRun {
+  id: string
+  workflowId: string
+  workflowName: string
+  agentId: string
+  agentName: string
+  triggerSource: string
+  status: AutomationStatus
+  startedAt: string
+  completedAt?: string
+  durationMs: number
+  tokensUsed: {
+    input: number
+    output: number
+    total: number
+  }
+  steps: AutomationStep[]
+  outputSummary: string
+  outputArtifactUrl?: string
+  error?: string
 }
 

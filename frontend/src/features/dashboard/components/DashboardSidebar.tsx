@@ -3,7 +3,7 @@ import {
   MessageSquare,
   Bot,
   Cpu,
-  Activity,
+  Zap,
   Settings,
   ShieldCheck,
   ArrowLeft,
@@ -29,6 +29,7 @@ export default function DashboardSidebar({
     agents,
     knowledgeSources,
     integrations,
+    activeAutomationsCount,
     chatSessions,
     activeSessionId,
     switchChatSession,
@@ -59,7 +60,13 @@ export default function DashboardSidebar({
       badge: `${integrations.length}`,
       badgeColor: 'bg-primary/10 text-primary font-semibold',
     },
-    { path: '/activity', label: 'Activity Feed', icon: Activity },
+    {
+      path: '/automation',
+      label: 'Automation',
+      icon: Zap,
+      badge: `${activeAutomationsCount}`,
+      badgeColor: 'bg-primary/10 text-primary font-semibold',
+    },
     { path: '/settings', label: 'Settings', icon: Settings },
   ]
 

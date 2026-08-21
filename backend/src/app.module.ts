@@ -13,6 +13,7 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { ConnectionsModule } from './modules/connections/connections.module';
 import { EcosystemModule } from './modules/ecosystem/ecosystem.module';
+import { AutomationModule } from './modules/automation/automation.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -32,6 +33,7 @@ import { AppController } from './app.controller';
     ConnectionsModule,
     ActivityModule,
     EcosystemModule,
+    AutomationModule,
   ],
   controllers: [AppController],
 })

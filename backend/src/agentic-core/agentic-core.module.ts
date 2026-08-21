@@ -5,11 +5,16 @@ import { EmbeddingService } from './embeddings/embedding.service';
 import { KnowledgeChunkerService } from './embeddings/knowledge-chunker.service';
 import { ObsidianVaultService } from './services/obsidian-vault.service';
 import { AgentRecorderService } from './services/agent-recorder.service';
+import { McpGatewayService } from './services/mcp-gateway.service';
+import { UniversalMcpToolHandler } from './handlers/universal-mcp-tool.handler';
 import { ActionToolHandler } from './handlers/action-tool.handler';
 import { WebSearchToolHandler } from './handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from './handlers/knowledge-tool.handler';
+import { AutomationToolHandler } from './handlers/automation-tool.handler';
+import { AutomationModule } from '../modules/automation/automation.module';
 
 @Module({
+  imports: [AutomationModule],
   providers: [
     GeminiClientProvider,
     CoreOrchestratorService,
@@ -17,9 +22,12 @@ import { KnowledgeToolHandler } from './handlers/knowledge-tool.handler';
     KnowledgeChunkerService,
     ObsidianVaultService,
     AgentRecorderService,
+    McpGatewayService,
+    UniversalMcpToolHandler,
     ActionToolHandler,
     WebSearchToolHandler,
     KnowledgeToolHandler,
+    AutomationToolHandler,
   ],
   exports: [
     GeminiClientProvider,
@@ -28,9 +36,12 @@ import { KnowledgeToolHandler } from './handlers/knowledge-tool.handler';
     KnowledgeChunkerService,
     ObsidianVaultService,
     AgentRecorderService,
+    McpGatewayService,
+    UniversalMcpToolHandler,
     ActionToolHandler,
     WebSearchToolHandler,
     KnowledgeToolHandler,
+    AutomationToolHandler,
   ],
 })
 export class AgenticCoreModule {}

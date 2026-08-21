@@ -1,37 +1,17 @@
-import React, { useState, useCallback, useEffect } from 'react'
-import type { ActivityLogEntry, ToastNotification, ToastType } from '@/shared/types/workspace'
-import { activityApi } from '@/shared/api/activityApi'
+import React, { useState, useCallback } from 'react'
+import type { ToastNotification, ToastType } from '@/shared/types/workspace'
 import { WorkspaceContext } from './context'
 import { useCalendarMemory } from './hooks/useCalendarMemory'
 import { useEcosystemManager } from './hooks/useEcosystemManager'
 import { useKnowledgeManager } from './hooks/useKnowledgeManager'
 import { useTaskManager } from './hooks/useTaskManager'
 import { useChatEngine } from './hooks/useChatEngine'
+import { useAutomationManager } from './hooks/useAutomationManager'
 
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activities, setActivities] = useState<ActivityLogEntry[]>([])
   const [toasts, setToasts] = useState<ToastNotification[]>([])
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isAsideOpen, setIsAsideOpen] = useState<boolean>(false)
-
-  // Fetch real activity logs on mount
-  useEffect(() => {
-    let isMounted = true
-    async function loadActivities() {
-      try {
-        const logs = await activityApi.getLogs()
-        if (Array.isArray(logs) && isMounted) {
-          setActivities(logs)
-        }
-      } catch {
-        // gracefully handle empty or offline logs
-      }
-    }
-    void loadActivities()
-    return () => {
-      isMounted = false
-    }
-  }, [])
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -82,11 +62,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const ecosystem = useEcosystemManager(showToast)
   const knowledge = useKnowledgeManager(showToast)
   const taskManager = useTaskManager(ecosystem.agents, showToast)
+  const automationManager = useAutomationManager(showToast)
   const chatEngine = useChatEngine(
     calendarMemory.calendarEvents,
     showToast,
-    setActivities,
-    setAsideOpen
+    undefined,
+    setAsideOpen,
+    automationManager.createAutomation
   )
 
   return (
@@ -99,10 +81,19 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         connections: ecosystem.connections,
         knowledgeSources: knowledge.knowledgeSources,
         integrations: ecosystem.integrations,
-        activities,
         toastMessage,
         toasts,
         activeRunningTaskId: taskManager.activeRunningTaskId,
+
+        // Automation & Trigger State
+        automations: automationManager.automations,
+        activeAutomationsCount: automationManager.activeAutomationsCount,
+        runningAutomationId: automationManager.runningAutomationId,
+        createAutomation: automationManager.createAutomation,
+        updateAutomation: automationManager.updateAutomation,
+        deleteAutomation: automationManager.deleteAutomation,
+        toggleAutomationActive: automationManager.toggleAutomationActive,
+        runAutomationNow: automationManager.runAutomationNow,
 
         // Ecosystem Actions
         toggleSkill: ecosystem.toggleSkill,

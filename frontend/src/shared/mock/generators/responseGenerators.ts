@@ -1,16 +1,17 @@
-import type { Artifact, SideAgentExecution } from '@/shared/types/workspace'
+import type { Artifact, SideAgentExecution, AutomationWorkflow } from '@/shared/types/workspace'
 
 export interface GeneratedAssistantOutput {
   textContent: string
   intent?: {
     toolName: string
-    service: 'obsidian' | 'web' | 'calendar' | 'github' | 'database' | 'imagen' | 'briefing'
+    service: 'obsidian' | 'web' | 'calendar' | 'github' | 'database' | 'imagen' | 'briefing' | 'notion' | 'automation'
     status: 'executing' | 'completed'
     summaryText: string
   }
   sideAgent?: SideAgentExecution
   artifact?: Artifact
   sourceDomains?: string[]
+  createdAutomation?: Omit<AutomationWorkflow, 'id' | 'totalRuns' | 'createdAt'>
 }
 
 // 1. Obsidian Vault Note Generator (Full Markdown in Aside + Executive Summary in Chat)
@@ -84,7 +85,6 @@ ${prompt}
     artifactId: newArtId,
   }
 
-  // Executive summary in Chat while the full markdown note is opened in the Aside Panel!
   const textContent = `Saya telah mendelegasikan penyusunan dokumen ke **Action Agent**. Dokumen lengkap telah diformat dan dibuka di panel **Workspace Aside** sebelah kanan.
 
 ### 📋 Ringkasan Eksekutif Rencana:
@@ -107,7 +107,145 @@ ${prompt}
   }
 }
 
-// 2. Code Mutation & CLI Generator (Full Code in Aside + Executive Summary in Chat)
+// 2. Scheduled Automation Generator (Background Workflow - Zero Popups)
+export function generateAutomationScheduledOutput(prompt: string): GeneratedAssistantOutput {
+  const lower = prompt.toLowerCase()
+
+  // 1. Natural Language Time to Cron Extraction
+  let cron = '0 8 * * *'
+  let timeLabel = 'Every day at 08:00 AM (08:00 WIB)'
+  if (lower.includes('jam 8') || lower.includes('08:00') || lower.includes('8 pagi') || lower.includes('8 am')) {
+    cron = '0 8 * * *'
+    timeLabel = 'Every day at 08:00 AM'
+  } else if (lower.includes('jam 9') || lower.includes('09:00') || lower.includes('9 pagi') || lower.includes('9 am')) {
+    cron = '0 9 * * *'
+    timeLabel = 'Every day at 09:00 AM'
+  } else if (lower.includes('senin') || lower.includes('monday')) {
+    cron = '0 9 * * 1'
+    timeLabel = 'Every Monday at 09:00 AM'
+  } else if (lower.includes('6 jam') || lower.includes('every 6 hours')) {
+    cron = '0 */6 * * *'
+    timeLabel = 'Every 6 Hours'
+  } else if (lower.includes('jumat') || lower.includes('friday')) {
+    cron = '0 17 * * 5'
+    timeLabel = 'Every Friday at 05:00 PM'
+  }
+
+  // 2. Service & MCP Connector Matching (Strictly Notion & Obsidian)
+  let name = 'Daily Notion Tasks Briefing'
+  let description = `Queries Notion Task Board every morning (${timeLabel}), extracts priority items, and prepares daily focus briefing.`
+  let mcpServerId = 'int-notion-mcp'
+  let mcpTools = ['notion_get_tasks', 'notion_read_page', 'notion_search']
+  let agentId = 'agent-action'
+  let agentName = 'Action Agent (Notion Worker)'
+
+  if (lower.includes('obsidian') || lower.includes('catatan') || lower.includes('note') || lower.includes('journal')) {
+    name = 'Daily Morning Obsidian Briefing & Journaling'
+    description = `Creates and updates Obsidian daily notes (${timeLabel}) with linked tasks, focus items, and contextual backlinks.`
+    mcpServerId = 'int-obsidian-vault-mcp'
+    mcpTools = ['obsidian_create_daily_note', 'obsidian_vault_writer', 'obsidian_vault_reader']
+    agentId = 'agent-action'
+    agentName = 'Action Agent (Obsidian Vault Worker)'
+  } else if (lower.includes('notion') || lower.includes('tugas') || lower.includes('task')) {
+    name = 'Daily Notion Tasks Briefing'
+    description = `Queries Notion Task Board every morning (${timeLabel}), extracts priority items, and prepares daily focus briefing.`
+    mcpServerId = 'int-notion-mcp'
+    mcpTools = ['notion_get_tasks', 'notion_read_page', 'notion_search']
+    agentId = 'agent-action'
+    agentName = 'Action Agent (Notion Worker)'
+  }
+
+  const createdAutomation: Omit<AutomationWorkflow, 'id' | 'totalRuns' | 'createdAt'> = {
+    name,
+    description,
+    agentId,
+    agentName,
+    mcpServerId,
+    mcpTools,
+    triggerType: 'schedule',
+    scheduleCron: cron,
+    scheduleLabel: timeLabel,
+    promptTemplate: `Tinjau seluruh data dan tugas terkait dari konektor MCP (${mcpServerId}). Buatkan ringkasan prioritas tinggi untuk hari ini ({{today}}).`,
+    guardrailStrictHITL: false,
+    isActive: true,
+  }
+
+  const textContent = `⏰ **Automation Berhasil Dijadwalkan!**
+
+Saya telah mendaftarkan workflow automasi baru di latar belakang:
+- **Nama Workflow:** \`${name}\`
+- **Jadwal Eksekusi:** **${timeLabel}** (\`${cron}\`)
+- **Worker Agent:** **${agentName}**
+- **MCP Tools:** ${mcpTools.map((t) => `\`${t}\``).join(', ')}
+
+*Workflow ini akan berjalan secara mandiri di latar belakang tanpa membebani jendela percakapan. Anda dapat mengelolanya kapan saja di menu [Automations](/automation).*`
+
+  return {
+    textContent,
+    intent: {
+      toolName: 'create_scheduled_automation',
+      service: 'automation',
+      status: 'completed',
+      summaryText: `Automation Created: ${name} (${cron})`,
+    },
+    createdAutomation,
+  }
+}
+
+// 3. Instant Chat Task: Notion Tasks Query
+export function generateNotionTaskOutput(prompt: string): GeneratedAssistantOutput {
+  void prompt
+  const nowStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+  const textContent = `📋 **Ringkasan Tugas Notion Anda (${nowStr}):**
+
+Saya telah memeriksa database tugas Notion Anda via **Notion MCP** (\`notion_get_tasks\`):
+
+| Prioritas | Nama Tugas | Status | Deadline |
+| :--- | :--- | :--- | :--- |
+| 🔴 **High** | Finalisasi OAuth2 PKCE Flow & Security Check | In Progress | Hari ini, 16:00 |
+| 🔴 **High** | Code Review PR #42: Agentic Automation Engine | In Progress | Hari ini, 18:00 |
+| 🟡 **Medium** | Migrasi PostgreSQL native schema & index | To Do | Besok |
+| 🟢 **Low** | Perbarui dokumentasi TDD & Architecture Diagram | Backlog | 24 Agu |
+
+### 💡 Rekomendasi Fokus Hari Ini:
+Fokuskan 2 jam pertama pada **OAuth2 PKCE Flow** dan **Code Review PR #42**. Semua dependensi backend sudah siap di *local sandbox*.`
+
+  const sideAgent: SideAgentExecution = {
+    id: `sa-notion-${Date.now()}`,
+    agentId: 'agent-action',
+    agentName: 'Action Agent (Notion Worker)',
+    agentRole: 'Side Agent: Notion Workspace Connector',
+    avatarColor: 'bg-[#0081a7]',
+    taskGoal: 'Query Notion Task Board database via MCP Protocol',
+    actionType: 'api_mutate',
+    targetResource: 'Notion Database: Product Engineering Tasks',
+    status: 'completed',
+    riskLevel: 'low_risk',
+    executionTimeMs: 420,
+    tokensUsed: { input: 190, output: 80 },
+    logs: [
+      `[NotionWorker] Connecting to Notion MCP endpoint: https://mcp.notion.com/mcp`,
+      `[NotionWorker] Querying database: "Product Engineering Tasks"... 200 OK`,
+      `[NotionWorker] Found 4 active tasks (2 High Priority, 1 Medium, 1 Backlog)`,
+      `[NotionWorker] Synthesizing focus summary for user... Complete.`,
+    ],
+    summary: 'Fetched 4 active tasks from Notion workspace via MCP protocol.',
+  }
+
+  return {
+    textContent,
+    intent: {
+      toolName: 'notion_get_tasks',
+      service: 'notion',
+      status: 'completed',
+      summaryText: 'Notion MCP: 4 Active Tasks Retrieved',
+    },
+    sideAgent,
+  }
+}
+
+// 4. Code Mutation & CLI Generator (Full Code in Aside + Executive Summary in Chat)
 export function generateCodeMutationOutput(prompt: string): GeneratedAssistantOutput {
   const fileTarget =
     prompt.includes('.ts') || prompt.includes('.js') || prompt.includes('.py')
@@ -219,7 +357,7 @@ export function verifyAuthToken(req: AuthRequest, res: Response, next: NextFunct
   }
 }
 
-// 3. Web Research & Grounding Generator (Direct Comprehensive Answer + Citations in Chat)
+// 5. Web Research & Grounding Generator (Direct Comprehensive Answer + Citations in Chat)
 export function generateWebResearchOutput(prompt: string): GeneratedAssistantOutput {
   const synthesisContent = `### 🌐 Research Summary: ${prompt}
 
@@ -244,7 +382,7 @@ Berdasarkan analisis live search dari beberapa sumber terverifikasi di tahun 202
   }
 }
 
-// 4. Calendar Reminder Generator
+// 6. Calendar Reminder Generator
 export function generateCalendarScheduleOutput(prompt: string): GeneratedAssistantOutput {
   const reminderTitle = prompt.length > 50 ? prompt.slice(0, 50) + '...' : prompt
 
@@ -284,11 +422,11 @@ export function generateCalendarScheduleOutput(prompt: string): GeneratedAssista
   }
 }
 
-// 5. Visual Asset Generator (Image / Diagram)
+// 7. Visual Asset Generator (Image / Diagram)
 export function generateVisualAssetOutput(prompt: string): GeneratedAssistantOutput {
   const imageTitle = prompt.length > 40 ? prompt.slice(0, 40) + '...' : prompt
   const newArtId = `art-img-${Date.now()}`
-  const sampleImageSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%231a1a24"/><stop offset="50%" stop-color="%232b2250"/><stop offset="100%" stop-color="%23ff5e00"/></linearGradient></defs><rect width="800" height="450" fill="url(%23g)" rx="24"/><circle cx="400" cy="180" r="70" fill="%23ffffff" fill-opacity="0.1" stroke="%23ff5e00" stroke-width="3"/><path d="M360,180 L440,180 M400,140 L400,220" stroke="%23ffffff" stroke-width="3" stroke-linecap="round"/><text x="400" y="300" fill="%23ffffff" font-family="system-ui, sans-serif" font-size="20" font-weight="bold" text-anchor="middle">ContextForge AI Generator</text><text x="400" y="335" fill="%23ffb088" font-family="monospace" font-size="13" text-anchor="middle">${encodeURIComponent(prompt.slice(0, 45))}</text></svg>`
+  const sampleImageSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%231a1a24"/><stop offset="50%" stop-color="%232b2250"/><stop offset="100%" stop-color="%23ff5e00"/></linearGradient></defs><rect width="800" height="450" fill="url(%23g)" rx="24"/><circle cx="400" r="70" fill="%23ffffff" fill-opacity="0.1" stroke="%23ff5e00" stroke-width="3"/><path d="M360,180 L440,180 M400,140 L400,220" stroke="%23ffffff" stroke-width="3" stroke-linecap="round"/><text x="400" y="300" fill="%23ffffff" font-family="system-ui, sans-serif" font-size="20" font-weight="bold" text-anchor="middle">ContextForge AI Generator</text><text x="400" y="335" fill="%23ffb088" font-family="monospace" font-size="13" text-anchor="middle">${encodeURIComponent(prompt.slice(0, 45))}</text></svg>`
 
   const newArtifact: Artifact = {
     id: newArtId,
@@ -339,11 +477,37 @@ export function generateVisualAssetOutput(prompt: string): GeneratedAssistantOut
   }
 }
 
-// 6. Direct Reasoning & Architecture Analysis (Pure Read-Only)
+// 8. Direct Reasoning & Architecture Analysis (Pure Read-Only)
 export function generateGeneralReasoningOutput(prompt: string): GeneratedAssistantOutput {
+  const lower = prompt.toLowerCase()
+
+  // 1. Check for background automation intent (Recurring time / cron schedule)
+  if (
+    (lower.includes('setiap') || lower.includes('tiap') || lower.includes('every') || lower.includes('jadwalkan') || lower.includes('schedule')) &&
+    (lower.includes('jam') || lower.includes('pagi') || lower.includes('sore') || lower.includes('malam') || lower.includes('daily') || lower.includes('hari') || lower.includes('minggu') || lower.includes('senin'))
+  ) {
+    return generateAutomationScheduledOutput(prompt)
+  }
+
+  // 2. Check for instant Chat Task on Notion
+  if (lower.includes('notion') && (lower.includes('tugas') || lower.includes('task') || lower.includes('cek') || lower.includes('lihat') || lower.includes('daftar'))) {
+    return generateNotionTaskOutput(prompt)
+  }
+
+  // 3. Check for Obsidian note creation
+  if (lower.includes('obsidian') || lower.includes('buat catatan') || lower.includes('buat note') || lower.includes('tulis catatan')) {
+    return generateObsidianNoteOutput(prompt)
+  }
+
+  // 4. Check for code mutation
+  if (lower.includes('kode') || lower.includes('code') || lower.includes('typescript') || lower.includes('script') || lower.includes('function')) {
+    return generateCodeMutationOutput(prompt)
+  }
+
+  // 5. Default General Reasoning Output
   let analysis = `Berikut adalah analisis mendalam terkait: **"${prompt}"**:\n\n`
 
-  if (prompt.toLowerCase().includes('microservices') || prompt.toLowerCase().includes('monolith')) {
+  if (lower.includes('microservices') || lower.includes('monolith')) {
     analysis += `### 🏛️ Perbandingan Arsitektur: Microservices vs Modular Monolith
 
 | Kriteria | Modular Monolith | Microservices |

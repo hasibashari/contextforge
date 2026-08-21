@@ -19,6 +19,8 @@ export class AppController {
         ecosystemAgents: '/api/ecosystem/agents',
         ecosystemSkills: '/api/ecosystem/skills',
         activityLogs: '/api/activity/logs',
+        automations: '/api/automations',
+        automationRuns: '/api/automations/runs',
       },
       frontendApp: 'http://localhost:5173',
       timestamp: new Date().toISOString(),

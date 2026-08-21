@@ -9,7 +9,7 @@
     "transport": "stdio",
     "authType": "none",
     "authConfig": {},
-    "description": "Direct bi-directional Model Context Protocol bridge into local Obsidian vault files & daily notes.",
+    "description": "Direct bi-directional Model Context Protocol bridge into local Obsidian vault files, backlinks & daily notes.",
     "lastPingMs": 14,
     "latencyMs": 11,
     "tools": [
@@ -33,6 +33,16 @@
           "query": "string"
         },
         "readOnly": true
+      },
+      {
+        "id": "t-obsidian-3",
+        "name": "obsidian_create_daily_note",
+        "description": "Create daily briefing and structured journal note in Obsidian DailyNotes folder",
+        "parametersSchema": {
+          "date": "string",
+          "sections": "array"
+        },
+        "readOnly": false
       }
     ]
   },
@@ -48,7 +58,7 @@
     "authConfig": {
       "workspaceName": "ContextForge Workspace"
     },
-    "description": "Official Model Context Protocol server for Notion workspace databases, page trees, and document sync.",
+    "description": "Official Model Context Protocol server for Notion workspace databases, page trees, task boards, and document sync.",
     "lastPingMs": 16,
     "latencyMs": 14,
     "tools": [
@@ -63,6 +73,15 @@
       },
       {
         "id": "t-notion-2",
+        "name": "notion_get_tasks",
+        "description": "Query active tasks, status Kanban boards, and deadlines from Notion Task Database",
+        "parametersSchema": {
+          "filter": "string"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-notion-3",
         "name": "notion_read_page",
         "description": "Read blocks, markdown content, and page properties from Notion",
         "parametersSchema": {
@@ -71,7 +90,7 @@
         "readOnly": true
       },
       {
-        "id": "t-notion-3",
+        "id": "t-notion-4",
         "name": "notion_create_page",
         "description": "Create new child pages and structured document entries in Notion",
         "parametersSchema": {
@@ -82,7 +101,7 @@
         "readOnly": false
       },
       {
-        "id": "t-notion-4",
+        "id": "t-notion-5",
         "name": "notion_update_database",
         "description": "Insert records and update schema rows in Notion databases",
         "parametersSchema": {

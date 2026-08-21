@@ -1,4 +1,4 @@
-import type { Artifact, ChatMessage } from '@/shared/types/workspace';
+import type { Artifact, ChatMessage, AutomationWorkflow } from '@/shared/types/workspace';
 
 export interface SseEventHandlers {
   onSessionCreated?: (data: { id: string; title: string; previousId?: string }) => void;
@@ -9,6 +9,7 @@ export interface SseEventHandlers {
   onToolCallStart?: (data: { toolName: string; input: Record<string, unknown> }) => void;
   onSideAgentLog?: (data: { sideAgentId: string; log: string; riskLevel: string }) => void;
   onArtifactCreated?: (artifact: Artifact) => void;
+  onAutomationCreated?: (automation: AutomationWorkflow) => void;
   onAssistantMessage?: (message: ChatMessage) => void;
   onExecutionDone?: (data: { messageId?: string; sessionId?: string; status: string }) => void;
   onError?: (error: Error) => void;
@@ -93,6 +94,9 @@ export async function consumeSseStream(
               break;
             case 'artifact_created':
               handlers.onArtifactCreated?.(parsedData);
+              break;
+            case 'automation_created':
+              handlers.onAutomationCreated?.(parsedData);
               break;
             case 'assistant_message':
               handlers.onAssistantMessage?.(parsedData);

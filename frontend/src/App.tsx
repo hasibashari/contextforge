@@ -9,7 +9,7 @@ const DashboardView = lazy(() => import('./features/dashboard/views/DashboardVie
 const AgentsDirectoryView = lazy(() => import('./features/agents/views/AgentsDirectoryView'))
 const KnowledgeSourcesView = lazy(() => import('./features/knowledge/views/KnowledgeSourcesView'))
 const IntegrationsView = lazy(() => import('./features/integrations/views/IntegrationsView'))
-const ActivityView = lazy(() => import('./features/activity/views/ActivityView'))
+const AutomationView = lazy(() => import('./features/automation/views/AutomationView'))
 const SettingsView = lazy(() => import('./features/settings/views/SettingsView'))
 
 function PageFallback() {
@@ -38,7 +38,7 @@ function App() {
               <Route path="/agents" element={<AgentsDirectoryView />} />
               <Route path="/knowledge" element={<KnowledgeSourcesView />} />
               <Route path="/integrations" element={<IntegrationsView />} />
-              <Route path="/activity" element={<ActivityView />} />
+              <Route path="/automation" element={<AutomationView />} />
               <Route path="/settings" element={<SettingsView />} />
             </Route>
 
