@@ -168,15 +168,15 @@ export class AutomationToolHandler {
       summary: `Successfully registered background automation "${workflowName}" (${scheduleLabel}).`,
     });
 
-    const textContent = `⏰ **Automation Berhasil Dijadwalkan!**
+    const textContent = `⏰ **Automation Successfully Scheduled!**
 
-Saya telah mendaftarkan workflow automasi baru di latar belakang:
-- **Nama Workflow:** \`${workflowName}\`
-- **Jadwal Eksekusi:** **${scheduleLabel}** (\`${cron}\`)
+I have registered a new background automation workflow:
+- **Workflow Name:** \`${workflowName}\`
+- **Execution Schedule:** **${scheduleLabel}** (\`${cron}\`)
 - **Worker Agent:** **${agentName}**
 - **MCP Tools:** ${mcpTools.map((t) => `\`${t}\``).join(', ')}
 
-*Workflow ini akan berjalan secara mandiri di latar belakang tanpa membebani jendela percakapan. Anda dapat mengelolanya kapan saja di menu [Automations](/automation).*`;
+*This workflow will run autonomously in the background. You can monitor and manage its execution rules anytime in [Automations](/automation).*`;
 
     emit({ event: 'chat_chunk', data: { delta: textContent } });
     emit({

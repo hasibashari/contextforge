@@ -34,24 +34,24 @@ export interface GeneratedAssistantOutput {
  */
 export function generateGeneralReasoningOutput(prompt: string): GeneratedAssistantOutput {
   const lower = prompt.toLowerCase()
-  let analysis = `Berikut adalah analisis terkait: **"${prompt}"**:\n\n`
+  let analysis = `Here is the analysis regarding: **"${prompt}"**:\n\n`
 
   if (lower.includes('microservices') || lower.includes('monolith')) {
-    analysis += `### 🏛️ Perbandingan Arsitektur: Microservices vs Modular Monolith
+    analysis += `### 🏛️ Architectural Comparison: Microservices vs Modular Monolith
 
-| Kriteria | Modular Monolith | Microservices |
+| Criteria | Modular Monolith | Microservices |
 | :--- | :--- | :--- |
-| **Kompleksitas Operasional** | 🟢 Rendah (1 deployment pipeline) | 🔴 Tinggi (K8s, service mesh, tracing) |
-| **Batas Domain (Boundaries)**| 🟢 Modul terpisah di satu repo | 🟢 Service terpisah di repo/container |
-| **Kecepatan Development**   | 🚀 Sangat cepat untuk tim < 25 org | ⚠️ Butuh koordinasi API contract |
-| **Latensi Antar-Modul**     | ⚡ In-memory function call (~0ms) | 🌐 Network call / gRPC (5-50ms) |
+| **Operational Complexity** | 🟢 Low (Single deployment pipeline) | 🔴 High (Kubernetes, service mesh, distributed tracing) |
+| **Domain Boundaries**      | 🟢 Isolated modules in single repo | 🟢 Independent services in repo/containers |
+| **Development Velocity**   | 🚀 Very fast for teams < 25 devs   | ⚠️ Requires rigorous API contract coordination |
+| **Inter-module Latency**   | ⚡ In-memory function call (~0ms)  | 🌐 Network call / gRPC (5-50ms) |
 
-### 💡 Rekomendasi untuk ContextForge:
-Mulai dengan **Modular Monolith** terlebih dahulu. Pisahkan domain code (Chat, Agents, Knowledge, Integrations) ke dalam modul TypeScript yang terisolasi dengan public interface yang jelas.`
+### 💡 Recommendation for ContextForge:
+Start with a **Modular Monolith**. Separate domain logic (Chat, Agents, Knowledge, Integrations) into isolated TypeScript modules with clean public interfaces.`
   } else {
-    analysis += `Sebagai **Personal Assistant Agent**, saya siap mendampingi Anda memahami goal, merencanakan langkah, dan mengoordinasikan berbagai kapabilitas agen/tool untuk mencapai target Anda.
+    analysis += `As your **Personal Assistant Agent**, I am ready to help you analyze goals, plan execution steps, and coordinate agent/tool capabilities to accomplish your objectives.
 
-*(Catatan: Mode offline aktif. Sambungkan ke backend untuk orkestrasi live AI penuh)*`
+*(Note: Offline fallback active. Connect to backend for full live multi-agent AI orchestration)*`
   }
 
   return {

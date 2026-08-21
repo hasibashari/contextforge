@@ -239,7 +239,7 @@ export function useChatEngine(
           pathName,
           art?.content,
         );
-        showToast('🚀 Membuka catatan di aplikasi Obsidian Desktop...');
+        showToast('🚀 Opening note in Obsidian Desktop...');
       } else if (actionKey === 'write_to_local_disk') {
         const art =
           artifacts.find(
@@ -255,10 +255,10 @@ export function useChatEngine(
               .writeNoteToLocalVault(pathName, art.content)
               .then((ok) => {
                 if (ok) {
-                  showToast(`✅ Tersimpan langsung ke vault: ${pathName}`);
+                  showToast(`✅ Saved directly to local vault: ${pathName}`);
                 } else {
                   obsidianBridgeService.downloadMarkdownFile(pathName, art.content);
-                  showToast(`📥 Diunduh sebagai file markdown: ${pathName}`);
+                  showToast(`📥 Downloaded as Markdown file: ${pathName}`);
                 }
               });
           } else {
@@ -267,7 +267,7 @@ export function useChatEngine(
               .then((res) => {
                 if (res) {
                   obsidianBridgeService.writeNoteToLocalVault(pathName, art.content);
-                  showToast(`✅ Folder terhubung & catatan tersimpan ke: ${pathName}`);
+                  showToast(`✅ Connected folder & saved note to: ${pathName}`);
                 }
               })
               .catch(() => {

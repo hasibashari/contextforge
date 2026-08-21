@@ -121,31 +121,31 @@ export class ActionToolHandler {
       locationPath: vaultResult.relativePath,
       badge: targetService === 'notion' ? 'Notion Doc' : 'Obsidian Note',
       badgeVariant: targetService === 'notion' ? 'neutral' : 'purple',
-      description: `Dokumen Markdown lengkap telah dibuat dengan YAML frontmatter. Buka di editor Aside, simpan ke folder lokal, atau buka langsung di aplikasi Obsidian.`,
+      description: `Complete Markdown document generated with YAML frontmatter. Open in Aside editor, save to local folder, or open directly in Obsidian Desktop.`,
       targetResource: artifact.id,
       actions: [
         {
           key: 'open_aside',
-          label: 'Buka di Workspace Aside',
+          label: 'Open in Workspace Aside',
           primary: true,
           icon: 'edit-3',
         },
         {
           key: 'open_in_obsidian',
-          label: 'Buka di Obsidian App',
+          label: 'Open in Obsidian App',
           primary: false,
           icon: 'book-open',
         },
         {
           key: 'write_to_local_disk',
-          label: 'Simpan ke Folder Lokal',
+          label: 'Save to Local Folder',
           primary: false,
           icon: 'hard-drive',
         },
       ],
     };
 
-    const textContent = `Saya telah mendelegasikan eksekusi penyusunan dokumen ke **Action Agent**. Dokumen lengkap telah disusun dan dibuka di panel **Workspace Aside** sebelah kanan.\n\n### 📋 Ringkasan Dokumen:\n- **Dokumen:** \`${docTitle}\`\n- **Target Path:** \`${vaultResult.relativePath}\`\n- **Ukuran:** \`${vaultResult.bytesWritten} bytes\` (${vaultResult.lineCount} baris)\n- **Status:** Tersedia di Workspace Aside & Siap Disinkronkan\n\n*Gunakan tombol **Buka di Obsidian App** atau **Simpan ke Folder Lokal** di bawah untuk menyinkronkannya langsung ke aplikasi Obsidian Anda.*`;
+    const textContent = `I have delegated document synthesis execution to **Action Agent**. The complete document has been prepared and opened in the **Workspace Aside** panel on the right.\n\n### 📋 Document Summary:\n- **Document:** \`${docTitle}\`\n- **Target Path:** \`${vaultResult.relativePath}\`\n- **Size:** \`${vaultResult.bytesWritten} bytes\` (${vaultResult.lineCount} lines)\n- **Status:** Available in Workspace Aside & Ready to Sync\n\n*Use the **Open in Obsidian App** or **Save to Local Folder** action buttons below to synchronize directly to your Obsidian vault.*`;
 
     emit({ event: 'chat_chunk', data: { delta: textContent } });
     emit({

@@ -270,10 +270,10 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                 <Folder size={16} className="text-[#7c3aed]" />
                 <div className="min-w-0">
                   <div className="font-semibold text-ink text-xs truncate">
-                    Folder Terhubung: 📁 {currentIntegration.targetBinding?.folderScope || obsidianBridgeService.getPairedDirectoryHandle()?.name || 'Folder Terpilih'}
+                    Connected Folder: 📁 {currentIntegration.targetBinding?.folderScope || obsidianBridgeService.getPairedDirectoryHandle()?.name || 'Selected Folder'}
                   </div>
                   <div className="text-[11px] text-muted font-mono">
-                    Catatan otomatis disimpan langsung ke folder ini
+                    Notes are automatically saved directly into this folder
                   </div>
                 </div>
               </div>

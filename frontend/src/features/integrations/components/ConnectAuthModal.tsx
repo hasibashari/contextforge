@@ -123,13 +123,13 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
         setPairedDiskFolderName(res.handle.name)
         setTargetFolder(res.handle.name)
         showToast(
-          `📁 Folder terhubung: "${res.handle.name}" (${res.files.length} file .md)`,
+          `📁 Folder connected: "${res.handle.name}" (${res.files.length} .md files)`,
           'success',
         )
       }
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : 'Gagal menghubungkan folder'
+        err instanceof Error ? err.message : 'Failed to connect folder'
       showToast(msg, 'error')
     }
   }
@@ -163,7 +163,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
       await refreshIntegrations()
 
       showToast(
-        `✨ Berhasil menghubungkan folder "${activeFolder}"!`,
+        `✨ Successfully connected Obsidian folder "${activeFolder}"!`,
         'success',
       )
       onSuccess?.()
@@ -213,7 +213,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
           isNotion
             ? 'Authorize Notion Model Context Protocol workspace'
             : isObsidian
-            ? 'Pilih folder Obsidian untuk penyimpanan catatan otomatis'
+            ? 'Select an Obsidian folder for automated note synchronization'
             : `Establish MCP connection with ${integration.name}`
         }
         onClose={onClose}
@@ -263,18 +263,17 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-semibold text-ink text-xs">
                   <Folder size={16} className="text-[#7c3aed]" />
-                  <span>Pilih Folder Obsidian</span>
+                  <span>Select Obsidian Folder</span>
                 </div>
                 {isFolderHandleActive && (
                   <Badge variant="success" size="xs">
-                    ✓ Folder Terhubung
+                    ✓ Folder Connected
                   </Badge>
                 )}
               </div>
               <p className="text-muted text-[11px] font-sans leading-relaxed">
-                Pilih folder catatan Obsidian di komputer Anda. Catatan yang
-                dibuat oleh Action Agent akan langsung disimpan ke dalam folder
-                ini tanpa subfolder tambahan.
+                Choose an Obsidian note directory on your computer. Notes created by
+                Action Agent will be written directly into this folder.
               </p>
 
               {/* Folder Selector Status & Action */}
@@ -293,12 +292,12 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                     <div className="font-semibold text-ink text-xs truncate">
                       {isFolderHandleActive
                         ? `📁 ${pairedDiskFolderName}`
-                        : 'Belum ada folder yang dipilih'}
+                        : 'No folder selected yet'}
                     </div>
                     <div className="text-[11px] text-muted font-sans truncate">
                       {isFolderHandleActive
-                        ? 'Catatan akan ditulis langsung ke folder ini'
-                        : 'Klik tombol untuk memilih folder Obsidian Anda'}
+                        ? 'Notes will be saved directly to this folder'
+                        : 'Click the button to select your Obsidian folder'}
                     </div>
                   </div>
                 </div>
@@ -312,8 +311,8 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                   className="shrink-0"
                 >
                   {isFolderHandleActive
-                    ? 'Ganti Folder'
-                    : 'Pilih Folder di Laptop'}
+                    ? 'Change Folder'
+                    : 'Select Folder on Disk'}
                 </Button>
               </div>
             </div>
@@ -330,7 +329,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                 leftIcon={<Zap size={13} />}
                 disabled={isSubmitting || !isFolderHandleActive}
               >
-                {isSubmitting ? 'Menyimpan...' : 'Hubungkan Folder'}
+                {isSubmitting ? 'Connecting...' : 'Connect Folder'}
               </Button>
             </ModalFooter>
           </form>

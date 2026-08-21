@@ -104,53 +104,53 @@ export class UniversalMcpToolHandler {
         locationPath: relativePath,
         badge: 'Obsidian Note',
         badgeVariant: 'purple',
-        description: `Dokumen Markdown lengkap telah disusun dengan YAML frontmatter dan bi-directional links. Buka di editor Aside, simpan ke folder lokal, atau buka langsung di aplikasi Obsidian Desktop.`,
+        description: `Complete Markdown document structured with YAML frontmatter and bi-directional links. Open in Aside editor, save to local folder, or open directly in Obsidian Desktop.`,
         targetResource: artifact?.id || relativePath,
         actions: [
           {
             key: 'open_aside',
-            label: 'Buka di Workspace Aside',
+            label: 'Open in Workspace Aside',
             primary: true,
             icon: 'edit-3',
           },
           {
             key: 'open_in_obsidian',
-            label: 'Buka di Obsidian App',
+            label: 'Open in Obsidian App',
             primary: false,
             icon: 'book-open',
           },
           {
             key: 'write_to_local_disk',
-            label: 'Simpan ke Folder Lokal',
+            label: 'Save to Local Folder',
             primary: false,
             icon: 'hard-drive',
           },
         ],
       };
 
-      textContent = `Saya telah mendelegasikan eksekusi penyusunan dokumen ke **${agentName}** via **Obsidian MCP**.\n\n### 📋 Ringkasan Dokumen:\n- **Dokumen:** \`${docTitle}\`\n- **Target Path:** \`${relativePath}\`\n- **Status:** Tersedia di Workspace Aside & Siap Disinkronkan\n\n*Gunakan tombol di bawah atau di panel Aside untuk membuka langsung di aplikasi Obsidian Desktop atau menyimpannya ke folder vault lokal Anda.*`;
+      textContent = `I have delegated document synthesis execution to **${agentName}** via **Obsidian MCP**.\n\n### 📋 Document Summary:\n- **Document:** \`${docTitle}\`\n- **Target Path:** \`${relativePath}\`\n- **Status:** Available in Workspace Aside & Ready to Sync\n\n*Use the action buttons below or in the Aside panel to open directly in Obsidian Desktop or write to your local vault folder.*`;
     } else {
       // Notion Response
-      const nowStr = new Date().toLocaleDateString('id-ID', {
+      const nowStr = new Date().toLocaleDateString('en-US', {
         weekday: 'long',
-        day: 'numeric',
         month: 'long',
+        day: 'numeric',
         year: 'numeric',
       });
 
-      textContent = `📋 **Ringkasan Tugas Notion Anda (${nowStr}):**
+      textContent = `📋 **Notion Tasks Summary (${nowStr}):**
 
-Saya telah memeriksa database tugas Notion Anda via **Notion MCP** (\`${toolName}\`):
+I queried your Notion workspace tasks database via **Notion MCP** (\`${toolName}\`):
 
-| Prioritas | Nama Tugas | Status | Deadline |
+| Priority | Task Name | Status | Deadline |
 | :--- | :--- | :--- | :--- |
-| 🔴 **High** | Finalisasi OAuth2 PKCE Flow & Security Check | In Progress | Hari ini, 16:00 |
-| 🔴 **High** | Code Review PR #42: Agentic Automation Engine | In Progress | Hari ini, 18:00 |
-| 🟡 **Medium** | Migrasi PostgreSQL native schema & index | To Do | Besok |
-| 🟢 **Low** | Perbarui dokumentasi TDD & Architecture Diagram | Backlog | 24 Agu |
+| 🔴 **High** | Finalize OAuth2 PKCE Flow & Security Check | In Progress | Today, 16:00 |
+| 🔴 **High** | Code Review PR #42: Agentic Automation Engine | In Progress | Today, 18:00 |
+| 🟡 **Medium** | PostgreSQL schema migration & index optimizations | To Do | Tomorrow |
+| 🟢 **Low** | Update TDD documentation & Architecture Diagrams | Backlog | Next sprint |
 
-### 💡 Rekomendasi Fokus Hari Ini:
-Fokuskan 2 jam pertama pada **OAuth2 PKCE Flow** dan **Code Review PR #42**. Semua dependensi backend sudah siap di *local sandbox*.`;
+### 💡 Focus Recommendations:
+Dedicate the first 2 hours to **OAuth2 PKCE Flow** and **Code Review PR #42**. All backend dependencies are ready in your local environment.`;
     }
 
     const sideAgent = await this.recorder.recordSideAgentExecution({

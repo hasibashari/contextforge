@@ -104,7 +104,7 @@ export class KnowledgeToolHandler {
     const sourceNames: string[] = [];
 
     if (matchingChunks.length === 0) {
-      const fallbackText = `Saya telah memeriksa basis pengetahuan internal (**Knowledge Base** & **Vault**), namun tidak menemukan dokumen atau catatan teknis yang secara spesifik membahas *"${queryStr}"*.\n\n*Anda dapat mengunggah atau melakukan re-index dokumen terkait pada panel Knowledge Sources.*`;
+      const fallbackText = `I searched your internal knowledge base (**Knowledge Sources**), but did not find documents or technical notes specifically discussing *"${queryStr}"*.\n\n*You can upload or index relevant documents in the Knowledge Sources panel.*`;
 
       emit({ event: 'chat_chunk', data: { delta: fallbackText } });
       emit({
@@ -129,11 +129,11 @@ export class KnowledgeToolHandler {
     const chunkExcerpts = matchingChunks
       .map(
         (c, idx) =>
-          `#### 📄 Referensi ${idx + 1}: \`${c.file_path}\` (${Math.round(c.similarity * 100)}% Match)\n${c.chunk_content}`,
+          `#### 📄 Reference ${idx + 1}: \`${c.file_path}\` (${Math.round(c.similarity * 100)}% Match)\n${c.chunk_content}`,
       )
       .join('\n\n---\n\n');
 
-    const synthesis = `### 🧠 Knowledge Grounding: ${queryStr}\n\nBerdasarkan penelusuran semantik pada repositori dokumen dan catatan internal:\n\n${chunkExcerpts}\n\n*Informasi di atas diambil secara langsung dari basis pengetahuan terindeks ContextForge.*`;
+    const synthesis = `### 🧠 Knowledge Grounding: ${queryStr}\n\nBased on semantic retrieval across indexed workspace documents:\n\n${chunkExcerpts}\n\n*Retrieved directly from your ContextForge indexed knowledge base.*`;
 
     const chunkSize = 40;
     for (let i = 0; i < synthesis.length; i += chunkSize) {
