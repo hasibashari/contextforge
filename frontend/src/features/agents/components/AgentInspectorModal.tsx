@@ -7,7 +7,6 @@ import {
   ModalHeader,
   ModalFooter,
   Button,
-  Badge,
 } from '@/shared/components'
 
 interface AgentInspectorModalProps {
@@ -194,7 +193,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
             <span className="flex items-center gap-1.5">
               <Terminal size={12} className="text-primary" />
               <span>
-                Permitted Sandboxed Tools (
+                Authorized MCP Tools (
                 {isEditing ? selectedTools.length : agent.assignedTools.length}
                 ):
               </span>

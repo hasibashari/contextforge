@@ -11,6 +11,7 @@ import connectionsSeed from '../../../database/seeds/workspace_connections.json'
 import agentsSeed from '../../../database/seeds/agents.json';
 import skillsSeed from '../../../database/seeds/skills.json';
 import integrationsSeed from '../../../database/seeds/integrations.json';
+import { loadSkillsFromDocs, syncSkillsToJsonFiles } from './skill-loader';
 
 async function runSeed() {
   console.log('🌱 Starting ContextForge Native Database Seeder...');
@@ -38,6 +39,7 @@ async function runSeed() {
       ALTER TABLE IF EXISTS workspace_agents DROP CONSTRAINT IF EXISTS workspace_agents_status_check;
       ALTER TABLE IF EXISTS workspace_agents DROP CONSTRAINT IF EXISTS workspace_agents_agent_type_check;
       ALTER TABLE IF EXISTS workspace_agents DROP CONSTRAINT IF EXISTS workspace_agents_permissions_check;
+      ALTER TABLE IF EXISTS workspace_skills DROP CONSTRAINT IF EXISTS workspace_skills_category_check;
       ALTER TABLE IF EXISTS workspace_integrations DROP CONSTRAINT IF EXISTS workspace_integrations_category_check;
       ALTER TABLE IF EXISTS workspace_integrations DROP CONSTRAINT IF EXISTS workspace_integrations_transport_check;
       ALTER TABLE IF EXISTS workspace_integrations DROP CONSTRAINT IF EXISTS workspace_integrations_auth_type_check;
@@ -245,9 +247,20 @@ async function runSeed() {
     }
     console.log(`   ✓ Seeded ${agentsSeed.length} workspace agents`);
 
-    // 8. Seed Workspace Skills
-    console.log('✨ Seeding Workspace Skills...');
-    for (const skill of skillsSeed) {
+    // 8. Seed Workspace Skills (Dynamically loaded from docs/SKILL/)
+    console.log('✨ Seeding Workspace Skills from docs/SKILL/ ...');
+    const loadedSkills = loadSkillsFromDocs();
+    const effectiveSkills = loadedSkills.length > 0 ? loadedSkills : skillsSeed;
+
+    // Purge legacy skills
+    const validSkillIds = effectiveSkills.map((s) => `'${s.id}'`).join(', ');
+    if (validSkillIds) {
+      await client.query(
+        `DELETE FROM workspace_skills WHERE id NOT IN (${validSkillIds});`,
+      );
+    }
+
+    for (const skill of effectiveSkills) {
       await client.query(
         `INSERT INTO workspace_skills (
           id, name, description, category, icon, sop_summary, instructions, assigned_tools, enabled, is_custom
@@ -275,7 +288,12 @@ async function runSeed() {
         ],
       );
     }
-    console.log(`   ✓ Seeded ${skillsSeed.length} workspace skills`);
+    if (loadedSkills.length > 0) {
+      syncSkillsToJsonFiles(loadedSkills);
+    }
+    console.log(
+      `   ✓ Seeded ${effectiveSkills.length} workspace skills from docs/SKILL/`,
+    );
 
     // 9. Seed Workspace Integrations (MCP Connectors)
     console.log('⚡ Seeding Workspace Integrations (MCP Connectors)...');

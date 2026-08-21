@@ -233,7 +233,7 @@ CREATE TABLE IF NOT EXISTS workspace_skills (
     id VARCHAR(100) PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     description TEXT NOT NULL,
-    category VARCHAR(50) NOT NULL CHECK (category IN ('engineering', 'security', 'knowledge', 'productivity')),
+    category VARCHAR(50) NOT NULL CHECK (category IN ('architecture', 'engineering', 'security', 'knowledge', 'productivity', 'database', 'qa_testing')),
     icon VARCHAR(50) DEFAULT 'sparkles',
     sop_summary TEXT NOT NULL,
     instructions TEXT NOT NULL,

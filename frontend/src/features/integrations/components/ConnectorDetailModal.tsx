@@ -409,7 +409,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
           <div className="space-y-2.5 pt-1">
             <div className="text-[11px] font-mono font-semibold uppercase tracking-caption text-muted flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-ink">
-                <span>Available MCP Tools</span>
+                <span>Exposed Server Tools</span>
                 <Badge variant="primary" size="xs">
                   {currentIntegration.tools.length}
                 </Badge>

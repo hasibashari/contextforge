@@ -378,7 +378,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
           <div className="text-[11px] font-mono font-semibold uppercase tracking-caption text-muted flex items-center justify-between">
             <span className="flex items-center gap-1">
               <Sparkles size={11} className="text-primary" />
-              <span>Exposed MCP Tools</span>
+              <span>Exposed Server Tools</span>
             </span>
             <Badge variant="neutral" size="xs">
               {integration.tools?.length || 0} Tools

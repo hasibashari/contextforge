@@ -11,10 +11,9 @@ import { useWorkspace } from '@/shared/mock'
 import type { Skill, Integration } from '@/shared/types/workspace'
 import {
   IntegrationCard,
-  SkillDetailDrawer,
+  SkillDetailModal,
   ConnectorDetailModal,
   ConnectAuthModal,
-  AddSkillModal,
 } from '@/features/integrations'
 import {
   EmptyState,
@@ -34,7 +33,6 @@ export default function IntegrationsView() {
     toggleSkill,
     toggleIntegrationConnect,
     updateConnectorConfig,
-    addCustomSkill,
     refreshIntegrations,
     showToast,
   } = useWorkspace()
@@ -44,7 +42,6 @@ export default function IntegrationsView() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
   // Modals & Inspection State
-  const [isAddSkillOpen, setIsAddSkillOpen] = useState(false)
   const [inspectedSkill, setInspectedSkill] = useState<Skill | null>(null)
   const [selectedConnector, setSelectedConnector] = useState<Integration | null>(null)
   const [connectingConnector, setConnectingConnector] = useState<Integration | null>(null)
@@ -273,15 +270,12 @@ export default function IntegrationsView() {
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs font-mono text-muted">
             <span>
-              Showing <strong>{filteredSkills.length}</strong> Skills
+              Showing <strong>{filteredSkills.length}</strong> Built-in SOP Skills
             </span>
-            <button
-              onClick={() => setIsAddSkillOpen(true)}
-              className="text-primary hover:underline flex items-center gap-1 cursor-pointer font-semibold"
-            >
-              <Plus size={13} />
-              <span>Author New Skill SOP</span>
-            </button>
+            <span className="text-[11px] text-muted flex items-center gap-1.5 bg-canvas-soft px-2.5 py-1 rounded-md border border-hairline">
+              <Sparkles size={12} className="text-primary" />
+              <span>Synced from docs/SKILL/</span>
+            </span>
           </div>
 
           {filteredSkills.length > 0 ? (
@@ -289,11 +283,11 @@ export default function IntegrationsView() {
               {filteredSkills.map((skill) => (
                 <EcosystemCard
                   key={skill.id}
-                  icon={<SkillIconBox category={skill.category} size="sm" />}
+                  icon={<SkillIconBox skill={skill} category={skill.category} size="sm" />}
                   title={skill.name}
                   description={skill.description}
                   badge={skill.isCustom ? 'Custom' : skill.category.replace('_', ' ')}
-                  metaLine={`${skill.assignedTools.length} Permitted Tools · ${
+                  metaLine={`${skill.assignedTools.length} Authorized Tools · ${
                     skill.enabled ? 'Active in Workspace' : 'Inactive SOP'
                   }`}
                   actionIcon={skill.enabled ? <Settings size={16} /> : <Plus size={16} />}
@@ -314,13 +308,8 @@ export default function IntegrationsView() {
               description={
                 searchQuery || selectedCategory !== 'all'
                   ? `No skill SOPs match your search "${searchQuery}".`
-                  : 'Author a custom procedural playbook to teach agents standard operating procedures.'
+                  : 'All reasoning skill playbooks are loaded from docs/SKILL/.'
               }
-              action={{
-                label: 'Author New Skill SOP',
-                onClick: () => setIsAddSkillOpen(true),
-                icon: <Plus size={14} />,
-              }}
               secondaryAction={
                 searchQuery || selectedCategory !== 'all'
                   ? {
@@ -367,7 +356,7 @@ export default function IntegrationsView() {
         onClose={() => setConnectingConnector(null)}
       />
 
-      <SkillDetailDrawer
+      <SkillDetailModal
         skill={inspectedSkill}
         onClose={() => setInspectedSkill(null)}
         onToggle={() => {
@@ -379,12 +368,6 @@ export default function IntegrationsView() {
             })
           }
         }}
-      />
-
-      <AddSkillModal
-        isOpen={isAddSkillOpen}
-        onClose={() => setIsAddSkillOpen(false)}
-        onAdd={addCustomSkill}
       />
     </div>
   )

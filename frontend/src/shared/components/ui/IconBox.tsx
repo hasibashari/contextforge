@@ -1,21 +1,28 @@
 import React from 'react'
 import {
   HardDrive,
-  Mail,
   FileText,
   BookOpen,
   Calendar,
   Globe,
-  GitPullRequest,
   Database,
   Cpu,
   TestTube2,
   ShieldAlert,
-  Layers,
   Sparkles,
   UploadCloud,
   Terminal,
+  Layers,
 } from 'lucide-react'
+import {
+  SiNotion,
+  SiObsidian,
+  SiGoogle,
+  SiPostgresql,
+  SiGithub,
+  SiGoogledrive,
+  SiGmail,
+} from 'react-icons/si'
 import type { Integration, KnowledgeSource, Skill } from '@/shared/types/workspace'
 
 export interface IconBoxProps {
@@ -68,57 +75,90 @@ export const IconBox: React.FC<IconBoxProps> = ({
   )
 }
 
+// -------------------------------------------------------------
+// Component Box Resolvers using react-icons/si & lucide-react
+// -------------------------------------------------------------
+
 export const IntegrationIconBox: React.FC<{
   integration?: Pick<Integration, 'id' | 'name'> | null
   size?: 'sm' | 'md' | 'lg'
 }> = ({ integration, size = 'sm' }) => {
   const id = (integration?.id || '').toLowerCase()
   const name = (integration?.name || '').toLowerCase()
-  const iconPx = size === 'sm' ? 17 : 19
+  const iconPx = size === 'sm' ? 17 : 20
 
-  if (id.includes('drive') || name.includes('drive')) {
-    return <IconBox size={size} variant="success" icon={<HardDrive size={iconPx} />} />
-  }
-  if (id.includes('gmail') || name.includes('gmail') || name.includes('mail')) {
-    return <IconBox size={size} variant="error" icon={<Mail size={iconPx} />} />
-  }
   if (id.includes('notion') || name.includes('notion')) {
-    return <IconBox size={size} variant="neutral" icon={<FileText size={iconPx} />} />
+    return <IconBox size={size} variant="neutral" icon={<SiNotion size={iconPx} />} />
   }
   if (id.includes('obsidian') || name.includes('obsidian')) {
-    return <IconBox size={size} variant="purple" icon={<BookOpen size={iconPx} />} />
+    return <IconBox size={size} variant="purple" icon={<SiObsidian size={iconPx} />} />
+  }
+  if (id.includes('drive') || name.includes('drive')) {
+    return <IconBox size={size} variant="success" icon={<SiGoogledrive size={iconPx} />} />
+  }
+  if (id.includes('gmail') || name.includes('gmail') || name.includes('mail')) {
+    return <IconBox size={size} variant="error" icon={<SiGmail size={iconPx} />} />
   }
   if (id.includes('calendar') || name.includes('calendar')) {
     return <IconBox size={size} variant="success" icon={<Calendar size={iconPx} />} />
   }
   if (
     id.includes('search') ||
+    id.includes('web') ||
+    id.includes('google') ||
     name.includes('search') ||
-    name.includes('web') ||
-    name.includes('tavily')
+    name.includes('web')
   ) {
-    return <IconBox size={size} variant="blue" icon={<Globe size={iconPx} />} />
+    return <IconBox size={size} variant="blue" icon={<SiGoogle size={iconPx} />} />
   }
   if (id.includes('github') || name.includes('git')) {
-    return <IconBox size={size} variant="dark" icon={<GitPullRequest size={iconPx} />} />
+    return <IconBox size={size} variant="dark" icon={<SiGithub size={iconPx} />} />
   }
   if (
     id.includes('postgres') ||
     name.includes('database') ||
     name.includes('sql')
   ) {
-    return <IconBox size={size} variant="cyan" icon={<Database size={iconPx} />} />
+    return <IconBox size={size} variant="cyan" icon={<SiPostgresql size={iconPx} />} />
   }
   return <IconBox size={size} variant="primary" icon={<Cpu size={iconPx} />} />
 }
 
 export const SkillIconBox: React.FC<{
   category?: Skill['category'] | string
+  skill?: Pick<Skill, 'id' | 'name' | 'category' | 'icon'> | null
+  skillId?: string
   size?: 'sm' | 'md' | 'lg'
-}> = ({ category, size = 'sm' }) => {
-  const iconPx = size === 'sm' ? 17 : 19
+}> = ({ category, skill, skillId, size = 'sm' }) => {
+  const id = (skill?.id || skillId || '').toLowerCase()
+  const name = (skill?.name || '').toLowerCase()
+  const iconPx = size === 'sm' ? 17 : 20
 
-  switch (category) {
+  if (id.includes('notion') || name.includes('notion')) {
+    return <IconBox size={size} variant="neutral" icon={<SiNotion size={iconPx} />} />
+  }
+  if (id.includes('obsidian') || name.includes('obsidian')) {
+    return <IconBox size={size} variant="purple" icon={<SiObsidian size={iconPx} />} />
+  }
+  if (
+    id.includes('research') ||
+    id.includes('web') ||
+    name.includes('web') ||
+    name.includes('research')
+  ) {
+    return <IconBox size={size} variant="blue" icon={<SiGoogle size={iconPx} />} />
+  }
+  if (
+    id.includes('rfc') ||
+    id.includes('architect') ||
+    name.includes('rfc') ||
+    name.includes('architect')
+  ) {
+    return <IconBox size={size} variant="purple" icon={<Layers size={iconPx} />} />
+  }
+
+  const effectiveCategory = category || skill?.category
+  switch (effectiveCategory) {
     case 'qa_testing':
       return <IconBox size={size} variant="primary" icon={<TestTube2 size={iconPx} />} />
     case 'security':
@@ -126,7 +166,8 @@ export const SkillIconBox: React.FC<{
     case 'knowledge':
       return <IconBox size={size} variant="blue" icon={<BookOpen size={iconPx} />} />
     case 'database':
-      return <IconBox size={size} variant="success" icon={<Database size={iconPx} />} />
+    case 'productivity':
+      return <IconBox size={size} variant="neutral" icon={<SiNotion size={iconPx} />} />
     case 'architecture':
       return <IconBox size={size} variant="purple" icon={<Layers size={iconPx} />} />
     default:
@@ -138,14 +179,22 @@ export const KnowledgeIconBox: React.FC<{
   type?: KnowledgeSource['type'] | string
   size?: 'sm' | 'md' | 'lg'
 }> = ({ type, size = 'sm' }) => {
-  const iconPx = size === 'sm' ? 17 : 19
+  const iconPx = size === 'sm' ? 17 : 20
+
+  if (type === 'obsidian_vault' || (type && type.includes('obsidian'))) {
+    return <IconBox size={size} variant="purple" icon={<SiObsidian size={iconPx} />} />
+  }
+  if (type === 'notion' || type === 'notion_database' || (type && type.includes('notion'))) {
+    return <IconBox size={size} variant="neutral" icon={<SiNotion size={iconPx} />} />
+  }
+  if (type === 'web_search') {
+    return <IconBox size={size} variant="blue" icon={<SiGoogle size={iconPx} />} />
+  }
 
   switch (type) {
     case 'document_upload':
     case 'document':
       return <IconBox size={size} variant="primary" icon={<UploadCloud size={iconPx} />} />
-    case 'obsidian_vault':
-      return <IconBox size={size} variant="purple" icon={<BookOpen size={iconPx} />} />
     case 'local_folder':
       return <IconBox size={size} variant="success" icon={<HardDrive size={iconPx} />} />
     case 'github_repo':
@@ -153,7 +202,6 @@ export const KnowledgeIconBox: React.FC<{
     case 'database_schema':
       return <IconBox size={size} variant="success" icon={<Database size={iconPx} />} />
     case 'openapi_spec':
-    case 'web_search':
       return <IconBox size={size} variant="cyan" icon={<Globe size={iconPx} />} />
     default:
       return <IconBox size={size} variant="primary" icon={<FileText size={iconPx} />} />

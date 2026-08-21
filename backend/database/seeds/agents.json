@@ -35,7 +35,14 @@
       { "id": "c3", "name": "Live Web Grounding", "description": "Query Google Search and synthesize verified facts with citations" },
       { "id": "c4", "name": "Vector Semantic RAG", "description": "Search internal knowledge documents and vector embeddings for technical context" }
     ],
-    "assignedTools": ["web_search", "search_knowledge_vault", "query_memory"],
+    "assignedTools": [
+      "web_search",
+      "search_knowledge_vault",
+      "query_memory",
+      "obsidian_vault_reader",
+      "notion_search",
+      "notion_read_page"
+    ],
     "assignedSkills": ["skill-deep-web-research"],
     "status": "idle",
     "totalTasksCompleted": 86,
@@ -56,7 +63,12 @@
       { "id": "c5", "name": "Obsidian Vault Writing", "description": "Create and update Markdown notes with frontmatter in local Obsidian vaults" },
       { "id": "c6", "name": "Notion & Document Sync", "description": "Format and synchronize structured document pages and wiki backlinks" }
     ],
-    "assignedTools": ["action_vault_writer", "obsidian_vault_writer", "obsidian_vault_reader", "notion_create_page"],
+    "assignedTools": [
+      "obsidian_vault_writer",
+      "obsidian_create_daily_note",
+      "notion_create_page",
+      "notion_update_database"
+    ],
     "assignedSkills": ["skill-obsidian-vault-synthesis"],
     "status": "idle",
     "totalTasksCompleted": 74,
