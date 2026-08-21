@@ -98,7 +98,7 @@ export interface AgentCapability {
   description: string
 }
 
-export type AgentRoleType = 'orchestrator' | 'execution_worker'
+export type AgentRoleType = 'orchestrator' | 'researcher' | 'execution_worker'
 export type AgentPermissionType = 'read_only' | 'sandbox_write' | 'full_system'
 
 export interface Agent {
@@ -292,6 +292,7 @@ export interface SideAgentExecution {
   avatarColor?: string
   taskGoal: string
   actionType:
+    | 'action_write'
     | 'create_file'
     | 'edit_file'
     | 'obsidian_write'

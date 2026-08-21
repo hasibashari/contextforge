@@ -14,7 +14,7 @@ export function useTaskManager(agents: Agent[], showToast: (msg: string, type?: 
     ({
       title,
       objective,
-      agentId = 'agent-sec-docs',
+      agentId = 'agent-conversational',
       selectedSources,
     }: {
       title: string
@@ -30,7 +30,7 @@ export function useTaskManager(agents: Agent[], showToast: (msg: string, type?: 
         title: title || objective.slice(0, 60),
         objective,
         repo: 'github:acme/platform-core',
-        agentId: assignedAgent ? assignedAgent.id : 'agent-sec-docs',
+        agentId: assignedAgent ? assignedAgent.id : 'agent-conversational',
         status: 'planning',
         currentStage: 'planning',
         createdAt: 'Just now',

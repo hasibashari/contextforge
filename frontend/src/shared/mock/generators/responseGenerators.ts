@@ -60,24 +60,24 @@ ${prompt}
   }
 
   const sideAgent: SideAgentExecution = {
-    id: `sa-obs-${Date.now()}`,
-    agentId: 'agent-doc-crawl',
-    agentName: 'Obsidian Vault Worker',
-    agentRole: 'Side Agent: Vault & Document Writer',
+    id: `sa-action-${Date.now()}`,
+    agentId: 'agent-action',
+    agentName: 'Action Agent',
+    agentRole: 'Side Agent: Document & Vault Mutator',
     avatarColor: 'bg-[#9fbbe0]',
     taskGoal: `Format markdown and write note to "${pathName}"`,
-    actionType: 'obsidian_write',
+    actionType: 'action_write',
     targetResource: pathName,
     status: 'completed',
     riskLevel: 'low_risk',
     executionTimeMs: 380,
     tokensUsed: { input: 240, output: 95 },
     logs: [
-      `[ObsidianWorker] Initializing isolated worker execution...`,
-      `[ObsidianWorker] Connecting to vault at: obsidian://vault/Engineering-HQ`,
-      `[ObsidianWorker] Generating YAML frontmatter metadata and backlinks...`,
-      `[ObsidianWorker] Writing payload to: ${pathName}`,
-      `[ObsidianWorker] Verification: File integrity OK (0 errors). Worker terminated.`,
+      `[ActionAgent] Initializing isolated worker execution...`,
+      `[ActionAgent] Connecting to vault at: obsidian://vault/Engineering-HQ`,
+      `[ActionAgent] Generating YAML frontmatter metadata and backlinks...`,
+      `[ActionAgent] Writing payload to: ${pathName}`,
+      `[ActionAgent] Verification: File integrity OK (0 errors). Worker completed.`,
     ],
     summary: `Formatted and written note to Obsidian vault at ${pathName}`,
     filesModified: [pathName],
@@ -85,7 +85,7 @@ ${prompt}
   }
 
   // Executive summary in Chat while the full markdown note is opened in the Aside Panel!
-  const textContent = `Saya telah mendelegasikan penyusunan dokumen ke **Obsidian Vault Worker**. Dokumen lengkap telah diformat dan dibuka di panel **Workspace Aside** sebelah kanan.
+  const textContent = `Saya telah mendelegasikan penyusunan dokumen ke **Action Agent**. Dokumen lengkap telah diformat dan dibuka di panel **Workspace Aside** sebelah kanan.
 
 ### 📋 Ringkasan Eksekutif Rencana:
 - **Dokumen:** \`${docTitle}\`

@@ -224,30 +224,25 @@ export class KnowledgeService {
       }
     }
 
-    // Pillar 2: Obsidian Vault
+    // Pillar 2: Obsidian Vault (Mounted via Local Path or Environment)
     if (source.type === 'obsidian_vault') {
       const vaultBasePath =
+        source.location.replace(/^file:\/\//, '') ||
         this.configService.get<string>('OBSIDIAN_VAULT_PATH') ||
-        path.join(process.cwd(), '..', 'vault');
+        '';
 
-      const files = this.scanDirectoryFiles(vaultBasePath, ['.md', '.txt']);
-      for (const f of files) {
-        try {
-          const content = fs.readFileSync(f, 'utf-8');
-          const relPath = path.relative(vaultBasePath, f);
-          const title = path.basename(f, path.extname(f));
-          documents.push({ filePath: relPath, title, content });
-        } catch {
-          // ignore unreadable
+      if (vaultBasePath && fs.existsSync(vaultBasePath)) {
+        const files = this.scanDirectoryFiles(vaultBasePath, ['.md', '.txt']);
+        for (const f of files) {
+          try {
+            const content = fs.readFileSync(f, 'utf-8');
+            const relPath = path.relative(vaultBasePath, f);
+            const title = path.basename(f, path.extname(f));
+            documents.push({ filePath: relPath, title, content });
+          } catch {
+            // ignore unreadable
+          }
         }
-      }
-
-      if (documents.length === 0) {
-        documents.push({
-          filePath: 'Vault/Architecture/contextforge-spec.md',
-          title: 'ContextForge Architecture Overview',
-          content: `# ContextForge Architecture Overview\n\nContextForge integrates hybrid vector RAG (gemini-embedding-002, 1536-dim) with autonomous execution workers.`,
-        });
       }
       return documents;
     }

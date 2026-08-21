@@ -9,10 +9,7 @@ import {
   OrchestrationResult,
   StreamEmitter,
 } from './orchestrator.types';
-import { ObsidianToolHandler } from '../handlers/obsidian-tool.handler';
-import { CodeToolHandler } from '../handlers/code-tool.handler';
-import { CalendarToolHandler } from '../handlers/calendar-tool.handler';
-import { VisualToolHandler } from '../handlers/visual-tool.handler';
+import { ActionToolHandler } from '../handlers/action-tool.handler';
 import { WebSearchToolHandler } from '../handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from '../handlers/knowledge-tool.handler';
 
@@ -25,10 +22,7 @@ export class CoreOrchestratorService {
   constructor(
     @Inject(GEMINI_CLIENT) private readonly ai: GoogleGenAI,
     private readonly configService: ConfigService,
-    private readonly obsidianHandler: ObsidianToolHandler,
-    private readonly codeHandler: CodeToolHandler,
-    private readonly calendarHandler: CalendarToolHandler,
-    private readonly visualHandler: VisualToolHandler,
+    private readonly actionHandler: ActionToolHandler,
     private readonly webSearchHandler: WebSearchToolHandler,
     private readonly knowledgeHandler: KnowledgeToolHandler,
   ) {}
@@ -126,17 +120,9 @@ export class CoreOrchestratorService {
     emit: StreamEmitter,
   ): Promise<OrchestrationResult> {
     switch (toolName) {
+      case 'dispatch_action_worker':
       case 'dispatch_obsidian_worker':
-        return this.obsidianHandler.execute(prompt, args, emit);
-
-      case 'dispatch_code_worker':
-        return this.codeHandler.execute(prompt, args, emit);
-
-      case 'dispatch_calendar_worker':
-        return this.calendarHandler.execute(prompt, args, emit);
-
-      case 'dispatch_visual_worker':
-        return this.visualHandler.execute(prompt, args, emit);
+        return this.actionHandler.execute(prompt, args, emit);
 
       case 'web_search':
         return this.webSearchHandler.execute(prompt, args, emit);
@@ -163,7 +149,7 @@ export class CoreOrchestratorService {
       event: 'timeline_stage',
       data: {
         stage: 'reading',
-        label: 'Synthesizing Architecture Analysis...',
+        label: 'Synthesizing Response...',
       },
     });
 

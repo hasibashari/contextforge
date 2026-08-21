@@ -22,11 +22,18 @@ export class ObsidianVaultService implements OnModuleInit {
     const configuredPath =
       this.configService.get<string>('OBSIDIAN_VAULT_PATH') ||
       this.configService.get<string>('app.obsidianVaultPath') ||
-      path.resolve(process.cwd(), '..', 'vault');
-    this.vaultRoot = path.resolve(configuredPath);
+      '';
+    this.vaultRoot = configuredPath ? path.resolve(configuredPath) : '';
   }
 
   async onModuleInit() {
+    if (!this.vaultRoot) {
+      this.logger.log(
+        '📁 Obsidian Local Vault backend path not set (client-side HTML5 File System Access & dynamic pairing active)',
+      );
+      return;
+    }
+
     try {
       await fs.mkdir(this.vaultRoot, { recursive: true });
       this.logger.log(
@@ -44,7 +51,7 @@ export class ObsidianVaultService implements OnModuleInit {
    * Returns the canonical root path of the local vault
    */
   getVaultRoot(): string {
-    return this.vaultRoot;
+    return this.vaultRoot || 'dynamic-client-vault';
   }
 
   /**
@@ -56,6 +63,12 @@ export class ObsidianVaultService implements OnModuleInit {
     rawContent: string,
     metadata: Record<string, unknown> = {},
   ): Promise<VaultWriteResult> {
+    if (!this.vaultRoot) {
+      throw new Error(
+        'Obsidian Vault directory is not configured in backend environment. Please mount your vault dynamically from the ContextForge dashboard.',
+      );
+    }
+
     const startTime = Date.now();
 
     // 1. Sanitize relative path
@@ -133,6 +146,10 @@ export class ObsidianVaultService implements OnModuleInit {
    * Safely reads a note from the vault
    */
   async readNote(targetRelPath: string): Promise<string | null> {
+    if (!this.vaultRoot) {
+      return null;
+    }
+
     const sanitized = targetRelPath.replace(/\0/g, '');
     const resolvedPath = path.resolve(this.vaultRoot, sanitized);
     const resolvedRootWithSep = this.vaultRoot.endsWith(path.sep)

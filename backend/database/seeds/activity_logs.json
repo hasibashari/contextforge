@@ -1,8 +1,8 @@
 [
   {
     "id": "d9283f50-cb2d-4ba6-a496-e2aa21919864",
-    "agentId": "agent-sec-docs",
-    "agentName": "Core Orchestrator",
+    "agentId": "agent-conversational",
+    "agentName": "Conversational Agent",
     "actionType": "task_dispatched",
     "summary": "Initialized ContextForge backend workspace and database connection.",
     "details": {
