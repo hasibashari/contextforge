@@ -6,7 +6,6 @@ import {
   Cpu,
   ExternalLink,
   Sparkles,
-  BookOpen,
 } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
 import {
@@ -16,7 +15,6 @@ import {
   IntegrationIconBox,
   Button,
   Input,
-  Select,
   FormField,
   Badge,
 } from '@/shared/components'
@@ -42,27 +40,19 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
     discoverTools,
     refreshIntegrations,
     showToast,
-    knowledgeSources,
   } = useWorkspace()
 
-  const availableVaultSources = knowledgeSources.filter(
-    (s) =>
-      s.type === 'obsidian_vault' ||
-      s.type === 'local_folder' ||
-      Boolean(s.location),
+  const [targetFolder, setTargetFolder] = useState<string>(
+    (integration?.targetBinding?.defaultOutputPath as string) ||
+      (integration?.targetBinding?.folderScope as string) ||
+      'Notes',
   )
-
-  const initialSourceId =
-    availableVaultSources.find(
-      (s) =>
-        s.name === integration?.targetBinding?.folderScope ||
-        s.location === integration?.targetBinding?.folderScope,
-    )?.id || (availableVaultSources.length > 0 ? availableVaultSources[0].id : '')
-
-  const [vaultName, setVaultName] = useState<string>(
-    (integration?.authConfig?.vaultName as string) || 'Obsidian Vault',
+  const [isFolderHandleActive, setIsFolderHandleActive] = useState<boolean>(
+    Boolean(obsidianBridgeService.getPairedDirectoryHandle()),
   )
-  const [selectedSourceId, setSelectedSourceId] = useState<string>(initialSourceId)
+  const [pairedDiskFolderName, setPairedDiskFolderName] = useState<string>(
+    obsidianBridgeService.getPairedDirectoryHandle()?.name || '',
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!isOpen || !integration) return null
@@ -123,6 +113,28 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
   }
 
   // ----------------------------------------------------
+  // Obsidian: Local Directory Picker (HTML5 File System Access)
+  // ----------------------------------------------------
+  const handlePickLocalFolder = async () => {
+    try {
+      const res = await obsidianBridgeService.requestVaultDirectory('', '')
+      if (res) {
+        setIsFolderHandleActive(true)
+        setPairedDiskFolderName(res.handle.name)
+        setTargetFolder(res.handle.name)
+        showToast(
+          `📁 Folder terhubung: "${res.handle.name}" (${res.files.length} file .md)`,
+          'success',
+        )
+      }
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'Gagal menghubungkan folder'
+      showToast(msg, 'error')
+    }
+  }
+
+  // ----------------------------------------------------
   // Obsidian: Local Vault stdio Binding
   // ----------------------------------------------------
   const handleObsidianConnect = async (e: React.FormEvent) => {
@@ -130,31 +142,28 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
     setIsSubmitting(true)
 
     try {
-      const activeVaultName = vaultName.trim() || 'Obsidian Vault'
-      const matchedSource = availableVaultSources.find(
-        (s) => s.id === selectedSourceId,
-      )
-      const folderScopeName = matchedSource?.name || ''
+      const activeFolder =
+        pairedDiskFolderName || targetFolder.trim() || 'Obsidian Vault'
 
       await updateConnectorConfig(integration.id, {
         status: 'connected',
-        endpoint: `npx -y @modelcontextprotocol/server-obsidian "${activeVaultName}"`,
+        endpoint: 'npx -y @modelcontextprotocol/server-obsidian',
         authConfig: {
-          vaultName: activeVaultName,
+          vaultName: activeFolder,
         },
         targetBinding: {
-          folderScope: folderScopeName,
-          defaultOutputPath: 'Drafts',
+          folderScope: activeFolder,
+          defaultOutputPath: '',
         },
       })
 
-      obsidianBridgeService.setPairedVault(activeVaultName, folderScopeName)
+      obsidianBridgeService.setPairedVault('', '')
 
       await discoverTools(integration.id)
       await refreshIntegrations()
 
       showToast(
-        `✨ Successfully paired Obsidian vault "${activeVaultName}" (Source: ${folderScopeName || 'Root'})!`,
+        `✨ Berhasil menghubungkan folder "${activeFolder}"!`,
         'success',
       )
       onSuccess?.()
@@ -204,7 +213,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
           isNotion
             ? 'Authorize Notion Model Context Protocol workspace'
             : isObsidian
-            ? 'Pair local Obsidian vault bridge via Model Context Protocol stdio process'
+            ? 'Pilih folder Obsidian untuk penyimpanan catatan otomatis'
             : `Establish MCP connection with ${integration.name}`
         }
         onClose={onClose}
@@ -250,69 +259,64 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
         {/* Obsidian Flow */}
         {isObsidian && (
           <form onSubmit={handleObsidianConnect} className="space-y-4">
-            <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2">
-              <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
-                <Folder size={14} className="text-[#7c3aed]" />
-                <span>Local Vault Binding</span>
+            <div className="p-4 rounded-xl bg-[#7c3aed]/5 border border-[#7c3aed]/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold text-ink text-xs">
+                  <Folder size={16} className="text-[#7c3aed]" />
+                  <span>Pilih Folder Obsidian</span>
+                </div>
+                {isFolderHandleActive && (
+                  <Badge variant="success" size="xs">
+                    ✓ Folder Terhubung
+                  </Badge>
+                )}
               </div>
               <p className="text-muted text-[11px] font-sans leading-relaxed">
-                Connect your local Obsidian Vault folder. ContextForge will
-                execute the official stdio bridge to read backlinks and format
-                atomic Markdown notes with frontmatter.
+                Pilih folder catatan Obsidian di komputer Anda. Catatan yang
+                dibuat oleh Action Agent akan langsung disimpan ke dalam folder
+                ini tanpa subfolder tambahan.
               </p>
-            </div>
 
-            {/* Field 1: Obsidian Desktop App Vault Name */}
-            <FormField
-              label={
-                <span className="flex items-center gap-1.5">
-                  <BookOpen size={13} className="text-[#7c3aed]" />
-                  <span>Obsidian Desktop Vault Name</span>
-                </span>
-              }
-              badge={<span className="text-muted">Name registered in Obsidian App</span>}
-              required
-            >
-              <Input
-                variant="mono"
-                value={vaultName}
-                onChange={(e) => setVaultName(e.target.value)}
-                placeholder="e.g. Obsidian Vault"
-                required
-              />
-            </FormField>
+              {/* Folder Selector Status & Action */}
+              <div className="p-3.5 bg-canvas rounded-xl border border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                      isFolderHandleActive
+                        ? 'bg-semantic-success/10 text-semantic-success'
+                        : 'bg-[#7c3aed]/10 text-[#7c3aed]'
+                    }`}
+                  >
+                    <Folder size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-ink text-xs truncate">
+                      {isFolderHandleActive
+                        ? `📁 ${pairedDiskFolderName}`
+                        : 'Belum ada folder yang dipilih'}
+                    </div>
+                    <div className="text-[11px] text-muted font-sans truncate">
+                      {isFolderHandleActive
+                        ? 'Catatan akan ditulis langsung ke folder ini'
+                        : 'Klik tombol untuk memilih folder Obsidian Anda'}
+                    </div>
+                  </div>
+                </div>
 
-            {/* Field 2: Target Knowledge Source (Subfolder Scope) */}
-            {availableVaultSources.length > 0 ? (
-              <FormField
-                label={
-                  <span className="flex items-center gap-1.5">
-                    <Folder size={13} className="text-[#7c3aed]" />
-                    <span>Mount to Knowledge Source</span>
-                  </span>
-                }
-                badge={<Badge variant="primary" size="xs">✓ Subfolder Scope</Badge>}
-              >
-                <Select
-                  variant="mono"
-                  value={selectedSourceId}
-                  onChange={(e) => setSelectedSourceId(e.target.value)}
-                  options={availableVaultSources.map((ks) => ({
-                    label: `📚 ${ks.name} (${ks.filesCount} files)`,
-                    value: ks.id,
-                  }))}
-                />
-              </FormField>
-            ) : (
-              <div className="p-3.5 bg-canvas-soft rounded-xl border border-hairline text-center space-y-1">
-                <p className="text-ink font-semibold text-xs">
-                  No Knowledge Sources Available
-                </p>
-                <p className="text-muted text-[11px] font-sans">
-                  Please add an Obsidian Vault or folder in the Knowledge Base first before connecting the bridge.
-                </p>
+                <Button
+                  type="button"
+                  variant={isFolderHandleActive ? 'outline' : 'primary'}
+                  size="sm"
+                  leftIcon={<Folder size={13} />}
+                  onClick={handlePickLocalFolder}
+                  className="shrink-0"
+                >
+                  {isFolderHandleActive
+                    ? 'Ganti Folder'
+                    : 'Pilih Folder di Laptop'}
+                </Button>
               </div>
-            )}
+            </div>
 
             <ModalFooter className="justify-end pt-2">
               <Button type="button" variant="ghost" size="xs" onClick={onClose}>
@@ -324,9 +328,9 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                 size="sm"
                 isLoading={isSubmitting}
                 leftIcon={<Zap size={13} />}
-                disabled={isSubmitting || availableVaultSources.length === 0}
+                disabled={isSubmitting || !isFolderHandleActive}
               >
-                {isSubmitting ? 'Pairing...' : 'Pair & Connect Vault'}
+                {isSubmitting ? 'Menyimpan...' : 'Hubungkan Folder'}
               </Button>
             </ModalFooter>
           </form>

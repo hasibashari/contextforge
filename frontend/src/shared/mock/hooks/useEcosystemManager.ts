@@ -14,6 +14,7 @@ import {
 } from '../mockData';
 import { ecosystemApi } from '@/shared/api/ecosystemApi';
 import { connectionsApi } from '@/shared/api/connectionsApi';
+import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service';
 
 export function useEcosystemManager(
   showToast: (msg: string, type?: ToastType) => void,
@@ -49,6 +50,24 @@ export function useEcosystemManager(
         }
         if (backendIntegrations && backendIntegrations.length > 0) {
           setIntegrations(backendIntegrations);
+
+          // Synchronize Obsidian vault name from connected MCP integration
+          const obsInt = backendIntegrations.find(
+            (i) =>
+              i.id === 'int-obsidian-vault-mcp' ||
+              i.name.toLowerCase().includes('obsidian'),
+          );
+          if (obsInt) {
+            const vaultName =
+              (obsInt.authConfig?.vaultName as string) ||
+              (obsInt.targetBinding?.folderScope as string) ||
+              '';
+            const folderScope =
+              (obsInt.targetBinding?.folderScope as string) || '';
+            if (vaultName) {
+              obsidianBridgeService.setPairedVault(vaultName, folderScope);
+            }
+          }
         }
         if (backendConnections && backendConnections.length > 0) {
           setConnections(backendConnections);
@@ -259,6 +278,22 @@ export function useEcosystemManager(
           return { ...intg, ...updates };
         }),
       );
+
+      if (
+        connectorId === 'int-obsidian-vault-mcp' ||
+        connectorId.toLowerCase().includes('obsidian')
+      ) {
+        const vaultName =
+          (updates.authConfig?.vaultName as string) ||
+          (updates.targetBinding?.folderScope as string) ||
+          '';
+        const folderScope =
+          (updates.targetBinding?.folderScope as string) || '';
+        if (vaultName) {
+          obsidianBridgeService.setPairedVault(vaultName, folderScope);
+        }
+      }
+
       showToast('Connector configuration saved successfully', 'success');
 
       try {

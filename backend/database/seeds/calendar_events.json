@@ -27,7 +27,7 @@
     "eventDate": "CURRENT_DATE + 1",
     "eventTime": "09:00 AM",
     "duration": "1h",
-    "location": "Obsidian Vault",
+    "location": "Obsidian App",
     "status": "upcoming",
     "category": "task",
     "attendees": ["Self"]

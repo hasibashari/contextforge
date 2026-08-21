@@ -10,9 +10,6 @@ import {
 } from '../../agentic-core/orchestrator/core-orchestrator.service';
 import type { Response } from 'express';
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -29,9 +26,6 @@ export class ChatService {
   async getSessionById(
     id: string,
   ): Promise<{ session: ChatSessionRow; messages: ChatMessageRow[] }> {
-    if (!UUID_REGEX.test(id)) {
-      throw new NotFoundException(`Chat session ${id} is not a valid UUID`);
-    }
     const session = await this.chatRepo.getSessionById(id);
     if (!session) {
       throw new NotFoundException(`Chat session ${id} not found`);
@@ -45,9 +39,7 @@ export class ChatService {
   }
 
   async deleteSession(id: string): Promise<{ success: boolean }> {
-    if (UUID_REGEX.test(id)) {
-      await this.chatRepo.deleteSession(id);
-    }
+    await this.chatRepo.deleteSession(id);
     return { success: true };
   }
 
@@ -69,12 +61,10 @@ export class ChatService {
     };
 
     try {
-      // 1. Ensure valid UUID session in database
+      // 1. Ensure valid session in database
       let targetSessionId = sessionId;
-      const isValidUuid = UUID_REGEX.test(sessionId);
-
       let existingSession: ChatSessionRow | null = null;
-      if (isValidUuid) {
+      if (sessionId) {
         existingSession = await this.chatRepo.getSessionById(sessionId);
       }
 

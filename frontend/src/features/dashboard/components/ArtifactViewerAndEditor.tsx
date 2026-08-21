@@ -164,14 +164,14 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = (
             <button
               onClick={() => {
                 obsidianBridgeService.openInObsidianApp(
-                  'Engineering-HQ',
+                  '',
                   artifact.locationPath || artifact.title,
                   artifact.content,
                 )
-                showToast('Triggered Obsidian protocol: Opening note in desktop app', 'info')
+                showToast('🚀 Membuka catatan di aplikasi Obsidian Desktop...', 'info')
               }}
               className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#7c3aed]/10 hover:bg-[#7c3aed]/20 border border-[#7c3aed]/30 text-[#7c3aed] text-[11px] font-semibold transition-colors cursor-pointer"
-              title="Open or create directly in Obsidian Desktop application"
+              title="Buka atau buat langsung di aplikasi Obsidian Desktop"
             >
               <BookOpen size={12} />
               <span className="hidden sm:inline">Open in Obsidian</span>

@@ -229,10 +229,13 @@ export function useChatEngine(
               a.id === card.targetResource ||
               a.locationPath === card.targetResource,
           ) || activeArtifact;
-        const pathName = art?.locationPath || card.subtitle || `${card.title}.md`;
-        const vaultName = obsidianBridgeService.getPairedVaultName() || '';
+        const pathName =
+          card.locationPath ||
+          art?.locationPath ||
+          card.subtitle ||
+          `${card.title}.md`;
         obsidianBridgeService.openInObsidianApp(
-          vaultName,
+          '',
           pathName,
           art?.content,
         );
@@ -245,7 +248,8 @@ export function useChatEngine(
               a.locationPath === card.targetResource,
           ) || activeArtifact;
         if (art) {
-          const pathName = art.locationPath || `${art.title}.md`;
+          const pathName =
+            card.locationPath || art.locationPath || `${art.title}.md`;
           if (obsidianBridgeService.getPairedDirectoryHandle()) {
             obsidianBridgeService
               .writeNoteToLocalVault(pathName, art.content)

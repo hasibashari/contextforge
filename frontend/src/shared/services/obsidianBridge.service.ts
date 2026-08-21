@@ -28,8 +28,14 @@ export interface DiscoveredSubfolder {
 
 class ObsidianBridgeService {
   private activeDirectoryHandle: FileSystemDirectoryHandle | null = null
-  private pairedVaultName: string = 'Engineering-HQ'
-  private pairedSubfolderScope: string = ''
+  private pairedVaultName: string =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('contextforge_obsidian_vault_name') || ''
+      : ''
+  private pairedSubfolderScope: string =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('contextforge_obsidian_subfolder_scope') || ''
+      : ''
 
   /**
    * Check if browser supports HTML5 File System Access API (Chrome, Edge, Brave, Opera)
@@ -43,16 +49,34 @@ class ObsidianBridgeService {
   }
 
   getPairedVaultName(): string {
+    if (!this.pairedVaultName && typeof window !== 'undefined') {
+      this.pairedVaultName =
+        localStorage.getItem('contextforge_obsidian_vault_name') || ''
+    }
     return this.pairedVaultName
   }
 
   getPairedSubfolderScope(): string {
+    if (!this.pairedSubfolderScope && typeof window !== 'undefined') {
+      this.pairedSubfolderScope =
+        localStorage.getItem('contextforge_obsidian_subfolder_scope') || ''
+    }
     return this.pairedSubfolderScope
   }
 
   setPairedVault(vaultName: string, subfolderScope: string = ''): void {
-    this.pairedVaultName = vaultName
-    this.pairedSubfolderScope = subfolderScope
+    const cleanVault = (vaultName || '').trim()
+    const cleanScope = (subfolderScope || '').trim()
+    this.pairedVaultName = cleanVault
+    this.pairedSubfolderScope = cleanScope
+    if (typeof window !== 'undefined') {
+      if (cleanVault) {
+        localStorage.setItem('contextforge_obsidian_vault_name', cleanVault)
+      }
+      if (cleanScope) {
+        localStorage.setItem('contextforge_obsidian_subfolder_scope', cleanScope)
+      }
+    }
   }
 
   /**
@@ -61,11 +85,11 @@ class ObsidianBridgeService {
   parseObsidianUri(location: string): ParsedObsidianUri {
     const raw = location.replace(/^obsidian:\/\/vault\/?/, '').trim()
     if (!raw) {
-      return { vaultName: 'Engineering-HQ', subfolderScope: '', fullLocation: location }
+      return { vaultName: this.getPairedVaultName(), subfolderScope: '', fullLocation: location }
     }
 
     const segments = raw.split('/').filter(Boolean)
-    const vaultName = segments[0] || 'Engineering-HQ'
+    const vaultName = segments[0] || this.getPairedVaultName()
     const subfolderScope = segments.slice(1).join('/')
 
     return { vaultName, subfolderScope, fullLocation: location }
@@ -75,8 +99,11 @@ class ObsidianBridgeService {
    * Constructs standard or scoped Obsidian URI
    */
   buildObsidianUri(vaultName: string, subfolderScope?: string): string {
-    const cleanVault = (vaultName || 'Engineering-HQ').trim()
+    const cleanVault = (vaultName || this.getPairedVaultName()).trim()
     const cleanScope = (subfolderScope || '').replace(/^\/+|\/+$/g, '').trim()
+    if (!cleanVault) {
+      return cleanScope ? `obsidian://open?file=${encodeURIComponent(cleanScope)}` : 'obsidian://open'
+    }
     return cleanScope ? `obsidian://vault/${cleanVault}/${cleanScope}` : `obsidian://vault/${cleanVault}`
   }
 
@@ -413,54 +440,42 @@ class ObsidianBridgeService {
   }
 
   /**
-   * Open / Create note directly in the local Obsidian desktop application via URI protocol
+   * Open folder/vault or specific note directly in Obsidian Desktop application via URI protocol
    */
   openInObsidianApp(
-    vaultNameOrPath: string,
+    vaultNameOrPath: string = '',
     filePath: string = '',
     content?: string,
-    subfolderScope?: string,
   ): void {
-    let rawTarget = (vaultNameOrPath || this.pairedVaultName || 'Obsidian Vault').trim()
-    if (rawTarget.startsWith('upload://')) {
-      rawTarget = this.pairedVaultName || 'Obsidian Vault'
-    }
-    const isAbsolutePath = rawTarget.startsWith('/') || /^[a-zA-Z]:\\/.test(rawTarget) || rawTarget.startsWith('~')
-
-    let targetFile = filePath.replace(/\.md$/, '').replace(/^\/+/, '')
-    const scope = (subfolderScope || this.pairedSubfolderScope || '').replace(/^\/+|\/+$/g, '')
-
-    if (scope && !targetFile.startsWith(scope)) {
-      targetFile = `${scope}/${targetFile}`
-    }
-
+    const rawTarget = (vaultNameOrPath || '').trim()
     const cleanVault = encodeURIComponent(rawTarget)
-    const cleanFile = encodeURIComponent(targetFile)
+    const cleanFile = filePath
+      ? encodeURIComponent(
+          filePath
+            .replace(/\.md$/, '')
+            .replace(/^\/+/, '')
+            .replace(/:\s*/g, ' - '),
+        )
+      : ''
+
     let uri: string
 
-    if (content) {
-      const cleanContent = encodeURIComponent(content)
-      if (isAbsolutePath) {
-        const fullPath = targetFile
-          ? `${rawTarget.replace(/\/+$/, '')}/${targetFile}.md`
-          : rawTarget
-        uri = `obsidian://new?path=${encodeURIComponent(fullPath)}&content=${cleanContent}`
-      } else {
-        uri = targetFile
+    if (cleanFile) {
+      if (content) {
+        const cleanContent = encodeURIComponent(content)
+        uri = rawTarget
           ? `obsidian://new?vault=${cleanVault}&file=${cleanFile}&content=${cleanContent}`
-          : `obsidian://new?vault=${cleanVault}&content=${cleanContent}`
+          : `obsidian://new?file=${cleanFile}&content=${cleanContent}`
+      } else {
+        uri = rawTarget
+          ? `obsidian://open?vault=${cleanVault}&file=${cleanFile}`
+          : `obsidian://open?file=${cleanFile}`
       }
     } else {
-      if (isAbsolutePath && !targetFile) {
-        uri = `obsidian://open?path=${encodeURIComponent(rawTarget)}`
-      } else if (isAbsolutePath && targetFile) {
-        const fullPath = `${rawTarget.replace(/\/+$/, '')}/${targetFile}.md`
-        uri = `obsidian://open?path=${encodeURIComponent(fullPath)}`
-      } else {
-        uri = targetFile
-          ? `obsidian://open?vault=${cleanVault}&file=${cleanFile}`
-          : `obsidian://open?vault=${cleanVault}`
-      }
+      // Open Folder / Vault root directly in Obsidian Desktop
+      uri = rawTarget
+        ? `obsidian://open?vault=${cleanVault}`
+        : `obsidian://open`
     }
 
     window.location.href = uri

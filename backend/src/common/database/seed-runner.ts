@@ -57,60 +57,7 @@ async function runSeed() {
       ALTER TABLE IF EXISTS user_memories ALTER COLUMN id TYPE VARCHAR(100);
     `);
 
-    // 2. Seed Knowledge Sources (Canonical system presets)
-    console.log('📚 Seeding Knowledge Sources...');
-    const defaultKnowledgePresets = [
-      {
-        id: 'src-arch-docs',
-        type: 'local_folder',
-        name: 'ContextForge Architecture & RFC Docs',
-        description:
-          'System architecture decisions, MCP protocol specs, and agent execution lifecycle standards.',
-        location: 'docs',
-        meta: 'Local Architecture Docs',
-        iconType: 'book',
-        color: 'text-primary',
-      },
-      {
-        id: 'src-api-specs',
-        type: 'openapi_spec',
-        name: 'ContextForge Core OpenAPI Specification',
-        description:
-          'Live REST & SSE endpoints specification for Agentic Core, Knowledge RAG, and Ecosystem Tools.',
-        location: 'http://localhost:3001/api/docs-json',
-        meta: 'Core API Specification',
-        iconType: 'code',
-        color: 'text-accent',
-      },
-    ];
-
-    for (const item of defaultKnowledgePresets) {
-      await client.query(
-        `INSERT INTO knowledge_sources (
-          id, type, name, description, location, meta, files_count, chunks_count, status, icon_type, color
-        ) VALUES ($1, $2, $3, $4, $5, $6, 0, 0, 'synced', $7, $8)
-        ON CONFLICT (id) DO UPDATE SET
-          name = EXCLUDED.name,
-          description = EXCLUDED.description,
-          location = EXCLUDED.location,
-          meta = EXCLUDED.meta;`,
-        [
-          item.id,
-          item.type,
-          item.name,
-          item.description,
-          item.location,
-          item.meta,
-          item.iconType,
-          item.color,
-        ],
-      );
-    }
-    console.log(
-      `   ✓ Seeded ${defaultKnowledgePresets.length} canonical knowledge sources`,
-    );
-
-    // 3. Seed Calendar Events
+    // 2. Calendar Events
     console.log('📅 Seeding Calendar Events...');
     for (const item of calendarSeed) {
       const dateVal =

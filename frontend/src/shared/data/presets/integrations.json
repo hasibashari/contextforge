@@ -4,11 +4,17 @@
     "name": "Obsidian Vault MCP Bridge",
     "category": "mcp_server",
     "status": "connected",
-    "endpoint": "npx -y @modelcontextprotocol/server-obsidian ~/Documents/ObsidianVault",
+    "endpoint": "npx -y @modelcontextprotocol/server-obsidian",
     "version": "v2.1.0",
     "transport": "stdio",
     "authType": "none",
-    "authConfig": {},
+    "authConfig": {
+      "vaultName": ""
+    },
+    "targetBinding": {
+      "defaultOutputPath": "Work/Notes",
+      "folderScope": "Work/Notes"
+    },
     "description": "Direct bi-directional Model Context Protocol bridge into local Obsidian vault files, backlinks & daily notes.",
     "lastPingMs": 14,
     "latencyMs": 11,
@@ -36,6 +42,15 @@
       },
       {
         "id": "t-obsidian-3",
+        "name": "obsidian_search_backlinks",
+        "description": "Extract bi-directional link graphs and wikilink references across vault",
+        "parametersSchema": {
+          "targetNote": "string"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-obsidian-4",
         "name": "obsidian_create_daily_note",
         "description": "Create daily briefing and structured journal note in Obsidian DailyNotes folder",
         "parametersSchema": {
@@ -109,6 +124,17 @@
           "properties": "object"
         },
         "readOnly": false
+      },
+      {
+        "id": "t-notion-6",
+        "name": "notion_query_database",
+        "description": "Filter and sort structured records inside Notion databases",
+        "parametersSchema": {
+          "databaseId": "string",
+          "filter": "object",
+          "sorts": "array"
+        },
+        "readOnly": true
       }
     ]
   }

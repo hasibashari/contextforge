@@ -28,12 +28,18 @@ export class McpGatewayService {
     );
 
     // 1. Route to Obsidian MCP Server
-    if (toolName.startsWith('obsidian_') || toolName === 'dispatch_action_worker') {
+    if (
+      toolName.startsWith('obsidian_') ||
+      toolName === 'dispatch_action_worker'
+    ) {
       return this.handleObsidianTool(toolName, params);
     }
 
     // 2. Route to Notion MCP Server
-    if (toolName.startsWith('notion_') || toolName === 'query_notion_workspace') {
+    if (
+      toolName.startsWith('notion_') ||
+      toolName === 'query_notion_workspace'
+    ) {
       return this.handleNotionTool(toolName, params);
     }
 
@@ -57,8 +63,9 @@ export class McpGatewayService {
     const title = (params.title as string) || 'Architecture Note';
     const path =
       (params.path as string) ||
-      `Vault/Work/Notes/${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`;
-    const content = (params.content as string) || `# ${title}\n\nAutomated note.`;
+      `Work/Notes/${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`;
+    const content =
+      (params.content as string) || `# ${title}\n\nAutomated note.`;
 
     if (
       toolName === 'obsidian_vault_writer' ||
@@ -92,8 +99,9 @@ export class McpGatewayService {
     }
 
     if (toolName === 'obsidian_create_daily_note') {
-      const dateStr = (params.date as string) || new Date().toISOString().slice(0, 10);
-      const dailyPath = `Vault/DailyNotes/${dateStr}.md`;
+      const dateStr =
+        (params.date as string) || new Date().toISOString().slice(0, 10);
+      const dailyPath = `DailyNotes/${dateStr}.md`;
       const dailyContent =
         (params.content as string) ||
         `# Daily Log: ${dateStr}\n\n## Priorities\n- Focus on Core Agentic Platform deliverables.\n\n## Backlinks\n- [[Daily Review]] · [[ContextForge Architecture]]`;
@@ -136,10 +144,10 @@ export class McpGatewayService {
   /**
    * Handles all tools exposed by Notion MCP Server
    */
-  private async handleNotionTool(
+  private handleNotionTool(
     toolName: string,
     params: Record<string, unknown>,
-  ): Promise<McpToolCallResult> {
+  ): McpToolCallResult {
     void params;
     const nowStr = new Date().toLocaleDateString('id-ID', {
       weekday: 'long',
@@ -148,7 +156,10 @@ export class McpGatewayService {
       year: 'numeric',
     });
 
-    if (toolName === 'notion_get_tasks' || toolName === 'query_notion_workspace') {
+    if (
+      toolName === 'notion_get_tasks' ||
+      toolName === 'query_notion_workspace'
+    ) {
       const tasks = [
         {
           id: 'notion-task-1',
@@ -201,15 +212,26 @@ export class McpGatewayService {
         toolName: 'notion_search',
         data: {
           results: [
-            { title: 'Product Engineering Task Board', type: 'database', id: 'db-eng-tasks' },
-            { title: 'Sprint 2026-Q3 Roadmap', type: 'page', id: 'page-roadmap' },
+            {
+              title: 'Product Engineering Task Board',
+              type: 'database',
+              id: 'db-eng-tasks',
+            },
+            {
+              title: 'Sprint 2026-Q3 Roadmap',
+              type: 'page',
+              id: 'page-roadmap',
+            },
           ],
         },
         summary: 'Searched Notion workspace pages and databases.',
       };
     }
 
-    if (toolName === 'notion_create_page' || toolName === 'notion_update_database') {
+    if (
+      toolName === 'notion_create_page' ||
+      toolName === 'notion_update_database'
+    ) {
       const pageTitle = (params.title as string) || 'New Notion Document';
       return {
         success: true,

@@ -104,9 +104,7 @@ export class AutomationService {
       output_summary: isObsidian
         ? `Successfully generated atomic Obsidian note at DailyNotes/${todayStr}.md`
         : `Automation completed successfully with 0 errors.`,
-      output_artifact_url: isObsidian
-        ? `obsidian://vault/PersonalVault/DailyNotes/${todayStr}.md`
-        : undefined,
+      output_artifact_url: isObsidian ? `DailyNotes/${todayStr}.md` : undefined,
     });
 
     // Update workflow last run

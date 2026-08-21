@@ -24,7 +24,7 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
           'Target workspace destination: "obsidian" (default) or "notion"',
         ),
         path: strProp(
-          'Relative vault file path, e.g. Vault/Work/Notes/system-architecture.md',
+          'Relative vault file path, e.g. Work/Notes/system-architecture.md',
         ),
         content: strProp(
           'Complete formatted markdown content including YAML frontmatter, headers, and bi-directional [[backlinks]]',
@@ -40,13 +40,27 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
     parameters: {
       type: 'OBJECT' as unknown as Type,
       properties: {
-        name: strProp('Descriptive workflow name, e.g. "Daily Notion Tasks Briefing"'),
-        description: strProp('Short description of what the background automation executes'),
-        schedule_cron: strProp('Standard 5-field cron expression, e.g. "0 8 * * *" for 08:00 AM daily'),
-        schedule_label: strProp('Human-readable schedule string, e.g. "Every day at 08:00 AM"'),
-        mcp_server_id: strProp('Target MCP Server identifier, e.g. "int-notion-mcp" or "int-obsidian-vault-mcp"'),
-        mcp_tools: arrayProp('Array of tool names to execute, e.g. ["notion_get_tasks", "notion_read_page"]'),
-        prompt_template: strProp('Instruction prompt template sent to the agent when triggered'),
+        name: strProp(
+          'Descriptive workflow name, e.g. "Daily Notion Tasks Briefing"',
+        ),
+        description: strProp(
+          'Short description of what the background automation executes',
+        ),
+        schedule_cron: strProp(
+          'Standard 5-field cron expression, e.g. "0 8 * * *" for 08:00 AM daily',
+        ),
+        schedule_label: strProp(
+          'Human-readable schedule string, e.g. "Every day at 08:00 AM"',
+        ),
+        mcp_server_id: strProp(
+          'Target MCP Server identifier, e.g. "int-notion-mcp" or "int-obsidian-vault-mcp"',
+        ),
+        mcp_tools: arrayProp(
+          'Array of tool names to execute, e.g. ["notion_get_tasks", "notion_read_page"]',
+        ),
+        prompt_template: strProp(
+          'Instruction prompt template sent to the agent when triggered',
+        ),
       },
       required: ['name', 'schedule_cron', 'mcp_server_id'],
     },

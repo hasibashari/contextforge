@@ -101,6 +101,7 @@ export class UniversalMcpToolHandler {
         type: 'document_ready',
         title: docTitle,
         subtitle: relativePath,
+        locationPath: relativePath,
         badge: 'Obsidian Note',
         badgeVariant: 'purple',
         description: `Dokumen Markdown lengkap telah disusun dengan YAML frontmatter dan bi-directional links. Buka di editor Aside, simpan ke folder lokal, atau buka langsung di aplikasi Obsidian Desktop.`,

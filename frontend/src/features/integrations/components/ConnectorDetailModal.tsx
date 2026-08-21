@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import {
   CheckCircle2,
-  BookOpen,
   Terminal,
   Zap,
   Check,
@@ -60,19 +59,12 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
   onSaveConfig,
   isTesting,
 }) => {
-  const { knowledgeSources, integrations, discoverTools } = useWorkspace()
+  const { integrations, discoverTools } = useWorkspace()
   const currentIntegration =
     integrations.find((i) => i.id === integration.id) || integration
 
   const [isEditing, setIsEditing] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
-
-  const [selectedVaultScope, setSelectedVaultScope] = useState(
-    integration.targetBinding?.folderScope || 'Obsidian',
-  )
-  const [outputPath, setOutputPath] = useState(
-    integration.targetBinding?.defaultOutputPath || 'Drafts/',
-  )
 
   const [formData, setFormData] = useState({
     name: integration.name,
@@ -91,10 +83,6 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
       description: formData.description,
       endpoint: formData.endpoint,
       transport: formData.transport,
-      targetBinding: {
-        folderScope: selectedVaultScope,
-        defaultOutputPath: outputPath,
-      },
     })
     setIsEditing(false)
   }
@@ -233,48 +221,6 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
             />
           </FormField>
 
-          {/* Storage & Knowledge Mounting Selector in Edit Mode */}
-          {(integration.id.includes('obsidian') ||
-            integration.id.includes('filesystem') ||
-            integration.category === 'documentation' ||
-            integration.category === 'mcp_server') && (
-            <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 space-y-2.5">
-              <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
-                <BookOpen size={13} className="text-primary" />
-                <span>Target Knowledge Source Mount &amp; Output Route</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <FormField label="Mount to Knowledge Source:">
-                  <Select
-                    variant="mono"
-                    value={selectedVaultScope}
-                    onChange={(e) => setSelectedVaultScope(e.target.value)}
-                  >
-                    {knowledgeSources.length > 0 ? (
-                      knowledgeSources.map((ks) => (
-                        <option key={ks.id} value={ks.subfolderScope || ks.name}>
-                          📚 {ks.name} ({ks.filesCount} files)
-                        </option>
-                      ))
-                    ) : (
-                      <option value="Personal Obsidian Vault">📚 Personal Obsidian Vault</option>
-                    )}
-                  </Select>
-                </FormField>
-
-                <FormField label="Default Output Subfolder">
-                  <Input
-                    variant="mono"
-                    value={outputPath}
-                    onChange={(e) => setOutputPath(e.target.value)}
-                    placeholder="e.g. Drafts/ or Notes/"
-                  />
-                </FormField>
-              </div>
-            </div>
-          )}
-
           <FormField label="Description">
             <Textarea
               value={formData.description}
@@ -317,45 +263,34 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
             {integration.description}
           </p>
 
-          {/* Storage & Mount Banner */}
-          {(integration.id.includes('obsidian') ||
-            integration.id.includes('filesystem') ||
-            Boolean(integration.targetBinding)) && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20 gap-2.5">
+          {/* Storage & Mount Banner for Obsidian */}
+          {integration.id.includes('obsidian') && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-[#7c3aed]/5 rounded-xl border border-[#7c3aed]/20 gap-2.5">
               <div className="flex items-center gap-2 min-w-0">
-                {integration.id.includes('obsidian') ? (
-                  <BookOpen size={16} className="text-[#7c3aed] shrink-0" />
-                ) : (
-                  <Folder size={16} className="text-primary shrink-0" />
-                )}
+                <Folder size={16} className="text-[#7c3aed]" />
                 <div className="min-w-0">
                   <div className="font-semibold text-ink text-xs truncate">
-                    Mounted to: 📚 {selectedVaultScope}
+                    Folder Terhubung: 📁 {currentIntegration.targetBinding?.folderScope || obsidianBridgeService.getPairedDirectoryHandle()?.name || 'Folder Terpilih'}
                   </div>
                   <div className="text-[11px] text-muted font-mono">
-                    Target Storage Route: /{selectedVaultScope}/{outputPath}
+                    Catatan otomatis disimpan langsung ke folder ini
                   </div>
                 </div>
               </div>
 
-              {integration.id.includes('obsidian') && (
-                <Button
-                  variant="purple"
-                  size="xs"
-                  leftIcon={<ExternalLink size={12} />}
-                  onClick={() => {
-                    const vaultName =
-                      (currentIntegration.authConfig?.vaultName as string) ||
-                      obsidianBridgeService.getPairedVaultName() ||
-                      'Obsidian Vault'
-                    const subfolder = selectedVaultScope || ''
-                    obsidianBridgeService.openInObsidianApp(vaultName, subfolder)
-                  }}
-                  className="shrink-0 self-start sm:self-auto"
-                >
-                  Open in Obsidian
-                </Button>
-              )}
+              <Button
+                variant="purple"
+                size="xs"
+                leftIcon={<ExternalLink size={12} />}
+                onClick={() => {
+                  const targetFolder =
+                    currentIntegration.targetBinding?.folderScope || ''
+                  obsidianBridgeService.openInObsidianApp(targetFolder, '')
+                }}
+                className="shrink-0 self-start sm:self-auto"
+              >
+                Open in Obsidian
+              </Button>
             </div>
           )}
 

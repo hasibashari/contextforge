@@ -118,6 +118,7 @@ export class ActionToolHandler {
       type: 'document_ready',
       title: docTitle,
       subtitle: vaultResult.relativePath,
+      locationPath: vaultResult.relativePath,
       badge: targetService === 'notion' ? 'Notion Doc' : 'Obsidian Note',
       badgeVariant: targetService === 'notion' ? 'neutral' : 'purple',
       description: `Dokumen Markdown lengkap telah dibuat dengan YAML frontmatter. Buka di editor Aside, simpan ke folder lokal, atau buka langsung di aplikasi Obsidian.`,
