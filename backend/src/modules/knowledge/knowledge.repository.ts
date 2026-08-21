@@ -42,6 +42,7 @@ export class KnowledgeRepository implements OnModuleInit {
 
   async onModuleInit() {
     await this.ensureTables();
+    await this.seedPresets();
   }
 
   async ensureTables() {
@@ -80,6 +81,47 @@ export class KnowledgeRepository implements OnModuleInit {
       this.logger.log('✨ Knowledge sources table verified in PostgreSQL');
     } catch (err: unknown) {
       this.logger.error('Failed to initialize knowledge tables', err);
+    }
+  }
+
+  private async seedPresets() {
+    try {
+      const countRes = await this.db.query<{ count: string }>(
+        `SELECT count(*) as count FROM knowledge_sources;`,
+      );
+      if (parseInt(countRes.rows[0]?.count || '0', 10) === 0) {
+        this.logger.log('🌱 Seeding default knowledge sources...');
+        const presets = [
+          {
+            type: 'local_folder',
+            name: 'ContextForge Architecture & RFC Docs',
+            description:
+              'System architecture decisions, MCP protocol specs, and agent execution lifecycle standards.',
+            location: 'docs',
+            meta: 'Local Architecture Docs',
+            iconType: 'book',
+            color: 'text-primary',
+          },
+          {
+            type: 'openapi_spec',
+            name: 'ContextForge Core OpenAPI Specification',
+            description:
+              'Live REST & SSE endpoints specification for Agentic Core, Knowledge RAG, and Ecosystem Tools.',
+            location: 'http://localhost:3001/api/docs-json',
+            meta: 'Core API Specification',
+            iconType: 'code',
+            color: 'text-accent',
+          },
+        ];
+
+        for (const p of presets) {
+          await this.createSource(p);
+        }
+        this.logger.log(`✓ Seeded ${presets.length} default knowledge sources`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Could not seed knowledge sources: ${msg}`);
     }
   }
 

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { McpGatewayService } from '../services/mcp-gateway.service';
 import { AgentRecorderService } from '../services/agent-recorder.service';
+import { ArtifactRow } from '../../modules/artifacts/artifacts.repository';
 import {
   OrchestrationResult,
   StreamEmitter,
@@ -65,7 +66,8 @@ export class UniversalMcpToolHandler {
       },
     });
 
-    let artifact;
+    let artifact: ArtifactRow | undefined;
+    let actionCard: Record<string, unknown> | undefined;
     let textContent = '';
 
     if (isObsidian) {
@@ -73,8 +75,10 @@ export class UniversalMcpToolHandler {
         (args.title as string) || (args.name as string) || 'Architecture Note';
       const rawData = result.data as Record<string, unknown>;
       const formattedContent = (rawData?.formattedContent as string) || '';
-      const relativePath = (rawData?.relativePath as string) || 'Vault/Notes.md';
-      const absolutePath = (rawData?.absolutePath as string) || '';
+      const relativePath =
+        (rawData?.relativePath as string) ||
+        (args.path as string) ||
+        `Work/Notes/${docTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`;
 
       if (formattedContent) {
         artifact = await this.recorder.recordArtifact({
@@ -92,7 +96,38 @@ export class UniversalMcpToolHandler {
         });
       }
 
-      textContent = `Saya telah mendelegasikan eksekusi penyusunan dokumen ke **${agentName}** via **Obsidian MCP**.\n\n### 📋 Ringkasan Dokumen:\n- **Dokumen:** \`${docTitle}\`\n- **Target Vault:** \`${relativePath}\`\n- **Lokasi Fisik:** \`${absolutePath}\`\n- **Status:** Synced & Written to Disk\n\n*Anda dapat membaca atau menyunting dokumen lengkapnya di panel Workspace Aside di sebelah kanan.*`;
+      actionCard = {
+        id: `card-${artifact?.id || Date.now()}`,
+        type: 'document_ready',
+        title: docTitle,
+        subtitle: relativePath,
+        badge: 'Obsidian Note',
+        badgeVariant: 'purple',
+        description: `Dokumen Markdown lengkap telah disusun dengan YAML frontmatter dan bi-directional links. Buka di editor Aside, simpan ke folder lokal, atau buka langsung di aplikasi Obsidian Desktop.`,
+        targetResource: artifact?.id || relativePath,
+        actions: [
+          {
+            key: 'open_aside',
+            label: 'Buka di Workspace Aside',
+            primary: true,
+            icon: 'edit-3',
+          },
+          {
+            key: 'open_in_obsidian',
+            label: 'Buka di Obsidian App',
+            primary: false,
+            icon: 'book-open',
+          },
+          {
+            key: 'write_to_local_disk',
+            label: 'Simpan ke Folder Lokal',
+            primary: false,
+            icon: 'hard-drive',
+          },
+        ],
+      };
+
+      textContent = `Saya telah mendelegasikan eksekusi penyusunan dokumen ke **${agentName}** via **Obsidian MCP**.\n\n### 📋 Ringkasan Dokumen:\n- **Dokumen:** \`${docTitle}\`\n- **Target Path:** \`${relativePath}\`\n- **Status:** Tersedia di Workspace Aside & Siap Disinkronkan\n\n*Gunakan tombol di bawah atau di panel Aside untuk membuka langsung di aplikasi Obsidian Desktop atau menyimpannya ke folder vault lokal Anda.*`;
     } else {
       // Notion Response
       const nowStr = new Date().toLocaleDateString('id-ID', {
@@ -154,6 +189,7 @@ Fokuskan 2 jam pertama pada **OAuth2 PKCE Flow** dan **Code Review PR #42**. Sem
       },
       sideAgent,
       artifact,
+      actionCard,
     };
   }
 }

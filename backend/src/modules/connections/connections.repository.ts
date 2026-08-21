@@ -25,6 +25,7 @@ export class ConnectionsRepository implements OnModuleInit {
 
   async onModuleInit() {
     await this.ensureTables();
+    await this.seedPresets();
   }
 
   async ensureTables() {
@@ -52,6 +53,73 @@ export class ConnectionsRepository implements OnModuleInit {
         'Failed to initialize workspace_connections table',
         err,
       );
+    }
+  }
+
+  private async seedPresets() {
+    try {
+      const countRes = await this.db.query<{ count: string }>(
+        `SELECT count(*) as count FROM workspace_connections;`,
+      );
+      if (parseInt(countRes.rows[0]?.count || '0', 10) === 0) {
+        this.logger.log('🌱 Seeding default workspace connections...');
+        const presets: Array<{
+          id: string;
+          name: string;
+          connectionType: WorkspaceConnectionRow['connection_type'];
+          provider: string;
+          authType: WorkspaceConnectionRow['auth_type'];
+          endpointUrl: string;
+          config: Record<string, any>;
+        }> = [
+          {
+            id: 'conn-gemini-primary',
+            name: 'Google Gemini 3.x Flash',
+            connectionType: 'llm_provider',
+            provider: 'google_gemini',
+            authType: 'api_key',
+            endpointUrl: 'https://generativelanguage.googleapis.com',
+            config: { masked_key: 'AIzaSy••••••••••••••••••••••••••••••••' },
+          },
+          {
+            id: 'conn-github-oauth',
+            name: 'GitHub Engineering Workspace',
+            connectionType: 'oauth_service',
+            provider: 'github',
+            authType: 'oauth2',
+            endpointUrl: 'https://api.github.com',
+            config: { scope: ['repo', 'workflow'] },
+          },
+          {
+            id: 'conn-google-calendar',
+            name: 'Google Calendar Sync',
+            connectionType: 'oauth_service',
+            provider: 'google_calendar',
+            authType: 'oauth2',
+            endpointUrl: 'https://www.googleapis.com/calendar/v3',
+            config: { scope: ['calendar.events'] },
+          },
+          {
+            id: 'conn-postgres-prod',
+            name: 'Cloud SQL PostgreSQL Instance',
+            connectionType: 'database',
+            provider: 'postgres',
+            authType: 'connection_string',
+            endpointUrl: 'postgresql://cloudsql/contextforge_prod',
+            config: { ssl: true },
+          },
+        ];
+
+        for (const p of presets) {
+          await this.createConnection(p);
+        }
+        this.logger.log(
+          `✓ Seeded ${presets.length} default workspace connections`,
+        );
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Could not seed connections: ${msg}`);
     }
   }
 

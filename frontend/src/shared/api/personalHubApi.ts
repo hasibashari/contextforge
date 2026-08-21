@@ -24,6 +24,20 @@ export interface BackendUserMemory {
   updated_at: string;
 }
 
+function formatEventDate(rawDate?: string): string {
+  if (!rawDate) return 'Today';
+  const cleanDateStr = rawDate.split('T')[0];
+  const parts = cleanDateStr.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const dateObj = new Date(year, month, day);
+    return dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+  }
+  return new Date(rawDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+}
+
 export const personalHubApi = {
   // Calendar
   async getCalendarEvents(): Promise<CalendarEvent[]> {
@@ -32,7 +46,7 @@ export const personalHubApi = {
     return data.map((e) => ({
       id: e.id,
       title: e.title,
-      date: e.event_date ? new Date(e.event_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'Today',
+      date: formatEventDate(e.event_date),
       time: e.event_time,
       duration: e.duration,
       location: e.location,
@@ -60,7 +74,7 @@ export const personalHubApi = {
     return {
       id: e.id,
       title: e.title,
-      date: 'Today',
+      date: formatEventDate(e.event_date || event.eventDate),
       time: e.event_time,
       duration: e.duration,
       location: e.location,

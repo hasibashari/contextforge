@@ -31,7 +31,7 @@ export class ActionToolHandler {
     const docTitle = args.title || 'Architecture Note';
     const pathName =
       args.path ||
-      `Vault/Work/Notes/${docTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`;
+      `Work/Notes/${docTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`;
     const markdownContent = args.content || `# ${docTitle}\n\n${prompt}`;
 
     emit({
@@ -113,7 +113,38 @@ export class ActionToolHandler {
       data: artifact as unknown as Record<string, unknown>,
     });
 
-    const textContent = `Saya telah mendelegasikan eksekusi penyusunan dokumen ke **Action Agent**. Dokumen lengkap telah ditulis ke direktori vault dan dibuka di panel **Workspace Aside** sebelah kanan.\n\n### 📋 Ringkasan Dokumen:\n- **Dokumen:** \`${docTitle}\`\n- **Target Workspace:** \`${targetService.toUpperCase()}\` (\`${vaultResult.relativePath}\`)\n- **Ukuran File:** \`${vaultResult.bytesWritten} bytes\` (${vaultResult.lineCount} baris)\n- **Lokasi Fisik:** \`${vaultResult.absolutePath}\`\n- **Status:** Disk Write Completed & Synced to DB\n\n*Anda dapat membaca, menyunting, atau mengekspor dokumen langsung dari panel editor di sebelah kanan.*`;
+    const actionCard = {
+      id: `card-${artifact.id}`,
+      type: 'document_ready',
+      title: docTitle,
+      subtitle: vaultResult.relativePath,
+      badge: targetService === 'notion' ? 'Notion Doc' : 'Obsidian Note',
+      badgeVariant: targetService === 'notion' ? 'neutral' : 'purple',
+      description: `Dokumen Markdown lengkap telah dibuat dengan YAML frontmatter. Buka di editor Aside, simpan ke folder lokal, atau buka langsung di aplikasi Obsidian.`,
+      targetResource: artifact.id,
+      actions: [
+        {
+          key: 'open_aside',
+          label: 'Buka di Workspace Aside',
+          primary: true,
+          icon: 'edit-3',
+        },
+        {
+          key: 'open_in_obsidian',
+          label: 'Buka di Obsidian App',
+          primary: false,
+          icon: 'book-open',
+        },
+        {
+          key: 'write_to_local_disk',
+          label: 'Simpan ke Folder Lokal',
+          primary: false,
+          icon: 'hard-drive',
+        },
+      ],
+    };
+
+    const textContent = `Saya telah mendelegasikan eksekusi penyusunan dokumen ke **Action Agent**. Dokumen lengkap telah disusun dan dibuka di panel **Workspace Aside** sebelah kanan.\n\n### 📋 Ringkasan Dokumen:\n- **Dokumen:** \`${docTitle}\`\n- **Target Path:** \`${vaultResult.relativePath}\`\n- **Ukuran:** \`${vaultResult.bytesWritten} bytes\` (${vaultResult.lineCount} baris)\n- **Status:** Tersedia di Workspace Aside & Siap Disinkronkan\n\n*Gunakan tombol **Buka di Obsidian App** atau **Simpan ke Folder Lokal** di bawah untuk menyinkronkannya langsung ke aplikasi Obsidian Anda.*`;
 
     emit({ event: 'chat_chunk', data: { delta: textContent } });
     emit({
@@ -131,6 +162,7 @@ export class ActionToolHandler {
       },
       sideAgent,
       artifact,
+      actionCard,
     };
   }
 }

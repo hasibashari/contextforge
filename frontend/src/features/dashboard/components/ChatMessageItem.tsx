@@ -2,18 +2,20 @@ import React from 'react'
 import { Globe, Zap } from 'lucide-react'
 import { MarkdownRenderer } from '@/shared/components'
 import { CompactArtifactPill } from './CompactArtifactPill'
-import type { ChatMessage, Artifact } from '@/shared/types/workspace'
+import type { ChatMessage, Artifact, ActionCardData } from '@/shared/types/workspace'
 
 interface ChatMessageItemProps {
   msg: ChatMessage
   artifacts: Artifact[]
   onOpenArtifact: (artifact: Artifact) => void
+  onExecuteAction?: (actionKey: string, card: ActionCardData) => void
 }
 
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   msg,
   artifacts,
   onOpenArtifact,
+  onExecuteAction,
 }) => {
   const isUser = msg.role === 'user'
 
@@ -78,6 +80,53 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           <span className="text-muted">·</span>
           <span className="text-muted truncate max-w-xs">{msg.sideAgent.targetResource}</span>
           <span className="text-semantic-success font-semibold">({msg.sideAgent.executionTimeMs}ms)</span>
+        </div>
+      )}
+
+      {/* Interactive Action Card (Obsidian / Notion / Artifact sync) */}
+      {msg.actionCard && (
+        <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2.5 max-w-lg shadow-2xs">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                  {msg.actionCard.badge || msg.actionCard.badgeText || 'Action Ready'}
+                </span>
+                <span className="text-ink font-semibold text-xs">{msg.actionCard.title}</span>
+              </div>
+              {(msg.actionCard.subtitle || msg.actionCard.locationPath) && (
+                <div className="text-[11px] font-mono text-muted mt-0.5">
+                  {msg.actionCard.subtitle || msg.actionCard.locationPath}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p className="text-xs text-muted leading-relaxed">
+            {msg.actionCard.description}
+          </p>
+
+          {msg.actionCard.actions && msg.actionCard.actions.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap pt-1">
+              {msg.actionCard.actions.map((act, idx) => {
+                const actionKey = act.actionKey || act.key || '';
+                const isPrimary = act.primary;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => onExecuteAction?.(actionKey, msg.actionCard!)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      isPrimary
+                        ? 'bg-primary text-primary-contrast hover:bg-primary-hover shadow-2xs'
+                        : 'bg-surface hover:bg-surface-elevated border border-hairline text-ink'
+                    }`}
+                  >
+                    <span>{act.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

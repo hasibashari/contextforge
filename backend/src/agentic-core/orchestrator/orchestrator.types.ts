@@ -23,6 +23,7 @@ export interface OrchestrationResult {
   };
   sideAgent?: Record<string, unknown>;
   artifact?: ArtifactRow;
+  actionCard?: Record<string, unknown>;
   sourceDomains?: string[];
 }
 

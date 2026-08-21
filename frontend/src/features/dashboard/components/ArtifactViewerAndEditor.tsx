@@ -181,7 +181,7 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = (
             {obsidianBridgeService.getPairedDirectoryHandle() && (
               <button
                 onClick={async () => {
-                  const pathName = artifact.locationPath || `Vault/Work/Notes/${artifact.title}.md`
+                  const pathName = artifact.locationPath || `Work/Notes/${artifact.title}.md`
                   const ok = await obsidianBridgeService.writeNoteToLocalVault(pathName, artifact.content)
                   if (ok) {
                     showToast('Note written directly to paired local Obsidian Vault disk!', 'success')

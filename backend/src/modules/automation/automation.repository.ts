@@ -93,12 +93,112 @@ export class AutomationRepository implements OnModuleInit {
           output_artifact_url TEXT,
           created_at TIMESTAMPTZ DEFAULT NOW()
         );
+
+        -- Normalize legacy agent IDs
+        UPDATE automations SET agent_id = 'agent-action' WHERE agent_id = 'agent-action-worker';
+        UPDATE automations SET agent_id = 'agent-research' WHERE agent_id = 'agent-researcher';
+        UPDATE automations SET mcp_tools = ARRAY['obsidian_vault_reader', 'obsidian_vault_writer']
+        WHERE mcp_tools = ARRAY['obsidian_read_vault', 'obsidian_write_note'];
       `);
+
+      // Seed standard presets if table is empty
+      const countRes = await this.db.query<{ count: string }>(
+        `SELECT COUNT(*) FROM automations;`,
+      );
+      if (parseInt(countRes.rows[0]?.count || '0', 10) === 0) {
+        await this.seedPresets();
+      }
 
       this.logger.log('✨ Automations & Runs tables verified in PostgreSQL');
     } catch (err: unknown) {
       this.logger.error('Failed to initialize automations tables', err);
     }
+  }
+
+  private async seedPresets() {
+    const presets: Partial<AutomationWorkflowRow>[] = [
+      {
+        id: 'auto-obsidian-daily-briefing',
+        name: 'Daily Morning Obsidian Briefing & Journaling',
+        description:
+          'Automatically summarizes open action items and generates an atomic Markdown daily note directly in the local Obsidian Vault.',
+        agent_id: 'agent-action',
+        agent_name: 'Action Agent (Obsidian Vault Worker)',
+        mcp_server_id: 'int-obsidian-vault-mcp',
+        mcp_tools: [
+          'obsidian_create_daily_note',
+          'obsidian_vault_writer',
+          'obsidian_vault_reader',
+        ],
+        trigger_type: 'schedule',
+        schedule_cron: '0 8 * * *',
+        schedule_label: 'Every day at 08:00 AM (WIB)',
+        prompt_template:
+          "Pull today's urgent priorities and construct a structured daily note in Obsidian at DailyNotes/{{today}}.md with YAML frontmatter, today's focus, and bi-directional links [[Daily Review]].",
+        guardrail_strict_hitl: false,
+        is_active: true,
+      },
+      {
+        id: 'auto-notion-daily-tasks',
+        name: 'Daily Notion Tasks Triage & Focus Briefing',
+        description:
+          'Queries the Notion Task Database every morning, filters active/high-priority tasks, and prepares a clear executive focus briefing.',
+        agent_id: 'agent-action',
+        agent_name: 'Action Agent (Notion Worker)',
+        mcp_server_id: 'int-notion-mcp',
+        mcp_tools: ['notion_get_tasks', 'notion_read_page', 'notion_search'],
+        trigger_type: 'schedule',
+        schedule_cron: '0 8 * * *',
+        schedule_label: 'Every day at 08:00 AM',
+        prompt_template:
+          "Query Notion task board via MCP for active tasks. Categorize items by priority (High, Medium, Low) and output an executive summary of today's deliverables.",
+        guardrail_strict_hitl: false,
+        is_active: true,
+      },
+      {
+        id: 'auto-obsidian-knowledge-weaver',
+        name: 'Obsidian Vault Knowledge Graph & Backlink Weaver',
+        description:
+          'Periodically scans notes in the Obsidian Inbox directory, generates semantic embeddings, and appends bi-directional backlinks to related concept notes.',
+        agent_id: 'agent-research',
+        agent_name: 'Research & Grounding Agent',
+        mcp_server_id: 'int-obsidian-vault-mcp',
+        mcp_tools: ['obsidian_vault_reader', 'obsidian_vault_writer'],
+        trigger_type: 'schedule',
+        schedule_cron: '0 */6 * * *',
+        schedule_label: 'Every 6 hours',
+        prompt_template:
+          "Scan Obsidian notes in folder 'Inbox/' created within the last 24 hours. Analyze key concepts, find related documents in the knowledge base, and insert a '## Related Concept Links' section containing bi-directional wikilinks [[Topic]] and tags.",
+        guardrail_strict_hitl: false,
+        is_active: true,
+      },
+      {
+        id: 'auto-notion-obsidian-sync',
+        name: 'Notion Tasks to Obsidian Vault Weekly Sync',
+        description:
+          'Cross-syncs completed Notion tasks into the local Obsidian Vault archives every Friday evening for offline permanent documentation.',
+        agent_id: 'agent-action',
+        agent_name: 'Action Agent (Obsidian & Notion Worker)',
+        mcp_server_id: 'int-obsidian-vault-mcp',
+        mcp_tools: [
+          'notion_get_tasks',
+          'obsidian_vault_writer',
+          'obsidian_create_daily_note',
+        ],
+        trigger_type: 'schedule',
+        schedule_cron: '0 17 * * 5',
+        schedule_label: 'Every Friday at 05:00 PM (WIB)',
+        prompt_template:
+          "Fetch all tasks completed this week from Notion MCP, format them into a markdown archive page, and write the file into Obsidian at 'Archives/Sprints/Weekly-Summary-{{today}}.md'.",
+        guardrail_strict_hitl: false,
+        is_active: true,
+      },
+    ];
+
+    for (const preset of presets) {
+      await this.createAutomation(preset);
+    }
+    this.logger.log(`🌱 Seeded ${presets.length} preset automations`);
   }
 
   async getAllAutomations(): Promise<AutomationWorkflowRow[]> {

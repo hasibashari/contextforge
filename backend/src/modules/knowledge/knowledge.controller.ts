@@ -62,6 +62,31 @@ export class KnowledgeController {
     return { success: true, data };
   }
 
+  @Post('ingest-documents')
+  async ingestDocuments(
+    @Body()
+    body: {
+      sourceId?: string;
+      name: string;
+      type: string;
+      location: string;
+      description?: string;
+      documents: Array<{
+        filePath: string;
+        title: string;
+        content: string;
+      }>;
+    },
+  ) {
+    if (!body.documents || body.documents.length === 0) {
+      throw new BadRequestException(
+        'No document contents provided for direct ingestion.',
+      );
+    }
+    const data = await this.service.ingestDocumentsDirectly(body);
+    return { success: true, data };
+  }
+
   @Post('upload')
   @UseInterceptors(FilesInterceptor('files', 20))
   async uploadDocuments(

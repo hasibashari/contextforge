@@ -37,8 +37,20 @@ export class AutomationToolHandler {
     const workflowName = args.name || 'Daily Scheduled Automation';
     const cron = args.schedule_cron || '0 8 * * *';
     const scheduleLabel = args.schedule_label || 'Every day at 08:00 AM';
-    const mcpServerId = args.mcp_server_id || 'int-notion-mcp';
-    const mcpTools = args.mcp_tools || ['notion_get_tasks', 'notion_read_page'];
+    const isNotion =
+      !args.mcp_server_id || args.mcp_server_id.includes('notion');
+    const mcpServerId =
+      args.mcp_server_id ||
+      (isNotion ? 'int-notion-mcp' : 'int-obsidian-vault-mcp');
+    const mcpTools =
+      args.mcp_tools ||
+      (isNotion
+        ? ['notion_get_tasks', 'notion_read_page', 'notion_search']
+        : [
+            'obsidian_create_daily_note',
+            'obsidian_vault_writer',
+            'obsidian_vault_reader',
+          ]);
     const description =
       args.description ||
       `Autonomous background worker scheduled ${scheduleLabel} to execute ${mcpServerId} operations.`;
@@ -46,7 +58,6 @@ export class AutomationToolHandler {
       args.prompt_template ||
       `Tinjau seluruh data dan tugas terkait dari konektor MCP (${mcpServerId}). Buatkan ringkasan prioritas tinggi untuk hari ini ({{today}}).`;
 
-    const isNotion = mcpServerId.includes('notion');
     const agentId = 'agent-action';
     const agentName = isNotion
       ? 'Action Agent (Notion Worker)'

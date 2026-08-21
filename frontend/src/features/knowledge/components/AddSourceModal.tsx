@@ -10,6 +10,7 @@ import {
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service'
+import { knowledgeApi } from '@/shared/api/knowledgeApi'
 import {
   Modal,
   ModalHeader,
@@ -181,8 +182,35 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
           ? formatDefaultName(folderPathLabel)
           : `Knowledge Collection (${files.length} files)`)
 
-      if (files.length > 0 && onUpload) {
-        await onUpload(files, finalName)
+      if (files.length > 0) {
+        if (detectedType === 'obsidian_vault' || detectedType === 'local_folder') {
+          setIngestProgressText('Extracting and embedding local notes directly into PostgreSQL pgvector...')
+          const documents = await Promise.all(
+            files.map(async (file) => {
+              const rel =
+                (file as unknown as { webkitRelativePath?: string }).webkitRelativePath ||
+                file.name
+              const cleanRel = rel.replace(/^[^/]+\//, '') || file.name
+              const content = await file.text()
+              const title = file.name.replace(/\.[^/.]+$/, '')
+              return {
+                filePath: cleanRel,
+                title,
+                content,
+              }
+            }),
+          )
+
+          await knowledgeApi.ingestDocumentsDirectly({
+            name: finalName,
+            type: detectedType,
+            location: folderPathLabel ? `paired://${folderPathLabel}` : `paired://${finalName}`,
+            description: `Live paired ${detectedType === 'obsidian_vault' ? 'Obsidian Vault' : 'Local Folder'}: "${folderPathLabel || finalName}"`,
+            documents: documents.filter((d) => d.content.trim().length > 0),
+          })
+        } else if (onUpload) {
+          await onUpload(files, finalName)
+        }
       } else {
         onAdd({
           name: finalName,

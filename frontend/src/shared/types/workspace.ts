@@ -250,18 +250,23 @@ export interface UserMemoryItem {
 
 export interface ActionCardData {
   id: string
-  type: 'obsidian_note' | 'calendar_reminder' | 'web_search_summary' | 'git_pr' | 'database_query' | 'image_generation'
+  type: string
   title: string
+  subtitle?: string
   description: string
-  badgeText: string
+  badgeText?: string
+  badge?: string
+  badgeVariant?: string
   badgeColor?: string
   locationPath?: string
+  targetResource?: string
   imageUrl?: string
   imagePrompt?: string
   metaDetails?: Record<string, string>
   actions: {
     label: string
-    actionKey: string
+    actionKey?: string
+    key?: string
     primary?: boolean
     icon?: string
   }[]
@@ -275,7 +280,7 @@ export interface Artifact {
   locationPath?: string
   imageUrl?: string
   imagePrompt?: string
-  serviceOrigin?: 'obsidian' | 'calendar' | 'web' | 'github' | 'postgres' | 'imagen'
+  serviceOrigin?: 'obsidian' | 'calendar' | 'web' | 'github' | 'postgres' | 'imagen' | 'notion'
   createdAt: string
   updatedAt?: string
   wordCount?: number

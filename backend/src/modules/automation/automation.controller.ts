@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AutomationService } from './automation.service';
-import type { AutomationWorkflowRow } from './automation.repository';
+import { CreateAutomationDto, UpdateAutomationDto } from './dto/automation.dto';
 
 @Controller('api/automations')
 export class AutomationController {
@@ -46,17 +46,16 @@ export class AutomationController {
   }
 
   @Post()
-  async create(@Body() body: Partial<AutomationWorkflowRow>) {
-    const data = await this.service.createAutomation(body);
+  async create(@Body() body: CreateAutomationDto) {
+    const entity = CreateAutomationDto.toEntity(body);
+    const data = await this.service.createAutomation(entity);
     return { success: true, data };
   }
 
   @Put(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() body: Partial<AutomationWorkflowRow>,
-  ) {
-    const data = await this.service.updateAutomation(id, body);
+  async update(@Param('id') id: string, @Body() body: UpdateAutomationDto) {
+    const updates = UpdateAutomationDto.toEntity(body);
+    const data = await this.service.updateAutomation(id, updates);
     return { success: true, data };
   }
 

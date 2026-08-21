@@ -35,6 +35,7 @@ export default function DashboardChatCanvas() {
     setAsideOpen,
     setActiveArtifact,
     artifacts,
+    executeCardAction,
     showToast,
   } = useWorkspace()
 
@@ -93,6 +94,7 @@ export default function DashboardChatCanvas() {
               msg={msg}
               artifacts={artifacts}
               onOpenArtifact={handleOpenArtifact}
+              onExecuteAction={executeCardAction}
             />
           ))}
 

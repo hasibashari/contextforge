@@ -11,6 +11,7 @@ import type {
 import { chatApi } from '@/shared/api/chatApi';
 import { artifactsApi } from '@/shared/api/artifactsApi';
 import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service';
+import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service';
 import { generateGeneralReasoningOutput } from '../generators/responseGenerators';
 
 export function useChatEngine(
@@ -221,13 +222,62 @@ export function useChatEngine(
       if (actionKey === 'open_aside' || actionKey === 'open_schedule') {
         setIsAsideOpen?.(true);
         showToast('📌 Opened in Workspace Aside');
+      } else if (actionKey === 'open_in_obsidian') {
+        const art =
+          artifacts.find(
+            (a) =>
+              a.id === card.targetResource ||
+              a.locationPath === card.targetResource,
+          ) || activeArtifact;
+        const pathName = art?.locationPath || card.subtitle || `${card.title}.md`;
+        const vaultName = obsidianBridgeService.getPairedVaultName() || '';
+        obsidianBridgeService.openInObsidianApp(
+          vaultName,
+          pathName,
+          art?.content,
+        );
+        showToast('🚀 Membuka catatan di aplikasi Obsidian Desktop...');
+      } else if (actionKey === 'write_to_local_disk') {
+        const art =
+          artifacts.find(
+            (a) =>
+              a.id === card.targetResource ||
+              a.locationPath === card.targetResource,
+          ) || activeArtifact;
+        if (art) {
+          const pathName = art.locationPath || `${art.title}.md`;
+          if (obsidianBridgeService.getPairedDirectoryHandle()) {
+            obsidianBridgeService
+              .writeNoteToLocalVault(pathName, art.content)
+              .then((ok) => {
+                if (ok) {
+                  showToast(`✅ Tersimpan langsung ke vault: ${pathName}`);
+                } else {
+                  obsidianBridgeService.downloadMarkdownFile(pathName, art.content);
+                  showToast(`📥 Diunduh sebagai file markdown: ${pathName}`);
+                }
+              });
+          } else {
+            obsidianBridgeService
+              .requestVaultDirectory()
+              .then((res) => {
+                if (res) {
+                  obsidianBridgeService.writeNoteToLocalVault(pathName, art.content);
+                  showToast(`✅ Folder terhubung & catatan tersimpan ke: ${pathName}`);
+                }
+              })
+              .catch(() => {
+                obsidianBridgeService.downloadMarkdownFile(pathName, art.content);
+              });
+          }
+        }
       } else if (actionKey === 'copy_content' || actionKey === 'copy_citations') {
         showToast('📋 Copied content to clipboard');
       } else {
         showToast(`Action "${actionKey}" executed on ${card.title}`);
       }
     },
-    [setIsAsideOpen, showToast],
+    [activeArtifact, artifacts, setIsAsideOpen, showToast],
   );
 
   const triggerMorningBriefing = useCallback(async () => {

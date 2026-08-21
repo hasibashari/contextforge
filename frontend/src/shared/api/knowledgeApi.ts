@@ -122,6 +122,27 @@ export const knowledgeApi = {
     return mapBackendSource(data);
   },
 
+  async ingestDocumentsDirectly(payload: {
+    sourceId?: string;
+    name: string;
+    type: string;
+    location: string;
+    description?: string;
+    documents: Array<{
+      filePath: string;
+      title: string;
+      content: string;
+    }>;
+  }): Promise<KnowledgeSource> {
+    const res = await fetch(`${API_BASE_URL}/knowledge/ingest-documents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await handleApiResponse<BackendKnowledgeSource>(res);
+    return mapBackendSource(data);
+  },
+
   async syncSource(
     id: string,
   ): Promise<{ success: boolean; chunksCount: number; filesCount: number }> {

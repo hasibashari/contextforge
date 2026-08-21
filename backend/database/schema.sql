@@ -18,17 +18,17 @@ END $$;
 
 -- 2. Entitas Sesi & Pesan Percakapan
 CREATE TABLE IF NOT EXISTS chat_sessions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
     title VARCHAR(255) NOT NULL,
-    active_artifact_id UUID,
+    active_artifact_id VARCHAR(100),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS artifacts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID REFERENCES chat_sessions(id) ON DELETE SET NULL,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    session_id VARCHAR(100) REFERENCES chat_sessions(id) ON DELETE SET NULL,
     type VARCHAR(50) NOT NULL CHECK (type IN ('markdown_doc', 'code_patch', 'reminder_event', 'search_synthesis', 'image_asset')),
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
@@ -48,22 +48,22 @@ ALTER TABLE chat_sessions
     ADD CONSTRAINT fk_active_artifact FOREIGN KEY (active_artifact_id) REFERENCES artifacts(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS chat_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    session_id VARCHAR(100) NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
     role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
     content TEXT NOT NULL,
     intent JSONB,
     side_agent JSONB,
     action_card JSONB,
-    artifact_id UUID REFERENCES artifacts(id) ON DELETE SET NULL,
+    artifact_id VARCHAR(100) REFERENCES artifacts(id) ON DELETE SET NULL,
     source_domains TEXT[],
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 3. Entitas Side Agent & Task Orchestration
 CREATE TABLE IF NOT EXISTS side_agent_executions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    message_id UUID REFERENCES chat_messages(id) ON DELETE SET NULL,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    message_id VARCHAR(100) REFERENCES chat_messages(id) ON DELETE SET NULL,
     agent_id VARCHAR(100) NOT NULL,
     agent_name VARCHAR(150) NOT NULL,
     agent_role VARCHAR(150) NOT NULL,
@@ -78,12 +78,12 @@ CREATE TABLE IF NOT EXISTS side_agent_executions (
     summary TEXT NOT NULL,
     files_modified TEXT[],
     diff_preview TEXT,
-    artifact_id UUID REFERENCES artifacts(id) ON DELETE SET NULL,
+    artifact_id VARCHAR(100) REFERENCES artifacts(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     title VARCHAR(255) NOT NULL,
     objective TEXT NOT NULL,
     repo VARCHAR(255) DEFAULT '',
@@ -99,8 +99,8 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 CREATE TABLE IF NOT EXISTS execution_steps (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    task_id VARCHAR(100) NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     stage VARCHAR(30) NOT NULL,
     title VARCHAR(255) NOT NULL,
     status VARCHAR(30) NOT NULL CHECK (status IN ('pending', 'in_progress', 'completed', 'failed')),
@@ -110,8 +110,8 @@ CREATE TABLE IF NOT EXISTS execution_steps (
 );
 
 CREATE TABLE IF NOT EXISTS tool_calls (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    step_id UUID NOT NULL REFERENCES execution_steps(id) ON DELETE CASCADE,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    step_id VARCHAR(100) NOT NULL REFERENCES execution_steps(id) ON DELETE CASCADE,
     tool_name VARCHAR(100) NOT NULL,
     category VARCHAR(50) NOT NULL,
     description TEXT,
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS tool_calls (
 
 -- 4. Entitas Personal Hub (Schedule & Memories)
 CREATE TABLE IF NOT EXISTS calendar_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
     title VARCHAR(255) NOT NULL,
     event_date DATE NOT NULL,
@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
 );
 
 CREATE TABLE IF NOT EXISTS user_memories (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
     category VARCHAR(50) NOT NULL CHECK (category IN ('profile', 'preference', 'project', 'workflow')),
     key VARCHAR(100) NOT NULL,
@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS user_memories (
 
 -- 5. Entitas Multi-Source Knowledge (1. Knowledge)
 CREATE TABLE IF NOT EXISTS knowledge_sources (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
     type VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -161,12 +161,14 @@ CREATE TABLE IF NOT EXISTS knowledge_sources (
     status VARCHAR(30) NOT NULL DEFAULT 'synced' CHECK (status IN ('synced', 'syncing', 'error')),
     icon_type VARCHAR(50) DEFAULT 'file',
     color VARCHAR(50) DEFAULT 'text-primary',
-    last_synced TIMESTAMPTZ DEFAULT NOW()
+    last_synced TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS knowledge_chunks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    source_id UUID NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    source_id VARCHAR(100) NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
     file_path TEXT NOT NULL,
     chunk_index INTEGER NOT NULL,
     chunk_content TEXT NOT NULL,
@@ -177,10 +179,10 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
 
 -- 6. Entitas Activity Telemetry & Audit Logs
 CREATE TABLE IF NOT EXISTS activity_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
     timestamp TIMESTAMPTZ DEFAULT NOW(),
-    task_id UUID,
+    task_id VARCHAR(100),
     task_title VARCHAR(255),
     agent_id VARCHAR(100) NOT NULL,
     agent_name VARCHAR(150) NOT NULL,

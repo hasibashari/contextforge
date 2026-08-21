@@ -3,10 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Seed JSON data
-import knowledgeSeed from '../../../database/seeds/knowledge_sources.json';
 import calendarSeed from '../../../database/seeds/calendar_events.json';
 import memoriesSeed from '../../../database/seeds/user_memories.json';
-import activitySeed from '../../../database/seeds/activity_logs.json';
 import connectionsSeed from '../../../database/seeds/workspace_connections.json';
 import agentsSeed from '../../../database/seeds/agents.json';
 import skillsSeed from '../../../database/seeds/skills.json';
@@ -46,43 +44,56 @@ async function runSeed() {
       ALTER TABLE IF EXISTS workspace_integrations DROP CONSTRAINT IF EXISTS workspace_integrations_status_check;
       ALTER TABLE IF EXISTS workspace_integrations ADD COLUMN IF NOT EXISTS auth_type VARCHAR(30) DEFAULT 'none';
       ALTER TABLE IF EXISTS workspace_integrations ADD COLUMN IF NOT EXISTS auth_config JSONB DEFAULT '{}';
+
+      -- Ensure knowledge and activity tables use flexible VARCHAR(100) identifiers
+      ALTER TABLE IF EXISTS knowledge_chunks DROP CONSTRAINT IF EXISTS knowledge_chunks_source_id_fkey;
+      ALTER TABLE IF EXISTS knowledge_sources ALTER COLUMN id TYPE VARCHAR(100);
+      ALTER TABLE IF EXISTS knowledge_chunks ALTER COLUMN id TYPE VARCHAR(100);
+      ALTER TABLE IF EXISTS knowledge_chunks ALTER COLUMN source_id TYPE VARCHAR(100);
+      ALTER TABLE IF EXISTS knowledge_chunks ADD CONSTRAINT knowledge_chunks_source_id_fkey FOREIGN KEY (source_id) REFERENCES knowledge_sources(id) ON DELETE CASCADE;
+      ALTER TABLE IF EXISTS activity_logs ALTER COLUMN id TYPE VARCHAR(100);
+      ALTER TABLE IF EXISTS activity_logs ALTER COLUMN task_id TYPE VARCHAR(100);
+      ALTER TABLE IF EXISTS calendar_events ALTER COLUMN id TYPE VARCHAR(100);
+      ALTER TABLE IF EXISTS user_memories ALTER COLUMN id TYPE VARCHAR(100);
     `);
 
-    // 2. Seed Knowledge Sources (Clean - populated by real user documents/vaults)
+    // 2. Seed Knowledge Sources (Canonical system presets)
     console.log('📚 Seeding Knowledge Sources...');
-    await client.query(`
-      DELETE FROM knowledge_sources WHERE id IN (
-        'c5881477-8df2-4217-a068-d069a319f390',
-        '50b297b8-2bfa-4c6e-8260-26463eb4c7e8',
-        '36bcbb30-4e31-419b-a36c-9418a096c4be'
-      );
-    `);
-    const knowledgeList = knowledgeSeed as Array<{
-      id: string;
-      type: string;
-      name: string;
-      description: string;
-      location: string;
-      meta: string;
-      filesCount: number;
-      chunksCount: number;
-      status: string;
-      iconType: string;
-      color: string;
-    }>;
-    for (const item of knowledgeList) {
+    const defaultKnowledgePresets = [
+      {
+        id: 'src-arch-docs',
+        type: 'local_folder',
+        name: 'ContextForge Architecture & RFC Docs',
+        description:
+          'System architecture decisions, MCP protocol specs, and agent execution lifecycle standards.',
+        location: 'docs',
+        meta: 'Local Architecture Docs',
+        iconType: 'book',
+        color: 'text-primary',
+      },
+      {
+        id: 'src-api-specs',
+        type: 'openapi_spec',
+        name: 'ContextForge Core OpenAPI Specification',
+        description:
+          'Live REST & SSE endpoints specification for Agentic Core, Knowledge RAG, and Ecosystem Tools.',
+        location: 'http://localhost:3001/api/docs-json',
+        meta: 'Core API Specification',
+        iconType: 'code',
+        color: 'text-accent',
+      },
+    ];
+
+    for (const item of defaultKnowledgePresets) {
       await client.query(
         `INSERT INTO knowledge_sources (
           id, type, name, description, location, meta, files_count, chunks_count, status, icon_type, color
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ) VALUES ($1, $2, $3, $4, $5, $6, 0, 0, 'synced', $7, $8)
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
           description = EXCLUDED.description,
           location = EXCLUDED.location,
-          meta = EXCLUDED.meta,
-          files_count = EXCLUDED.files_count,
-          chunks_count = EXCLUDED.chunks_count,
-          status = EXCLUDED.status;`,
+          meta = EXCLUDED.meta;`,
         [
           item.id,
           item.type,
@@ -90,15 +101,14 @@ async function runSeed() {
           item.description,
           item.location,
           item.meta,
-          item.filesCount,
-          item.chunksCount,
-          item.status,
           item.iconType,
           item.color,
         ],
       );
     }
-    console.log(`   ✓ Seeded ${knowledgeList.length} knowledge sources`);
+    console.log(
+      `   ✓ Seeded ${defaultKnowledgePresets.length} canonical knowledge sources`,
+    );
 
     // 3. Seed Calendar Events
     console.log('📅 Seeding Calendar Events...');
@@ -148,28 +158,7 @@ async function runSeed() {
     }
     console.log(`   ✓ Seeded ${memoriesSeed.length} user memories`);
 
-    // 5. Seed Activity Logs
-    console.log('📝 Seeding Activity Logs...');
-    for (const item of activitySeed) {
-      await client.query(
-        `INSERT INTO activity_logs (
-          id, agent_id, agent_name, action_type, summary, details, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT (id) DO NOTHING;`,
-        [
-          item.id,
-          item.agentId,
-          item.agentName,
-          item.actionType,
-          item.summary,
-          JSON.stringify(item.details),
-          item.status,
-        ],
-      );
-    }
-    console.log(`   ✓ Seeded ${activitySeed.length} activity logs`);
-
-    // 6. Seed Workspace Connections
+    // 5. Seed Workspace Connections
     console.log('🔌 Seeding Workspace Connections...');
     for (const item of connectionsSeed) {
       await client.query(
@@ -199,7 +188,7 @@ async function runSeed() {
     }
     console.log(`   ✓ Seeded ${connectionsSeed.length} workspace connections`);
 
-    // 7. Seed Workspace Agents
+    // 6. Seed Workspace Agents
     console.log('🤖 Seeding Workspace Agents...');
     await client.query(`
       DELETE FROM workspace_agents WHERE id NOT IN ('agent-conversational', 'agent-research', 'agent-action');
@@ -247,7 +236,7 @@ async function runSeed() {
     }
     console.log(`   ✓ Seeded ${agentsSeed.length} workspace agents`);
 
-    // 8. Seed Workspace Skills (Dynamically loaded from docs/SKILL/)
+    // 7. Seed Workspace Skills (Dynamically loaded from docs/SKILL/)
     console.log('✨ Seeding Workspace Skills from docs/SKILL/ ...');
     const loadedSkills = loadSkillsFromDocs();
     const effectiveSkills = loadedSkills.length > 0 ? loadedSkills : skillsSeed;
@@ -295,7 +284,7 @@ async function runSeed() {
       `   ✓ Seeded ${effectiveSkills.length} workspace skills from docs/SKILL/`,
     );
 
-    // 9. Seed Workspace Integrations (MCP Connectors)
+    // 8. Seed Workspace Integrations (MCP Connectors)
     console.log('⚡ Seeding Workspace Integrations (MCP Connectors)...');
     for (const intg of integrationsSeed) {
       await client.query(

@@ -5,7 +5,7 @@ export interface WorkspaceAgentRow {
   id: string;
   name: string;
   role: string;
-  agent_type: 'orchestrator' | 'execution_worker' | 'planner';
+  agent_type: 'orchestrator' | 'researcher' | 'execution_worker';
   permissions: 'read_only' | 'sandbox_write' | 'full_system';
   description: string;
   avatar_color: string;
@@ -15,7 +15,7 @@ export interface WorkspaceAgentRow {
   capabilities: any[];
   assigned_tools: string[];
   assigned_skills: string[];
-  status: 'idle' | 'busy' | 'waiting_approval' | 'offline';
+  status: 'idle' | 'executing' | 'offline';
   total_tasks_completed: number;
   success_rate_pct: number;
   created_at: string;
@@ -26,7 +26,13 @@ export interface WorkspaceSkillRow {
   id: string;
   name: string;
   description: string;
-  category: 'engineering' | 'security' | 'knowledge' | 'productivity';
+  category:
+    | 'architecture'
+    | 'qa_testing'
+    | 'security'
+    | 'knowledge'
+    | 'database'
+    | 'productivity';
   icon: string;
   sop_summary: string;
   instructions: string;

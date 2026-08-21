@@ -442,6 +442,14 @@ export class EcosystemService {
         },
         {
           id: `t-${id}-2`,
+          name: 'notion_get_tasks',
+          description:
+            'Query active tasks, status Kanban boards, and deadlines from Notion Task Database',
+          parametersSchema: { filter: 'string' },
+          readOnly: true,
+        },
+        {
+          id: `t-${id}-3`,
           name: 'notion_read_page',
           description:
             'Read blocks, markdown content, and page properties from Notion',
@@ -449,7 +457,7 @@ export class EcosystemService {
           readOnly: true,
         },
         {
-          id: `t-${id}-3`,
+          id: `t-${id}-4`,
           name: 'notion_create_page',
           description:
             'Create new child pages and structured document entries in Notion',
@@ -461,7 +469,7 @@ export class EcosystemService {
           readOnly: false,
         },
         {
-          id: `t-${id}-4`,
+          id: `t-${id}-5`,
           name: 'notion_update_database',
           description:
             'Insert records and update schema rows in Notion databases',
@@ -469,7 +477,7 @@ export class EcosystemService {
           readOnly: false,
         },
         {
-          id: `t-${id}-5`,
+          id: `t-${id}-6`,
           name: 'notion_query_database',
           description:
             'Filter and sort structured records inside Notion databases',

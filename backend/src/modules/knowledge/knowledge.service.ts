@@ -10,10 +10,6 @@ import {
 } from './knowledge.repository';
 import { KnowledgeChunkerService } from '../../agentic-core/embeddings/knowledge-chunker.service';
 import { EmbeddingService } from '../../agentic-core/embeddings/embedding.service';
-import {
-  KnowledgeStorageService,
-  UploadedFileItem,
-} from './storage/knowledge-storage.service';
 
 @Injectable()
 export class KnowledgeService {
@@ -23,7 +19,6 @@ export class KnowledgeService {
     private readonly repo: KnowledgeRepository,
     private readonly chunker: KnowledgeChunkerService,
     private readonly embedding: EmbeddingService,
-    private readonly storageService: KnowledgeStorageService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -54,7 +49,12 @@ export class KnowledgeService {
   }
 
   async handleUploadDocuments(
-    files: UploadedFileItem[],
+    files: Array<{
+      originalname: string;
+      size: number;
+      buffer: Buffer;
+      mimetype?: string;
+    }>,
     name: string,
     sourceId?: string,
   ): Promise<KnowledgeSourceRow> {
@@ -78,11 +78,14 @@ export class KnowledgeService {
       });
     }
 
-    // Save physical files
-    this.storageService.saveUploadedFiles(source.id, files);
+    // Convert in-memory buffer directly to text documents (Zero disk duplication)
+    const documents = files.map((file) => ({
+      filePath: file.originalname,
+      title: path.basename(file.originalname, path.extname(file.originalname)),
+      content: file.buffer.toString('utf-8'),
+    }));
 
-    // Run indexing
-    await this.syncSource(source.id);
+    await this.indexDocumentsList(source, documents);
 
     return (await this.repo.getSourceById(source.id)) || source;
   }
@@ -95,7 +98,6 @@ export class KnowledgeService {
   }
 
   async deleteSource(id: string): Promise<{ success: boolean }> {
-    this.storageService.deleteStorageForSource(id);
     await this.repo.deleteChunksBySourceId(id);
     await this.repo.deleteSource(id);
     return { success: true };
@@ -118,6 +120,50 @@ export class KnowledgeService {
   }
 
   /**
+   * Direct Document Ingestion from Client (Zero server filesystem duplication)
+   * Saves source metadata and embeds chunks directly into PostgreSQL pgvector
+   */
+  async ingestDocumentsDirectly(data: {
+    sourceId?: string;
+    name: string;
+    type: string;
+    location: string;
+    description?: string;
+    documents: Array<{
+      filePath: string;
+      title: string;
+      content: string;
+    }>;
+  }): Promise<KnowledgeSourceRow> {
+    let source: KnowledgeSourceRow;
+
+    if (data.sourceId) {
+      const existing = await this.repo.getSourceById(data.sourceId);
+      if (!existing) {
+        throw new Error(`Knowledge source ${data.sourceId} not found`);
+      }
+      source = existing;
+    } else {
+      source = await this.repo.createSource({
+        type: data.type || 'obsidian_vault',
+        name: data.name,
+        description:
+          data.description ||
+          `Live paired ${data.type === 'obsidian_vault' ? 'Obsidian Vault' : 'Local Folder'} indexed directly into PostgreSQL.`,
+        location: data.location || `paired://${data.name}`,
+        iconType: data.type === 'obsidian_vault' ? 'book' : 'folder',
+        color: 'text-primary',
+        meta: `${data.documents.length} files paired`,
+      });
+    }
+
+    // Index documents directly into PostgreSQL knowledge_chunks
+    await this.indexDocumentsList(source, data.documents);
+
+    return (await this.repo.getSourceById(source.id)) || source;
+  }
+
+  /**
    * Main Document Ingestion & 1536-dim Vector Embedding Pipeline
    */
   async syncSource(
@@ -128,19 +174,28 @@ export class KnowledgeService {
       throw new Error(`Knowledge source with ID "${sourceId}" not found.`);
     }
 
+    const documents = this.gatherDocumentsForSource(source);
+    return this.indexDocumentsList(source, documents);
+  }
+
+  /**
+   * Internal reusable document chunker, vectorizer, and PostgreSQL inserter
+   */
+  private async indexDocumentsList(
+    source: KnowledgeSourceRow,
+    documents: Array<{ filePath: string; title: string; content: string }>,
+  ): Promise<{ success: boolean; chunksCount: number; filesCount: number }> {
+    const sourceId = source.id;
     this.logger.log(
-      `Starting vector indexing for source "${source.name}" (${source.type})...`,
+      `Starting vector indexing for source "${source.name}" (${source.type}, ${documents.length} documents)...`,
     );
     await this.repo.updateSource(sourceId, { status: 'syncing' });
 
     try {
-      // 1. Gather documents to index
-      const documents = this.gatherDocumentsForSource(source);
-
-      // 2. Clear previous chunks for this source
+      // 1. Clear previous chunks for this source
       await this.repo.deleteChunksBySourceId(sourceId);
 
-      // 3. Chunk and Embed all documents
+      // 2. Chunk and Embed all documents
       const allChunksToInsert: Array<{
         filePath: string;
         chunkIndex: number;
@@ -150,6 +205,8 @@ export class KnowledgeService {
       }> = [];
 
       for (const doc of documents) {
+        if (!doc.content || doc.content.trim().length === 0) continue;
+
         const textChunks = this.chunker.chunkText(doc.content, 600, 100, {
           title: doc.title,
           sourceName: source.name,
@@ -177,10 +234,12 @@ export class KnowledgeService {
         }
       }
 
-      // 4. Save to PostgreSQL
-      await this.repo.insertChunks(sourceId, allChunksToInsert);
+      // 3. Save to PostgreSQL
+      if (allChunksToInsert.length > 0) {
+        await this.repo.insertChunks(sourceId, allChunksToInsert);
+      }
 
-      // 5. Update source metadata & status
+      // 4. Update source metadata & status
       const filesCount = documents.length;
       const chunksCount = allChunksToInsert.length;
       await this.repo.updateSource(sourceId, {
@@ -198,7 +257,7 @@ export class KnowledgeService {
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(
-        `Error during sync for source ${sourceId}: ${errorMsg}`,
+        `Error during indexing for source ${sourceId}: ${errorMsg}`,
       );
       await this.repo.updateSource(sourceId, { status: 'error' });
       throw err;
@@ -214,22 +273,11 @@ export class KnowledgeService {
       content: string;
     }> = [];
 
-    // Pillar 1: Direct File & Folder Uploads
-    if (source.type === 'document_upload') {
-      const uploadedDocs = this.storageService.readDocumentsForSource(
-        source.id,
-      );
-      if (uploadedDocs.length > 0) {
-        return uploadedDocs;
-      }
-    }
-
-    // Pillar 2: Obsidian Vault (Mounted via Local Path or Environment)
+    // Pillar 1: Obsidian Vault (Mounted via Local Path or MCP Connection Target)
     if (source.type === 'obsidian_vault') {
-      const vaultBasePath =
-        source.location.replace(/^file:\/\//, '') ||
-        this.configService.get<string>('OBSIDIAN_VAULT_PATH') ||
-        '';
+      const vaultBasePath = source.location
+        .replace(/^file:\/\//, '')
+        .replace(/^obsidian:\/\/vault\/?/, '');
 
       if (vaultBasePath && fs.existsSync(vaultBasePath)) {
         const files = this.scanDirectoryFiles(vaultBasePath, ['.md', '.txt']);
