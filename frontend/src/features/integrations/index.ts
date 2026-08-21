@@ -1,7 +1,5 @@
 export { default as IntegrationsView } from './views/IntegrationsView'
-export { IntegrationsHeader } from './components/IntegrationsHeader'
 export { IntegrationCard } from './components/IntegrationCard'
-export { SkillCard } from './components/SkillCard'
 export { SkillDetailDrawer } from './components/SkillDetailDrawer'
 export { ConnectorDetailModal } from './components/ConnectorDetailModal'
 export { ConnectAuthModal } from './components/ConnectAuthModal'

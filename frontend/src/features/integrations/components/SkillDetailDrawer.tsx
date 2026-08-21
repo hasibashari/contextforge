@@ -8,9 +8,15 @@ import {
   Check,
 } from 'lucide-react'
 import type { Skill } from '@/shared/types/workspace'
-import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
-import { StatusPill } from '@/shared/components/ui/StatusPill'
-import { SkillIconBox } from '@/shared/components/ui/IconBox'
+import {
+  Modal,
+  ModalHeader,
+  ModalFooter,
+  StatusPill,
+  SkillIconBox,
+  Button,
+  Badge,
+} from '@/shared/components'
 
 interface SkillDetailDrawerProps {
   skill: Skill | null
@@ -35,7 +41,9 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
       {skill.isCustom && (
         <>
           <span>·</span>
-          <span className="text-primary font-semibold">Custom</span>
+          <Badge variant="primary" size="xs">
+            Custom
+          </Badge>
         </>
       )}
     </>
@@ -44,25 +52,25 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
   const renderActions = () => (
     <div className="flex items-center gap-1.5">
       {isEnabled ? (
-        <button
-          type="button"
+        <Button
+          variant="danger"
+          size="xs"
+          leftIcon={<PowerOff size={13} />}
           onClick={onToggle}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-semantic-error hover:bg-semantic-error/10 border border-semantic-error/30 transition-colors cursor-pointer"
           title="Disable reasoning skill"
         >
-          <PowerOff size={13} />
-          <span>Disable</span>
-        </button>
+          Disable
+        </Button>
       ) : (
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="xs"
+          leftIcon={<Plus size={13} />}
           onClick={onToggle}
-          className="flex items-center gap-1 px-3 py-1.5 bg-primary hover:bg-primary/90 text-canvas text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
           title="Enable reasoning skill"
         >
-          <Plus size={13} />
-          <span>Enable</span>
-        </button>
+          Enable
+        </Button>
       )}
     </div>
   )
@@ -77,7 +85,7 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
         actions={renderActions()}
       />
 
-      <div className="space-y-3.5 text-xs">
+      <div className="space-y-3.5 text-xs font-sans">
         {/* Description */}
         <p className="text-body leading-relaxed text-xs">
           {skill.description}
@@ -89,7 +97,7 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
             <Sparkles size={12} className="text-primary" />
             <span>Standard Operating Procedure (SOP) Summary:</span>
           </div>
-          <div className="text-ink font-medium leading-relaxed">
+          <div className="text-ink font-medium leading-relaxed text-xs">
             {skill.sopSummary}
           </div>
         </div>
@@ -107,9 +115,14 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
 
         {/* Permitted Sandboxed Tools */}
         <div className="space-y-1.5">
-          <div className="text-[11px] font-mono uppercase tracking-caption text-muted flex items-center gap-1.5">
-            <Terminal size={12} className="text-primary" />
-            <span>Invoked MCP / System Tools ({skill.assignedTools.length}):</span>
+          <div className="text-[11px] font-mono uppercase tracking-caption text-muted flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Terminal size={12} className="text-primary" />
+              <span>Invoked MCP / System Tools ({skill.assignedTools.length}):</span>
+            </span>
+            <Badge variant="neutral" size="xs">
+              {skill.assignedTools.length} Tools
+            </Badge>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono">
             {skill.assignedTools.map((tool) => (
@@ -118,7 +131,7 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
                 className="p-2 rounded-lg bg-canvas border border-hairline flex items-center gap-2 text-ink"
               >
                 <Terminal size={12} className="text-primary shrink-0" />
-                <span className="truncate">{tool}</span>
+                <span className="truncate text-xs">{tool}</span>
               </div>
             ))}
           </div>
@@ -126,13 +139,9 @@ export const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
 
         {/* Footer */}
         <ModalFooter className="justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer transition-colors flex items-center gap-1"
-          >
-            <Check size={13} />
-            <span>Done</span>
-          </button>
+          <Button variant="primary" size="sm" leftIcon={<Check size={13} />} onClick={onClose}>
+            Done
+          </Button>
         </ModalFooter>
       </div>
     </Modal>

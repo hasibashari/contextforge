@@ -7,15 +7,20 @@ import {
   Unlink,
   Trash2,
   Copy,
-  Loader2,
   UploadCloud,
 } from 'lucide-react'
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service'
-import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
-import { StatusPill } from '@/shared/components/ui/StatusPill'
-import { KnowledgeIconBox } from '@/shared/components/ui/IconBox'
-import { ConfirmDeleteModal } from '@/shared/components/ui/ConfirmDeleteModal'
+import {
+  Modal,
+  ModalHeader,
+  ModalFooter,
+  StatusPill,
+  KnowledgeIconBox,
+  ConfirmDeleteModal,
+  Button,
+  Badge,
+} from '@/shared/components'
 
 interface KnowledgeSourceDetailModalProps {
   source: KnowledgeSource | null
@@ -112,34 +117,31 @@ export const KnowledgeSourceDetailModal: React.FC<
   const renderActions = () => (
     <div className="flex items-center gap-1.5">
       {onToggleConnect && (
-        <button
-          type="button"
+        <Button
+          variant={isSynced ? 'secondary' : 'primary'}
+          size="xs"
+          leftIcon={isSynced ? <Unlink size={13} /> : <Plus size={13} />}
           onClick={() => onToggleConnect(source.id)}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${
-            isSynced
-              ? 'text-muted hover:text-ink bg-canvas-soft border-hairline hover:bg-surface-strong'
-              : 'text-canvas bg-primary hover:bg-primary/90 border-transparent shadow-xs'
-          }`}
           title={
             isSynced
               ? 'Mute Grounding (Temporarily pause reading this source)'
               : 'Enable Grounding (Active in Chat)'
           }
         >
-          {isSynced ? <Unlink size={13} /> : <Plus size={13} />}
-          <span>{isSynced ? 'Mute' : 'Connect'}</span>
-        </button>
+          {isSynced ? 'Mute' : 'Connect'}
+        </Button>
       )}
 
       {onDelete && (
-        <button
-          type="button"
+        <Button
+          variant="danger"
+          size="icon"
           onClick={() => setShowDeleteModal(true)}
-          className="p-1.5 rounded-lg text-muted hover:text-semantic-error hover:bg-semantic-error/10 border border-transparent hover:border-semantic-error/20 transition-colors cursor-pointer"
           title="Delete Knowledge Source"
+          className="w-7 h-7"
         >
-          <Trash2 size={15} />
-        </button>
+          <Trash2 size={14} />
+        </Button>
       )}
     </div>
   )
@@ -163,7 +165,7 @@ export const KnowledgeSourceDetailModal: React.FC<
           actions={renderActions()}
         />
 
-        <div className="space-y-3.5 text-xs">
+        <div className="space-y-3.5 text-xs font-sans">
           {/* Live Paired Status Banner */}
           {hasLocalHandle && (
             <div className="flex items-center justify-between p-2.5 bg-semantic-success/5 rounded-xl border border-semantic-success/20 text-xs">
@@ -171,9 +173,9 @@ export const KnowledgeSourceDetailModal: React.FC<
                 <span className="w-2 h-2 rounded-full bg-semantic-success animate-pulse" />
                 <span className="font-semibold">Live Paired with Laptop Disk</span>
               </div>
-              <span className="text-[10px] font-mono text-semantic-success font-semibold">
+              <Badge variant="success" size="xs">
                 Direct Disk Write-Back Active
-              </span>
+              </Badge>
             </div>
           )}
 
@@ -201,18 +203,19 @@ export const KnowledgeSourceDetailModal: React.FC<
           {/* Location URI Row with Copy Action */}
           <div className="flex items-center justify-between gap-2 p-2.5 bg-canvas rounded-xl border border-hairline font-mono text-xs">
             <span className="text-ink truncate font-medium text-[11px]">{source.location}</span>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleCopyUri}
-              className="p-1 rounded-md text-muted hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer shrink-0"
               title="Copy Location URI"
+              className="w-6 h-6"
             >
               {isCopied ? (
                 <Check size={13} className="text-semantic-success" />
               ) : (
                 <Copy size={13} />
               )}
-            </button>
+            </Button>
           </div>
 
           {/* Upload More Files Dropzone */}
@@ -222,7 +225,7 @@ export const KnowledgeSourceDetailModal: React.FC<
                 <div className="font-semibold text-ink text-xs truncate">
                   Add more documents to this source
                 </div>
-                <div className="text-[11px] text-muted truncate">
+                <div className="text-[11px] text-muted truncate font-sans">
                   Supports .md, .txt, .pdf, .ts, .json (chunked into 1536-dim vectors)
                 </div>
               </div>
@@ -234,52 +237,37 @@ export const KnowledgeSourceDetailModal: React.FC<
                 onChange={handleUploadMoreFiles}
                 disabled={isUploadingMore}
               />
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="xs"
+                isLoading={isUploadingMore}
+                leftIcon={<UploadCloud size={13} />}
                 onClick={() =>
                   document.getElementById(`upload-more-${source.id}`)?.click()
                 }
                 disabled={isUploadingMore}
-                className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-canvas font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs text-xs"
               >
-                {isUploadingMore ? (
-                  <Loader2 size={13} className="animate-spin" />
-                ) : (
-                  <UploadCloud size={13} />
-                )}
-                <span>{isUploadingMore ? 'Uploading...' : 'Upload Files'}</span>
-              </button>
+                {isUploadingMore ? 'Uploading...' : 'Upload Files'}
+              </Button>
             </div>
           )}
 
           {/* Footer Actions */}
           <ModalFooter>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
+              isLoading={isSyncing}
+              leftIcon={<RefreshCw size={13} className={isSyncing ? 'text-primary' : 'text-semantic-success'} />}
               onClick={handleSmartSync}
               disabled={isSyncing}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-ink border border-hairline rounded-lg transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
             >
-              <RefreshCw
-                size={13}
-                className={
-                  isSyncing
-                    ? 'animate-spin text-primary'
-                    : 'text-semantic-success'
-                }
-              />
-              <span>
-                {isSyncing ? 'Re-indexing...' : 'Re-index'}
-              </span>
-            </button>
+              {isSyncing ? 'Re-indexing...' : 'Re-index'}
+            </Button>
 
-            <button
-              onClick={onClose}
-              className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer transition-colors flex items-center gap-1"
-            >
-              <Check size={13} />
-              <span>Done</span>
-            </button>
+            <Button variant="primary" size="sm" leftIcon={<Check size={13} />} onClick={onClose}>
+              Done
+            </Button>
           </ModalFooter>
         </div>
       </Modal>

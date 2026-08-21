@@ -1,7 +1,16 @@
 import React, { useState } from 'react'
-import { Cpu, Check, Key, Terminal, Globe, Lock } from 'lucide-react'
-import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
-import { IconBox } from '@/shared/components/ui/IconBox'
+import { Cpu, Check, Terminal, Globe, Lock } from 'lucide-react'
+import {
+  Modal,
+  ModalHeader,
+  ModalFooter,
+  IconBox,
+  Button,
+  Input,
+  Select,
+  Textarea,
+  FormField,
+} from '@/shared/components'
 
 interface AddConnectorModalProps {
   isOpen: boolean
@@ -92,53 +101,51 @@ export const AddConnectorModal: React.FC<AddConnectorModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-mono">
         {/* Server Name & Transport Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="sm:col-span-2 space-y-1">
-            <label className="text-ink font-semibold flex items-center gap-1.5">
-              <span>MCP Server Name</span>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. GitHub Copilot MCP / Local SQLite MCP"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs"
-            />
+          <div className="sm:col-span-2">
+            <FormField label="MCP Server Name" required>
+              <Input
+                placeholder="e.g. GitHub Copilot MCP / Local SQLite MCP"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </FormField>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-ink font-semibold flex items-center gap-1.5">
-              <span>Transport</span>
-            </label>
-            <select
+          <FormField label="Transport">
+            <Select
               value={transport}
               onChange={(e) => {
                 const val = e.target.value as 'stdio' | 'streamable_http' | 'sse' | 'rest'
                 setTransport(val)
                 if (val === 'stdio') setAuthType('none')
               }}
-              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs cursor-pointer"
-            >
-              <option value="stdio">stdio (Local Subprocess)</option>
-              <option value="streamable_http">Streamable HTTP (Remote)</option>
-              <option value="sse">SSE (Server-Sent Events)</option>
-              <option value="rest">REST Webhook API</option>
-            </select>
-          </div>
+              options={[
+                { label: 'stdio (Subprocess)', value: 'stdio' },
+                { label: 'Streamable HTTP', value: 'streamable_http' },
+                { label: 'SSE', value: 'sse' },
+                { label: 'REST Webhook', value: 'rest' },
+              ]}
+            />
+          </FormField>
         </div>
 
         {/* Endpoint / Command */}
-        <div className="space-y-1">
-          <label className="text-ink font-semibold flex items-center gap-1.5">
-            {transport === 'stdio' ? <Terminal size={13} /> : <Globe size={13} />}
-            <span>
-              {transport === 'stdio'
-                ? 'Command Line Entrypoint (npx / binary executable)'
-                : 'Connection URL (Endpoint)'}
+        <FormField
+          label={
+            <span className="flex items-center gap-1.5">
+              {transport === 'stdio' ? <Terminal size={13} /> : <Globe size={13} />}
+              <span>
+                {transport === 'stdio'
+                  ? 'Command Line Entrypoint (npx / binary executable)'
+                  : 'Connection URL (Endpoint)'}
+              </span>
             </span>
-          </label>
-          <input
-            type="text"
+          }
+          required
+        >
+          <Input
+            variant="mono"
             placeholder={
               transport === 'stdio'
                 ? 'npx -y @modelcontextprotocol/server-filesystem /path/to/dir'
@@ -147,9 +154,8 @@ export const AddConnectorModal: React.FC<AddConnectorModalProps> = ({
             value={endpoint}
             onChange={(e) => setEndpoint(e.target.value)}
             required
-            className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs"
           />
-        </div>
+        </FormField>
 
         {/* Adaptive Authentication for Remote Streamable HTTP / SSE */}
         {isRemote && (
@@ -157,41 +163,37 @@ export const AddConnectorModal: React.FC<AddConnectorModalProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
                 <Lock size={13} className="text-primary" />
-                <span>Authentication & Credentials</span>
+                <span>Authentication &amp; Credentials</span>
               </div>
               <div className="text-[10px] text-muted">Remote MCP Security</div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-muted text-[11px]">Auth Method</label>
-                <select
+              <FormField label="Auth Method">
+                <Select
                   value={authType}
                   onChange={(e) =>
                     setAuthType(e.target.value as 'none' | 'bearer' | 'oauth' | 'api_key')
                   }
-                  className="w-full px-3 py-1.5 bg-canvas border border-hairline rounded-lg text-ink text-xs focus:outline-none focus:border-primary cursor-pointer"
-                >
-                  <option value="none">None (Public / Internal Network)</option>
-                  <option value="bearer">Bearer Token / API Key</option>
-                  <option value="oauth">OAuth 2.0 (SSO / Token Exchange)</option>
-                </select>
-              </div>
+                  options={[
+                    { label: 'None (Public / Internal Network)', value: 'none' },
+                    { label: 'Bearer Token / API Key', value: 'bearer' },
+                    { label: 'OAuth 2.0 (SSO)', value: 'oauth' },
+                  ]}
+                />
+              </FormField>
 
               {authType !== 'none' && (
-                <div className="space-y-1 animate-in fade-in duration-150">
-                  <label className="text-muted text-[11px] flex items-center gap-1">
-                    <Key size={11} />
-                    <span>Secret Key / Access Token</span>
-                  </label>
-                  <input
+                <FormField label="Secret Key / Access Token">
+                  <Input
                     type="password"
+                    variant="mono"
                     placeholder="e.g. ghp_**************** or sk_mcp_***"
                     value={authToken}
                     onChange={(e) => setAuthToken(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-canvas border border-hairline rounded-lg text-ink text-xs focus:outline-none focus:border-primary font-mono"
+                    allowToggleVisibility
                   />
-                </div>
+                </FormField>
               )}
             </div>
           </div>
@@ -199,49 +201,38 @@ export const AddConnectorModal: React.FC<AddConnectorModalProps> = ({
 
         {/* Optional Environment Variables for Local stdio */}
         {!isRemote && (
-          <div className="space-y-1">
-            <label className="text-muted text-[11px] flex items-center justify-between">
-              <span>Environment Variables (Optional, KEY=VALUE per line)</span>
-              <span className="text-[10px] text-muted font-sans">e.g. GITHUB_TOKEN=ghp_xxx</span>
-            </label>
-            <textarea
+          <FormField
+            label="Environment Variables (Optional, KEY=VALUE per line)"
+            badge={<span className="text-[10px] text-muted font-sans">e.g. GITHUB_TOKEN=ghp_xxx</span>}
+          >
+            <Textarea
+              variant="mono"
               rows={2}
               placeholder="DATABASE_URL=postgresql://user:pass@localhost:5432/db&#10;DEBUG=mcp:*"
               value={envVars}
               onChange={(e) => setEnvVars(e.target.value)}
-              className="w-full px-3 py-1.5 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs resize-none font-mono"
             />
-          </div>
+          </FormField>
         )}
 
         {/* Description */}
-        <div className="space-y-1">
-          <label className="text-ink font-semibold">Description & Scope</label>
-          <textarea
+        <FormField label="Description & Scope">
+          <Textarea
             rows={2}
             placeholder="Describe what tools and capabilities this MCP server exposes to AI agents..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary font-sans text-xs resize-none"
           />
-        </div>
+        </FormField>
 
         {/* Actions */}
         <ModalFooter className="justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
-          >
+          <Button type="button" variant="ghost" size="xs" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5"
-          >
-            <Check size={13} />
-            <span>Register MCP Server</span>
-          </button>
+          </Button>
+          <Button type="submit" variant="primary" size="sm" leftIcon={<Check size={13} />}>
+            Register MCP Server
+          </Button>
         </ModalFooter>
       </form>
     </Modal>

@@ -1,15 +1,13 @@
 import { useState } from 'react'
-import { FolderOpen, Sparkles, BookOpen, HardDrive } from 'lucide-react'
+import { FolderOpen, Sparkles, BookOpen, HardDrive, Plus } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import {
-  KnowledgeHeader,
   KnowledgeSourceCard,
   KnowledgeSourceDetailModal,
   AddSourceModal,
 } from '@/features/knowledge'
-import { IconBox } from '@/shared/components/ui/IconBox'
-import { EmptyState } from '@/shared/components/ui/EmptyState'
+import { IconBox, EmptyState, PageHeader, Button } from '@/shared/components'
 
 export default function KnowledgeSourcesView() {
   const {
@@ -45,7 +43,21 @@ export default function KnowledgeSourcesView() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
       {/* Top Banner Header */}
-      <KnowledgeHeader onAddSource={() => setIsAddModalOpen(true)} />
+      <PageHeader
+        eyebrow="Multi-Source Context Ingestion"
+        title="Knowledge Grounding Engine"
+        description="Connect code repositories, Notion spaces, and OpenAPI specs to give agents deep project grounding with zero hallucination."
+        actions={
+          <Button
+            variant="primary"
+            size="md"
+            leftIcon={<Plus size={15} />}
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            Connect Knowledge Source
+          </Button>
+        }
+      />
 
       {/* Sources Grid or Clean Empty State */}
       {knowledgeSources.length > 0 ? (

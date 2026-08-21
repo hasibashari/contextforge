@@ -5,19 +5,24 @@ import {
   Search,
   Plus,
   RotateCcw,
+  Settings,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
 import type { Skill, Integration } from '@/shared/types/workspace'
 import {
-  IntegrationsHeader,
   IntegrationCard,
-  SkillCard,
   SkillDetailDrawer,
   ConnectorDetailModal,
   ConnectAuthModal,
   AddSkillModal,
 } from '@/features/integrations'
-import { EmptyState, IconBox } from '@/shared/components'
+import {
+  EmptyState,
+  IconBox,
+  SkillIconBox,
+  PageHeader,
+  EcosystemCard,
+} from '@/shared/components'
 
 type TabType = 'connectors' | 'skills'
 
@@ -96,9 +101,25 @@ export default function IntegrationsView() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
       {/* Top Banner Header */}
-      <IntegrationsHeader
-        connectorsCount={integrations.length}
-        activeSkillsCount={activeSkillsCount}
+      <PageHeader
+        eyebrow="Extensibility & Agentic Tools"
+        title="MCP Tools & Reasoning Skills"
+        description="Connect Model Context Protocol (MCP) servers to give agents tool execution capabilities, and configure reasoning SOP playbooks (Skills) to guide problem-solving workflows."
+        actions={
+          <div className="flex items-center gap-3 bg-canvas-soft border border-hairline rounded-xl px-3.5 py-2 text-ink shadow-2xs whitespace-nowrap">
+            <span className="flex items-center gap-1.5">
+              <Cpu size={13} className="text-primary" />
+              <strong className="text-ink font-semibold">{integrations.length}</strong>
+              <span className="text-muted">MCP Tools</span>
+            </span>
+            <span className="text-hairline">|</span>
+            <span className="flex items-center gap-1.5">
+              <Sparkles size={13} className="text-timeline-edit" />
+              <strong className="text-ink font-semibold">{activeSkillsCount}</strong>
+              <span className="text-muted">Active Skills</span>
+            </span>
+          </div>
+        }
       />
 
       {/* Tab Navigation (2 Clean Pillars: MCP Tools & Skills SOP) */}
@@ -266,11 +287,23 @@ export default function IntegrationsView() {
           {filteredSkills.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
               {filteredSkills.map((skill) => (
-                <SkillCard
+                <EcosystemCard
                   key={skill.id}
-                  skill={skill}
-                  onToggle={() => toggleSkill(skill.id)}
-                  onInspect={() => setInspectedSkill(skill)}
+                  icon={<SkillIconBox category={skill.category} size="sm" />}
+                  title={skill.name}
+                  description={skill.description}
+                  badge={skill.isCustom ? 'Custom' : skill.category.replace('_', ' ')}
+                  metaLine={`${skill.assignedTools.length} Permitted Tools · ${
+                    skill.enabled ? 'Active in Workspace' : 'Inactive SOP'
+                  }`}
+                  actionIcon={skill.enabled ? <Settings size={16} /> : <Plus size={16} />}
+                  onClick={() => setInspectedSkill(skill)}
+                  onActionClick={() => setInspectedSkill(skill)}
+                  actionTooltip={
+                    skill.enabled
+                      ? 'Active SOP: Click to inspect & configure'
+                      : 'Enable reasoning skill SOP'
+                  }
                 />
               ))}
             </div>

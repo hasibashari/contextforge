@@ -1,8 +1,14 @@
 import React, { useState } from 'react'
-import { Brain, Terminal, Sparkles, Check, Settings2 } from 'lucide-react'
+import { Brain, Terminal, Sparkles, Check, Settings2, RotateCcw } from 'lucide-react'
 import type { Agent } from '@/shared/types/workspace'
 import { useWorkspace } from '@/shared/mock'
-import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
+import {
+  Modal,
+  ModalHeader,
+  ModalFooter,
+  Button,
+  Badge,
+} from '@/shared/components'
 
 interface AgentInspectorModalProps {
   agent: Agent | null
@@ -67,17 +73,14 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
   )
 
   const renderActions = () => (
-    <button
+    <Button
+      variant={isEditing ? 'secondary' : 'outline'}
+      size="xs"
+      leftIcon={isEditing ? <RotateCcw size={13} /> : <Settings2 size={13} />}
       onClick={isEditing ? handleCancelEdit : handleStartEdit}
-      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-        isEditing
-          ? 'bg-primary text-canvas border-primary'
-          : 'bg-canvas-soft hover:bg-canvas text-ink border-hairline'
-      }`}
     >
-      <Settings2 size={13} />
-      <span>{isEditing ? 'Cancel' : 'Edit Capabilities'}</span>
-    </button>
+      {isEditing ? 'Cancel Edit' : 'Edit Capabilities'}
+    </Button>
   )
 
   return (
@@ -90,8 +93,8 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
         actions={renderActions()}
       />
 
-      <div className="space-y-3 text-xs">
-        {/* Model & Config */}
+      <div className="space-y-3 text-xs font-sans">
+        {/* Model & Config Bar */}
         <div className="grid grid-cols-3 gap-2 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono text-[11px]">
           <div>
             <div className="text-muted text-[10px] uppercase">Base LLM</div>
@@ -176,7 +179,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
                       className="p-2 rounded bg-canvas border border-hairline flex items-center gap-2 text-ink"
                     >
                       <Sparkles size={12} className="text-primary shrink-0" />
-                      <span className="truncate font-medium text-xs">
+                      <span className="truncate font-medium text-xs font-sans">
                         {s?.name || skillId}
                       </span>
                     </div>
@@ -250,30 +253,22 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
         <ModalFooter className="justify-end">
           {isEditing ? (
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
-              >
+              <Button variant="ghost" size="xs" onClick={handleCancelEdit}>
                 Discard
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Check size={13} />}
                 onClick={handleSaveCapabilities}
-                className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer flex items-center gap-1"
               >
-                <Check size={13} />
-                <span>Save Capabilities</span>
-              </button>
+                Save Capabilities
+              </Button>
             </div>
           ) : (
-            <button
-              onClick={onClose}
-              className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer transition-colors flex items-center gap-1"
-            >
-              <Check size={13} />
-              <span>Done</span>
-            </button>
+            <Button variant="primary" size="sm" leftIcon={<Check size={13} />} onClick={onClose}>
+              Done
+            </Button>
           )}
         </ModalFooter>
       </div>

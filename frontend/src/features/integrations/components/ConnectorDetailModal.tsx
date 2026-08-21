@@ -13,8 +13,6 @@ import {
   Save,
   RotateCcw,
   Lock,
-  Eye,
-  EyeOff,
   Folder,
   ExternalLink,
   RefreshCw,
@@ -22,9 +20,19 @@ import {
 import type { Integration } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 import { useWorkspace } from '@/shared/mock'
-import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
-import { StatusPill } from '@/shared/components/ui/StatusPill'
-import { IntegrationIconBox } from '@/shared/components/ui/IconBox'
+import {
+  Modal,
+  ModalHeader,
+  ModalFooter,
+  StatusPill,
+  IntegrationIconBox,
+  Button,
+  Input,
+  Select,
+  Textarea,
+  FormField,
+  Badge,
+} from '@/shared/components'
 
 interface ConnectorDetailModalProps {
   integration: Integration | null
@@ -58,7 +66,6 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
 
   const [isEditing, setIsEditing] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
-  const [showApiKey, setShowApiKey] = useState(false)
 
   const [selectedVaultScope, setSelectedVaultScope] = useState(
     integration.targetBinding?.folderScope || 'Obsidian',
@@ -100,9 +107,9 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
       {currentIntegration.authType && currentIntegration.authType !== 'none' && (
         <>
           <span>·</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-semibold uppercase">
+          <Badge variant="primary" size="xs">
             {currentIntegration.authType}
-          </span>
+          </Badge>
         </>
       )}
       <span>·</span>
@@ -115,8 +122,10 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
   const renderHeaderActions = () => {
     if (isEditing) {
       return (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="xs"
+          leftIcon={<RotateCcw size={13} />}
           onClick={() => {
             setFormData({
               name: integration.name,
@@ -127,48 +136,46 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
             })
             setIsEditing(false)
           }}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-muted hover:text-ink bg-canvas-soft hover:bg-canvas border border-hairline transition-colors cursor-pointer"
         >
-          <RotateCcw size={13} />
-          <span>Cancel</span>
-        </button>
+          Cancel
+        </Button>
       )
     }
 
     return (
       <div className="flex items-center gap-1.5">
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="xs"
+          leftIcon={<Edit3 size={13} />}
           onClick={() => setIsEditing(true)}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-ink bg-canvas-soft hover:bg-canvas border border-hairline transition-colors cursor-pointer"
           title="Edit connector configuration"
         >
-          <Edit3 size={13} />
-          <span>Edit</span>
-        </button>
+          Edit
+        </Button>
 
         {onToggleConnect && isConnected && (
-          <button
-            type="button"
+          <Button
+            variant="danger"
+            size="xs"
+            leftIcon={<Unlink size={13} />}
             onClick={() => onToggleConnect(integration.id)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-semantic-error hover:bg-semantic-error/10 border border-semantic-error/30 transition-colors cursor-pointer"
             title="Disconnect connector"
           >
-            <Unlink size={13} />
-            <span>Disconnect</span>
-          </button>
+            Disconnect
+          </Button>
         )}
 
         {onToggleConnect && !isConnected && (
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="xs"
+            leftIcon={<Plus size={13} />}
             onClick={() => onToggleConnect(integration.id)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-primary hover:bg-primary/90 text-canvas text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
             title="Connect MCP Server"
           >
-            <Plus size={13} />
-            <span>Connect</span>
-          </button>
+            Connect
+          </Button>
         )}
       </div>
     )
@@ -190,20 +197,16 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
         /* EDIT CONFIGURATION FORM */
         <form onSubmit={handleSave} className="space-y-3.5 text-xs font-sans">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="font-semibold text-ink">Connector Name</label>
-              <input
-                type="text"
+            <FormField label="Connector Name" required>
+              <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs"
               />
-            </div>
+            </FormField>
 
-            <div className="space-y-1">
-              <label className="font-semibold text-ink">Transport Protocol</label>
-              <select
+            <FormField label="Transport Protocol">
+              <Select
                 value={formData.transport}
                 onChange={(e) =>
                   setFormData({
@@ -211,26 +214,24 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                     transport: e.target.value as 'stdio' | 'sse' | 'rest',
                   })
                 }
-                className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs cursor-pointer"
-              >
-                <option value="stdio">stdio (Local Subprocess)</option>
-                <option value="sse">sse (Server-Sent Events)</option>
-                <option value="rest">rest (HTTP Webhook API)</option>
-              </select>
-            </div>
+                options={[
+                  { label: 'stdio (Local Subprocess)', value: 'stdio' },
+                  { label: 'sse (Server-Sent Events)', value: 'sse' },
+                  { label: 'rest (HTTP Webhook API)', value: 'rest' },
+                ]}
+              />
+            </FormField>
           </div>
 
-          <div className="space-y-1">
-            <label className="font-semibold text-ink">Endpoint Host / URI</label>
-            <input
-              type="text"
+          <FormField label="Endpoint Host / URI" required>
+            <Input
+              variant="mono"
               value={formData.endpoint}
               onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })}
               required
-              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary font-mono text-xs"
               placeholder="e.g. http://localhost:27123/mcp/obsidian"
             />
-          </div>
+          </FormField>
 
           {/* Storage & Knowledge Mounting Selector in Edit Mode */}
           {(integration.id.includes('obsidian') ||
@@ -244,15 +245,11 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <label className="text-[11px] text-muted flex items-center gap-1">
-                    <Folder size={11} className="text-primary" />
-                    <span>Mount to Knowledge Source:</span>
-                  </label>
-                  <select
+                <FormField label="Mount to Knowledge Source:">
+                  <Select
+                    variant="mono"
                     value={selectedVaultScope}
                     onChange={(e) => setSelectedVaultScope(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs font-mono cursor-pointer"
                   >
                     {knowledgeSources.length > 0 ? (
                       knowledgeSources.map((ks) => (
@@ -263,84 +260,64 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                     ) : (
                       <option value="Personal Obsidian Vault">📚 Personal Obsidian Vault</option>
                     )}
-                  </select>
-                </div>
+                  </Select>
+                </FormField>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] text-muted">Default Output Subfolder</label>
-                  <input
-                    type="text"
+                <FormField label="Default Output Subfolder">
+                  <Input
+                    variant="mono"
                     value={outputPath}
                     onChange={(e) => setOutputPath(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs font-mono"
                     placeholder="e.g. Drafts/ or Notes/"
                   />
-                </div>
+                </FormField>
               </div>
             </div>
           )}
 
-          <div className="space-y-1">
-            <label className="font-semibold text-ink">Description</label>
-            <textarea
+          <FormField label="Description">
+            <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={2}
-              className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary resize-none text-xs"
             />
-          </div>
+          </FormField>
 
-          <div className="space-y-1">
-            <label className="font-semibold text-ink flex items-center justify-between">
-              <span>API Key / Secret Token</span>
-              <span className="text-[10px] text-semantic-success flex items-center gap-1 font-mono">
-                <Lock size={10} /> Encrypted
-              </span>
-            </label>
-            <div className="relative">
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                value={formData.apiKey}
-                onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary font-mono text-xs pr-9"
-              />
-              <button
-                type="button"
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute right-2.5 top-2.5 text-muted hover:text-ink cursor-pointer"
-              >
-                {showApiKey ? <EyeOff size={13} /> : <Eye size={13} />}
-              </button>
-            </div>
-          </div>
+          <FormField
+            label="API Key / Secret Token"
+            badge={
+              <Badge variant="success" size="xs" icon={<Lock size={10} />}>
+                Encrypted
+              </Badge>
+            }
+          >
+            <Input
+              type="password"
+              variant="mono"
+              value={formData.apiKey}
+              onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+              allowToggleVisibility
+            />
+          </FormField>
 
           {/* Save Buttons */}
           <ModalFooter className="justify-end">
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
-            >
+            <Button type="button" variant="ghost" size="xs" onClick={() => setIsEditing(false)}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
-            >
-              <Save size={13} />
-              <span>Save Configuration</span>
-            </button>
+            </Button>
+            <Button type="submit" variant="primary" size="sm" leftIcon={<Save size={13} />}>
+              Save Configuration
+            </Button>
           </ModalFooter>
         </form>
       ) : (
         /* VIEW OVERVIEW */
         <div className="space-y-3.5 text-xs">
-          {/* Description */}
           <p className="text-body leading-relaxed text-xs">
             {integration.description}
           </p>
 
-          {/* Sleek Storage & Mount Banner */}
+          {/* Storage & Mount Banner */}
           {(integration.id.includes('obsidian') ||
             integration.id.includes('filesystem') ||
             Boolean(integration.targetBinding)) && (
@@ -362,8 +339,10 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
               </div>
 
               {integration.id.includes('obsidian') && (
-                <button
-                  type="button"
+                <Button
+                  variant="purple"
+                  size="xs"
+                  leftIcon={<ExternalLink size={12} />}
                   onClick={() => {
                     const vaultName =
                       (currentIntegration.authConfig?.vaultName as string) ||
@@ -372,16 +351,15 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                     const subfolder = selectedVaultScope || ''
                     obsidianBridgeService.openInObsidianApp(vaultName, subfolder)
                   }}
-                  className="px-3 py-1.5 bg-[#7c3aed] hover:bg-[#7c3aed]/90 text-white font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-xs shadow-2xs shrink-0 self-start sm:self-auto"
+                  className="shrink-0 self-start sm:self-auto"
                 >
-                  <ExternalLink size={12} />
-                  <span>Open in Obsidian</span>
-                </button>
+                  Open in Obsidian
+                </Button>
               )}
             </div>
           )}
 
-          {/* Sleek Workspace Banner for Notion */}
+          {/* Workspace Banner for Notion */}
           {integration.id.includes('notion') && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20 gap-2.5">
               <div className="flex items-center gap-2 min-w-0">
@@ -421,9 +399,9 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                 <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse" />
                 <span>{currentIntegration.latencyMs}ms</span>
               </span>
-              <span className="uppercase text-ink font-semibold px-2 py-0.5 rounded bg-canvas border border-hairline text-[10px]">
+              <Badge variant="mono" size="xs">
                 {currentIntegration.transport || 'stdio'}
-              </span>
+              </Badge>
             </div>
           </div>
 
@@ -432,23 +410,24 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
             <div className="text-[11px] font-mono font-semibold uppercase tracking-caption text-muted flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-ink">
                 <span>Available MCP Tools</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-primary/10 text-primary text-[10px] font-mono">
+                <Badge variant="primary" size="xs">
                   {currentIntegration.tools.length}
-                </span>
+                </Badge>
               </span>
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="xs"
+                isLoading={isSyncing}
+                leftIcon={<RefreshCw size={11} />}
                 onClick={async () => {
                   setIsSyncing(true)
                   await discoverTools(currentIntegration.id)
                   setIsSyncing(false)
                 }}
                 disabled={isSyncing}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
               >
-                <RefreshCw size={11} className={isSyncing ? 'animate-spin' : ''} />
-                <span>{isSyncing ? 'Syncing...' : 'Sync Tools (tools/list)'}</span>
-              </button>
+                {isSyncing ? 'Syncing...' : 'Sync Tools (tools/list)'}
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -462,15 +441,9 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                       <Terminal size={12} className="text-primary shrink-0" />
                       <span className="truncate">{tool.name}</span>
                     </span>
-                    <span
-                      className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-semibold shrink-0 tracking-wide ${
-                        tool.readOnly
-                          ? 'bg-primary/10 text-primary border border-primary/20'
-                          : 'bg-semantic-success/10 text-semantic-success border border-semantic-success/20'
-                      }`}
-                    >
+                    <Badge variant={tool.readOnly ? 'primary' : 'success'} size="xs">
                       {tool.readOnly ? 'read' : 'write'}
-                    </span>
+                    </Badge>
                   </div>
                   <p className="text-[11px] text-muted leading-relaxed line-clamp-2">
                     {tool.description}
@@ -482,27 +455,20 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
 
           {/* Footer Actions */}
           <ModalFooter>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
+              isLoading={isTesting}
+              leftIcon={isTesting ? <Zap size={13} /> : <Activity size={13} className="text-semantic-success" />}
               onClick={() => onTest(integration.id)}
               disabled={isTesting}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-canvas-soft hover:bg-canvas text-xs font-semibold text-ink border border-hairline rounded-lg transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
             >
-              {isTesting ? (
-                <Zap size={13} className="animate-spin text-primary" />
-              ) : (
-                <Activity size={13} className="text-semantic-success" />
-              )}
-              <span>{isTesting ? 'Pinging...' : 'Test Ping'}</span>
-            </button>
+              {isTesting ? 'Pinging...' : 'Test Ping'}
+            </Button>
 
-            <button
-              onClick={onClose}
-              className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-xs font-semibold text-canvas rounded-lg shadow-xs cursor-pointer transition-colors flex items-center gap-1"
-            >
-              <Check size={13} />
-              <span>Done</span>
-            </button>
+            <Button variant="primary" size="sm" leftIcon={<Check size={13} />} onClick={onClose}>
+              Done
+            </Button>
           </ModalFooter>
         </div>
       )}

@@ -9,8 +9,17 @@ import {
   BookOpen,
 } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
-import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
-import { IntegrationIconBox } from '@/shared/components/ui/IconBox'
+import {
+  Modal,
+  ModalHeader,
+  ModalFooter,
+  IntegrationIconBox,
+  Button,
+  Input,
+  Select,
+  FormField,
+  Badge,
+} from '@/shared/components'
 import { useWorkspace } from '@/shared/mock'
 import { ecosystemApi } from '@/shared/api/ecosystemApi'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
@@ -71,7 +80,6 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
   const handleNotionDirectConnect = async () => {
     setIsSubmitting(true)
     try {
-      // 1. Fetch official Notion authorization URL from backend
       const res = await ecosystemApi.getNotionOAuthUrl().catch(() => ({
         configured: false,
         authUrl:
@@ -82,10 +90,8 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
         res.authUrl ||
         'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback'
 
-      // 2. Direct browser opening for Notion authorization
       window.open(targetUrl, '_blank', 'noopener,noreferrer')
 
-      // 3. Update PostgreSQL integration status to connected
       await updateConnectorConfig(integration.id, {
         status: 'connected',
         endpoint: 'https://mcp.notion.com/mcp',
@@ -205,7 +211,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
       />
 
       <div className="space-y-4 text-xs font-mono">
-        {/* Notion: Direct Browser Authorization Design */}
+        {/* Notion Flow */}
         {isNotion && (
           <div className="space-y-4">
             <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2">
@@ -224,35 +230,24 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
             </div>
 
             <ModalFooter className="justify-end pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
-              >
+              <Button type="button" variant="ghost" size="xs" onClick={onClose}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="dark"
+                size="sm"
+                isLoading={isSubmitting}
+                leftIcon={<ExternalLink size={13} />}
                 onClick={handleNotionDirectConnect}
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-black hover:bg-zinc-800 text-white text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50 transition-colors"
               >
-                {isSubmitting ? (
-                  <Zap size={13} className="animate-spin text-primary" />
-                ) : (
-                  <ExternalLink size={13} />
-                )}
-                <span>
-                  {isSubmitting
-                    ? 'Opening Browser...'
-                    : 'Connect in Browser'}
-                </span>
-              </button>
+                {isSubmitting ? 'Opening Browser...' : 'Connect in Browser'}
+              </Button>
             </ModalFooter>
           </div>
         )}
 
-        {/* Obsidian: Local Vault stdio Binding */}
+        {/* Obsidian Flow */}
         {isObsidian && (
           <form onSubmit={handleObsidianConnect} className="space-y-4">
             <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2">
@@ -268,50 +263,46 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
             </div>
 
             {/* Field 1: Obsidian Desktop App Vault Name */}
-            <div className="space-y-1.5">
-              <label className="text-ink font-semibold flex items-center justify-between">
+            <FormField
+              label={
                 <span className="flex items-center gap-1.5">
                   <BookOpen size={13} className="text-[#7c3aed]" />
                   <span>Obsidian Desktop Vault Name</span>
                 </span>
-                <span className="text-[10px] text-muted">
-                  Name registered in Obsidian App
-                </span>
-              </label>
-              <input
-                type="text"
+              }
+              badge={<span className="text-muted">Name registered in Obsidian App</span>}
+              required
+            >
+              <Input
+                variant="mono"
                 value={vaultName}
                 onChange={(e) => setVaultName(e.target.value)}
                 placeholder="e.g. Obsidian Vault"
                 required
-                className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink font-mono focus:outline-none focus:border-primary text-xs"
               />
-            </div>
+            </FormField>
 
             {/* Field 2: Target Knowledge Source (Subfolder Scope) */}
             {availableVaultSources.length > 0 ? (
-              <div className="space-y-1.5">
-                <label className="text-ink font-semibold flex items-center justify-between">
+              <FormField
+                label={
                   <span className="flex items-center gap-1.5">
                     <Folder size={13} className="text-[#7c3aed]" />
                     <span>Mount to Knowledge Source</span>
                   </span>
-                  <span className="text-[10px] text-primary font-normal">
-                    ✓ Subfolder Scope
-                  </span>
-                </label>
-                <select
+                }
+                badge={<Badge variant="primary" size="xs">✓ Subfolder Scope</Badge>}
+              >
+                <Select
+                  variant="mono"
                   value={selectedSourceId}
                   onChange={(e) => setSelectedSourceId(e.target.value)}
-                  className="w-full px-3 py-2 bg-canvas border border-hairline rounded-lg text-ink font-mono focus:outline-none focus:border-primary text-xs cursor-pointer"
-                >
-                  {availableVaultSources.map((ks) => (
-                    <option key={ks.id} value={ks.id}>
-                      📚 {ks.name} ({ks.filesCount} files)
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  options={availableVaultSources.map((ks) => ({
+                    label: `📚 ${ks.name} (${ks.filesCount} files)`,
+                    value: ks.id,
+                  }))}
+                />
+              </FormField>
             ) : (
               <div className="p-3.5 bg-canvas-soft rounded-xl border border-hairline text-center space-y-1">
                 <p className="text-ink font-semibold text-xs">
@@ -324,23 +315,19 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
             )}
 
             <ModalFooter className="justify-end pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
-              >
+              <Button type="button" variant="ghost" size="xs" onClick={onClose}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={isSubmitting}
+                leftIcon={<Zap size={13} />}
                 disabled={isSubmitting || availableVaultSources.length === 0}
-                className="px-4 py-2 bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               >
-                <Zap size={13} className={isSubmitting ? 'animate-spin' : ''} />
-                <span>
-                  {isSubmitting ? 'Pairing...' : 'Pair & Connect Vault'}
-                </span>
-              </button>
+                {isSubmitting ? 'Pairing...' : 'Pair & Connect Vault'}
+              </Button>
             </ModalFooter>
           </form>
         )}
@@ -359,38 +346,29 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-ink font-semibold flex items-center justify-between">
-                <span>Endpoint / Command</span>
-              </label>
-              <input
-                type="text"
+            <FormField label="Endpoint / Command">
+              <Input
+                variant="mono"
                 value={integration.endpoint}
                 readOnly
-                className="w-full px-3 py-2 bg-canvas-soft border border-hairline rounded-lg text-muted font-mono text-xs cursor-not-allowed"
+                disabled
               />
-            </div>
+            </FormField>
 
             <ModalFooter className="justify-end pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
-              >
+              <Button type="button" variant="ghost" size="xs" onClick={onClose}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={isSubmitting}
+                leftIcon={<Zap size={13} />}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               >
-                <Zap size={13} className={isSubmitting ? 'animate-spin' : ''} />
-                <span>
-                  {isSubmitting
-                    ? 'Connecting...'
-                    : `Connect ${integration.name}`}
-                </span>
-              </button>
+                {isSubmitting ? 'Connecting...' : `Connect ${integration.name}`}
+              </Button>
             </ModalFooter>
           </form>
         )}
@@ -402,7 +380,9 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
               <Sparkles size={11} className="text-primary" />
               <span>Exposed MCP Tools</span>
             </span>
-            <span>({integration.tools?.length || 0} Tools)</span>
+            <Badge variant="neutral" size="xs">
+              {integration.tools?.length || 0} Tools
+            </Badge>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">

@@ -3,7 +3,6 @@ import {
   Sparkles,
   FileText,
   Trash2,
-  Loader2,
   Layers,
   FolderOpen,
   RefreshCw,
@@ -11,8 +10,17 @@ import {
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service'
-import { Modal, ModalHeader, ModalFooter } from '@/shared/components/ui/Modal'
-import { IconBox, KnowledgeIconBox } from '@/shared/components/ui/IconBox'
+import {
+  Modal,
+  ModalHeader,
+  ModalFooter,
+  IconBox,
+  KnowledgeIconBox,
+  Button,
+  Input,
+  FormField,
+  Badge,
+} from '@/shared/components'
 
 interface AddSourceModalProps {
   isOpen: boolean
@@ -212,10 +220,9 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
         icon={<IconBox size="md" variant="primary" icon={<FolderOpen size={19} />} />}
         title="Connect Knowledge Source"
         badge={
-          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
-            <Sparkles size={10} />
-            <span>1536-dim RAG</span>
-          </span>
+          <Badge variant="primary" size="xs" icon={<Sparkles size={10} />}>
+            1536-dim RAG
+          </Badge>
         }
         subtitle="Pair a local folder or vault from your computer to ground AI reasoning with isolated vector search."
         onClose={onClose}
@@ -224,18 +231,13 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
       {/* Form Body */}
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-mono">
         {/* Source Name Field */}
-        <div className="space-y-1.5 font-sans">
-          <label className="block font-semibold text-ink uppercase tracking-caption font-mono text-[11px]">
-            Knowledge Source Name:
-          </label>
-          <input
-            type="text"
+        <FormField label="Knowledge Source Name:">
+          <Input
             placeholder="e.g. Engineering Specs, Personal Obsidian Vault, or Research Papers"
             value={sourceName}
             onChange={(e) => setSourceName(e.target.value)}
-            className="w-full px-3.5 py-2 bg-canvas border border-hairline rounded-lg text-ink focus:outline-none focus:border-primary text-xs font-medium"
           />
-        </div>
+        </FormField>
 
         {/* Unified Folder Dropzone Area */}
         {files.length === 0 && !folderPathLabel ? (
@@ -268,19 +270,15 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
 
             {/* Action Button */}
             <div className="pt-1">
-              <span className="px-4 py-2 bg-primary hover:bg-primary/90 text-canvas font-semibold rounded-lg shadow-xs transition-colors inline-flex items-center gap-2 text-xs">
-                {isScanning ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>Scanning Folder...</span>
-                  </>
-                ) : (
-                  <>
-                    <FolderOpen size={14} />
-                    <span>Select Folder from Laptop</span>
-                  </>
-                )}
-              </span>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                isLoading={isScanning}
+                leftIcon={<FolderOpen size={14} />}
+              >
+                {isScanning ? 'Scanning Folder...' : 'Select Folder from Laptop'}
+              </Button>
             </div>
 
             <div className="text-[11px] text-muted font-mono pt-0.5">
@@ -300,9 +298,9 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
                     <span className="font-semibold text-ink text-xs truncate">
                       {folderPathLabel ? `/${folderPathLabel}` : 'Paired Folder'}
                     </span>
-                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                    <Badge variant="primary" size="xs">
                       {detectedType === 'obsidian_vault' ? 'Obsidian Vault' : 'Local Folder'}
-                    </span>
+                    </Badge>
                   </div>
                   <div className="text-[11px] text-muted font-mono mt-0.5">
                     {files.length} documents ready for RAG · Total:{' '}
@@ -311,14 +309,15 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
                 </div>
               </div>
 
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="xs"
+                leftIcon={<RefreshCw size={11} />}
                 onClick={handleResetSelection}
-                className="px-2.5 py-1 text-[11px] font-mono font-semibold text-muted hover:text-ink bg-canvas-soft hover:bg-surface border border-hairline rounded-lg transition-colors cursor-pointer flex items-center gap-1 shrink-0"
               >
-                <RefreshCw size={11} />
-                <span>Change</span>
-              </button>
+                Change
+              </Button>
             </div>
 
             {/* Scanned Files List Preview */}
@@ -364,33 +363,24 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
 
         {/* Action Buttons */}
         <ModalFooter className="justify-end font-sans">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer"
-          >
+          <Button type="button" variant="ghost" size="xs" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
+            variant="primary"
+            size="sm"
+            isLoading={isSubmitting}
             disabled={isSubmitting || (files.length === 0 && !folderPathLabel)}
-            className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-canvas font-semibold rounded-lg shadow-xs cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-1.5 text-xs"
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 size={13} className="animate-spin" />
-                <span>{ingestProgressText || 'Vectorizing...'}</span>
-              </>
-            ) : (
-              <span>
-                {files.length > 0
-                  ? `Connect & Ingest (${files.length} Docs)`
-                  : folderPathLabel
-                  ? `Connect /${folderPathLabel}`
-                  : 'Connect Knowledge Source'}
-              </span>
-            )}
-          </button>
+            {isSubmitting
+              ? ingestProgressText || 'Vectorizing...'
+              : files.length > 0
+              ? `Connect & Ingest (${files.length} Docs)`
+              : folderPathLabel
+              ? `Connect /${folderPathLabel}`
+              : 'Connect Knowledge Source'}
+          </Button>
         </ModalFooter>
       </form>
     </Modal>

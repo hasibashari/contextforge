@@ -1,5 +1,3 @@
 export { default as ActivityView } from './views/ActivityView'
-export { ActivityHeader } from './components/ActivityHeader'
-export { ActivityFilterBar } from './components/ActivityFilterBar'
 export { ActivityItemRow } from './components/ActivityItemRow'
 export { ActivityList } from './components/ActivityList'
