@@ -356,7 +356,7 @@ export function generateGeneralReasoningOutput(prompt: string): GeneratedAssista
 ### 💡 Rekomendasi untuk ContextForge:
 Mulai dengan **Modular Monolith** terlebih dahulu. Pisahkan domain code (Chat, Agents, Knowledge, Integrations) ke dalam modul TypeScript yang terisolasi dengan public interface yang jelas. Anda selalu bisa memecahnya menjadi microservice independen ketika traffic atau tim berkembang.`
   } else {
-    analysis += `Sebagai **Main Orchestrator Agent**, saya memproses pertanyaan Anda dalam mode *read-only* (tanpa memodifikasi file atau menjalankan perintah berbahaya).\n\n1. **Prinsip Utama:** Setiap kebutuhan eksekusi (seperti membuat catatan di Obsidian, menulis kode, atau menjalankan CLI) akan didelegasikan secara terisolasi ke Side Agent.\n2. **Kesiapan Aksi:** Jika Anda ingin saya membuatkan catatan rangkuman di Obsidian atau menghasilkan kode implementasi, cukup ketik instruksi Anda.`
+    analysis += `Sebagai **Personal Assistant Agent**, saya siap mendampingi Anda memahami goal, merencanakan langkah, dan mengoordinasikan berbagai kapabilitas agen/tool untuk mencapai target Anda (dalam mode *read-only* yang aman).\n\n1. **Prinsip Utama:** Setiap kebutuhan eksekusi (seperti membuat catatan di Obsidian, menulis kode, atau menjalankan aksi) akan didelegasikan secara terisolasi ke specialized worker.\n2. **Kesiapan Aksi:** Jika Anda ingin saya membuatkan catatan rangkuman di Obsidian, melakukan riset mendalam, atau merencanakan arsitektur, cukup ketik instruksi atau goal Anda.`
   }
 
   return {

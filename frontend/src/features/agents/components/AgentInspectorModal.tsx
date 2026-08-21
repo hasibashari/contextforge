@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Brain, Terminal, Sparkles, Check, Settings2, RotateCcw } from 'lucide-react'
+import { Brain, Terminal, Sparkles, Check, Settings2, RotateCcw, Layers, ShieldCheck } from 'lucide-react'
 import type { Agent } from '@/shared/types/workspace'
 import { useWorkspace } from '@/shared/mock'
 import {
@@ -24,23 +24,21 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
   const [selectedTools, setSelectedTools] = useState<string[]>([])
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
 
+  if (!agent) return null
+
+  const isCoreOrchestrator =
+    agent.agentType === 'orchestrator' || agent.id === 'agent-conversational'
+
   const handleStartEdit = () => {
-    if (agent) {
-      setSelectedTools(agent.assignedTools || [])
-      setSelectedSkills(agent.assignedSkills || [])
-      setIsEditing(true)
-    }
+    if (isCoreOrchestrator) return
+    setSelectedTools(agent.assignedTools || [])
+    setSelectedSkills(agent.assignedSkills || [])
+    setIsEditing(true)
   }
 
   const handleCancelEdit = () => {
     setIsEditing(false)
   }
-
-  if (!agent) return null
-
-  const allWorkspaceTools = integrations.flatMap((intg) =>
-    intg.tools.map((t) => ({ name: t.name, integrationName: intg.name }))
-  )
 
   const handleToggleTool = (toolName: string) => {
     setSelectedTools((prev) =>
@@ -59,9 +57,19 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
   }
 
   const handleSaveCapabilities = () => {
+    if (!agent || isCoreOrchestrator) return
     updateAgentCapabilities(agent.id, selectedTools, selectedSkills)
     setIsEditing(false)
   }
+
+  // Flatten all MCP tools from all integrations
+  const allWorkspaceTools = integrations.flatMap((integration) =>
+    (integration.tools || []).map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      integrationName: integration.name,
+    }))
+  )
 
   const icon = (
     <div
@@ -71,16 +79,27 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
     </div>
   )
 
-  const renderActions = () => (
-    <Button
-      variant={isEditing ? 'secondary' : 'outline'}
-      size="xs"
-      leftIcon={isEditing ? <RotateCcw size={13} /> : <Settings2 size={13} />}
-      onClick={isEditing ? handleCancelEdit : handleStartEdit}
-    >
-      {isEditing ? 'Cancel Edit' : 'Edit Capabilities'}
-    </Button>
-  )
+  const renderActions = () => {
+    if (isCoreOrchestrator) {
+      return (
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary font-mono text-[11px] font-medium shadow-2xs">
+          <ShieldCheck size={13} />
+          <span>Core System (Built-in)</span>
+        </div>
+      )
+    }
+
+    return (
+      <Button
+        variant={isEditing ? 'secondary' : 'outline'}
+        size="xs"
+        leftIcon={isEditing ? <RotateCcw size={13} /> : <Settings2 size={13} />}
+        onClick={isEditing ? handleCancelEdit : handleStartEdit}
+      >
+        {isEditing ? 'Cancel Edit' : 'Edit Capabilities'}
+      </Button>
+    )
+  }
 
   return (
     <Modal isOpen={Boolean(agent)} onClose={onClose} size="2xl">
@@ -116,10 +135,36 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
           <div className="text-[11px] font-mono uppercase tracking-caption text-muted">
             System Prompt &amp; Guardrails:
           </div>
-          <pre className="p-2.5 bg-canvas text-ink font-mono text-xs rounded-lg whitespace-pre-wrap leading-relaxed border border-hairline max-h-28 overflow-y-auto">
+          <pre className="p-2.5 bg-canvas text-ink font-mono text-xs rounded-lg whitespace-pre-wrap leading-relaxed border border-hairline max-h-24 overflow-y-auto">
             {agent.systemPrompt}
           </pre>
         </div>
+
+        {/* Core Agent Capabilities */}
+        {agent.capabilities && agent.capabilities.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="text-[11px] font-mono uppercase tracking-caption text-ink font-semibold flex items-center gap-1.5">
+              <Layers size={12} className="text-primary" />
+              <span>Core Capabilities (What this agent does):</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {agent.capabilities.map((cap) => (
+                <div
+                  key={cap.id}
+                  className="p-2.5 rounded-lg bg-canvas border border-hairline flex flex-col justify-between space-y-1"
+                >
+                  <div className="font-semibold text-ink text-[11px] flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                    <span className="truncate">{cap.name}</span>
+                  </div>
+                  <p className="text-[10px] text-muted leading-relaxed">
+                    {cap.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Assigned Skills Section */}
         <div className="space-y-1.5">
@@ -127,18 +172,18 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
             <span className="flex items-center gap-1.5">
               <Sparkles size={12} />
               <span>
-                Equipped Reasoning Skills (
-                {isEditing ? selectedSkills.length : agent.assignedSkills?.length || 0}
-                ):
+                {isCoreOrchestrator
+                  ? `Equipped Reasoning SOPs (${agent.assignedSkills?.length || 0}):`
+                  : `Equipped Reasoning Skills (${isEditing ? selectedSkills.length : agent.assignedSkills?.length || 0}):`}
               </span>
             </span>
-            {isEditing && (
+            {isEditing && !isCoreOrchestrator && (
               <span className="text-[10px] text-muted lowercase">click to toggle</span>
             )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono">
-            {isEditing
+            {isEditing && !isCoreOrchestrator
               ? skills.map((skill) => {
                   const isChecked = selectedSkills.includes(skill.id)
                   return (
@@ -193,12 +238,12 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
             <span className="flex items-center gap-1.5">
               <Terminal size={12} className="text-primary" />
               <span>
-                Authorized MCP Tools (
-                {isEditing ? selectedTools.length : agent.assignedTools.length}
-                ):
+                {isCoreOrchestrator
+                  ? `Built-in Delegation Tools (${agent.assignedTools.length}):`
+                  : `Authorized MCP Tools (${isEditing ? selectedTools.length : agent.assignedTools.length}):`}
               </span>
             </span>
-            {isEditing && (
+            {isEditing && !isCoreOrchestrator && (
               <span className="text-[10px] text-muted lowercase">click to toggle</span>
             )}
           </div>

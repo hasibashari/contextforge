@@ -51,12 +51,12 @@ aliases: [CoreArchitecture, SystemDesign]
 
 ## Component Interaction
 
-\`\`\`mermaid
+```mermaid
 graph TD
-  Conversational[Conversational Agent] --> Action[Action Agent]
-  Conversational --> Research[Research Agent]
+  Assistant[Personal Assistant Agent] --> Action[Action Agent]
+  Assistant --> Research[Research Agent]
   Action --> Obsidian[Obsidian Vault Writer]
-\`\`\`
+```
 
 ## Related Notes
 - [[DatabaseSchema]]

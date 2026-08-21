@@ -41,21 +41,21 @@ Follow this standard procedure when designing system architectures, drafting RFC
 - **Domain**: Agentic Core / MCP Orchestration
 
 ## 1. Executive Summary
-Streamline agentic execution into 3 standardized personas: Conversational Agent, Research Agent, and Action Agent.
+Streamline agentic execution into 3 standardized personas: Personal Assistant Agent, Research Agent, and Action Agent.
 
 ## 2. Architecture
 
-\`\`\`mermaid
+```mermaid
 graph LR
-  User([User Request]) --> Router[Conversational Agent]
+  User([User Request]) --> Router[Personal Assistant Agent]
   Router -->|Grounding| Research[Research Agent]
   Router -->|Document Mutation| Action[Action Agent]
   Action --> Obsidian[(Obsidian Vault)]
   Action --> Notion[(Notion Cloud)]
-\`\`\`
+```
 
 ## 3. SQL DDL Specification
-\`\`\`sql
+```sql
 ALTER TABLE workspace_agents ADD COLUMN IF NOT EXISTS agent_type VARCHAR(30);
-\`\`\`
+```
 ```
