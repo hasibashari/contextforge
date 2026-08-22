@@ -2,10 +2,6 @@ import {
   Menu,
   PanelRightClose,
   PanelRightOpen,
-  Sparkles,
-  BookOpen,
-  Globe,
-  Calendar,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/context'
 
@@ -38,33 +34,11 @@ export default function DashboardHeader({
           <span className="font-semibold text-ink text-xs sm:text-sm truncate">
             {activeSession?.title || 'ContextForge AI Workspace'}
           </span>
-          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface-strong text-muted shrink-0">
-            <Sparkles size={10} className="text-primary" />
-            <span>Autonomous Mode</span>
-          </span>
         </div>
       </div>
 
       {/* Right Controls */}
       <div className="flex items-center gap-2">
-        {/* Connected Services Pills */}
-        <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-canvas-soft border border-hairline text-[11px] font-mono text-muted">
-          <div className="flex items-center gap-1 text-primary">
-            <BookOpen size={11} />
-            <span>Obsidian</span>
-          </div>
-          <span className="text-hairline-strong">·</span>
-          <div className="flex items-center gap-1 text-semantic-success">
-            <Calendar size={11} />
-            <span>Calendar</span>
-          </div>
-          <span className="text-hairline-strong">·</span>
-          <div className="flex items-center gap-1 text-[#3b6ea5]">
-            <Globe size={11} />
-            <span>Web</span>
-          </div>
-        </div>
-
         {/* Aside Inspector Toggle */}
         {onToggleAside && (
           <button

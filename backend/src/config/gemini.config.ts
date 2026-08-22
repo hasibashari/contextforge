@@ -2,7 +2,7 @@ import { registerAs } from '@nestjs/config';
 
 export const geminiConfig = registerAs('gemini', () => ({
   apiKey: process.env.GEMINI_API || process.env.GEMINI_API_KEY || '',
-  defaultModel: process.env.GEMINI_DEFAULT_MODEL || 'gemini-3.6-flash',
+  defaultModel: process.env.GEMINI_DEFAULT_MODEL || 'gemini-3.5-flash',
   embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-2',
   embeddingDimension: parseInt(
     process.env.GEMINI_EMBEDDING_DIMENSION || '1536',

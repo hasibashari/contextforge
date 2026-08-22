@@ -51,7 +51,7 @@ export class CoreOrchestratorService {
 
     const modelName = this.configService.get<string>(
       'gemini.defaultModel',
-      'gemini-3.6-flash',
+      'gemini-3.5-flash',
     );
     const temperature = this.configService.get<number>(
       'gemini.temperature',

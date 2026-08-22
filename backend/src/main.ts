@@ -20,7 +20,7 @@ async function bootstrap() {
   await app.listen(port);
   logger.log(`🚀 ContextForge Backend is running on: http://localhost:${port}`);
   logger.log(
-    `⚡ Native PostgreSQL connected & Gemini 3.6 Flash reasoning engine ready.`,
+    `⚡ Native PostgreSQL connected & Gemini 3.5 Flash reasoning engine ready.`,
   );
 }
 void bootstrap();

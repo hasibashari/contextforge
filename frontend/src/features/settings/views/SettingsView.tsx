@@ -214,7 +214,7 @@ export default function SettingsView() {
                 <Sparkles size={11} className="text-primary" />
                 <span>Reasoning Core</span>
               </div>
-              <div className="text-xs font-semibold text-ink">Google Gemini 3.x Flash</div>
+              <div className="text-xs font-semibold text-ink">Google Gemini 3.5 Flash</div>
               <div className="text-[10px] text-muted">DeepMind SDK Integration</div>
             </div>
 

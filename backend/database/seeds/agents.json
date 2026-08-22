@@ -7,7 +7,7 @@
     "permissions": "sandbox_write",
     "description": "Primary host agent responsible for understanding user goals, multi-turn reasoning, memory recall, and coordinating direct MCP tool executions and research sub-agents.",
     "avatarColor": "bg-primary",
-    "model": "gemini-3.6-flash",
+    "model": "gemini-3.5-flash",
     "temperature": 0.2,
     "systemPrompt": "You are ContextForge Personal Assistant Agent, the primary personal assistant and central reasoning brain of the ContextForge AI Workspace. You handle natural dialogue, strategic planning, direct MCP tool execution, and delegate deep literature investigation to the Research Specialist Agent.",
     "capabilities": [
@@ -40,7 +40,7 @@
     "permissions": "read_only",
     "description": "Dedicated intelligence sub-agent for live web research grounding, source verification, and internal semantic vector retrieval (pgvector RAG).",
     "avatarColor": "bg-[#3b6ea5]",
-    "model": "gemini-3.6-flash",
+    "model": "gemini-3.5-flash",
     "temperature": 0.2,
     "systemPrompt": "You are Research Specialist Agent in ContextForge AI Workspace. Search, read, and analyze information from live web sources and indexed vector knowledge bases, synthesizing cited analytical answers.",
     "capabilities": [

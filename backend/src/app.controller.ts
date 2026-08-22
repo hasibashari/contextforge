@@ -8,7 +8,7 @@ export class AppController {
       name: 'ContextForge AI Agentic Platform API',
       version: '1.0.0',
       status: 'online',
-      engine: 'Google Gemini 3.6 Flash',
+      engine: 'Google Gemini 3.5 Flash',
       database: 'PostgreSQL Native (pg.Pool)',
       endpoints: {
         chatSessions: '/api/chat/sessions',

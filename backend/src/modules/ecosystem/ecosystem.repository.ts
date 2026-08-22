@@ -91,7 +91,7 @@ export class EcosystemRepository implements OnModuleInit {
           permissions VARCHAR(50) NOT NULL,
           description TEXT NOT NULL,
           avatar_color VARCHAR(50) DEFAULT 'bg-primary',
-          model VARCHAR(100) DEFAULT 'gemini-3.6-flash',
+          model VARCHAR(100) DEFAULT 'gemini-3.5-flash',
           temperature NUMERIC(3,2) DEFAULT 0.2,
           system_prompt TEXT NOT NULL,
           capabilities JSONB DEFAULT '[]',
