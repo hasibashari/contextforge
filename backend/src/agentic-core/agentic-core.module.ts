@@ -10,10 +10,11 @@ import { UniversalMcpToolHandler } from './handlers/universal-mcp-tool.handler';
 import { WebSearchToolHandler } from './handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from './handlers/knowledge-tool.handler';
 import { AutomationToolHandler } from './handlers/automation-tool.handler';
+import { DatabaseModule } from '../common/database/database.module';
 import { AutomationModule } from '../modules/automation/automation.module';
 
 @Module({
-  imports: [forwardRef(() => AutomationModule)],
+  imports: [DatabaseModule, forwardRef(() => AutomationModule)],
   providers: [
     GeminiClientProvider,
     CoreOrchestratorService,

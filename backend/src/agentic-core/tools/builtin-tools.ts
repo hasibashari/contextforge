@@ -48,6 +48,14 @@ export const TOOL_CATALOG: Record<string, ToolMetadata> = {
     serverName: 'Obsidian MCP Server',
     description: 'Reads note contents and queries backlinks in Obsidian Vault.',
   },
+  obsidian_list_folders: {
+    name: 'obsidian_list_folders',
+    category: 'mcp_obsidian',
+    readOnly: true,
+    serverName: 'Obsidian MCP Server',
+    description:
+      'Scans and returns existing folder paths in the Obsidian Vault so notes can be organized into matching existing folders.',
+  },
   notion_get_tasks: {
     name: 'notion_get_tasks',
     category: 'mcp_notion',
@@ -158,6 +166,15 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
       properties: {
         path: strProp('Relative path to the note file in the vault'),
       },
+    },
+  },
+  {
+    name: 'obsidian_list_folders',
+    description:
+      'MCP Obsidian Protocol: Inspects the real-time directory structure and existing folder names in the Obsidian Vault. Call this to choose an existing folder before writing a note.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {},
     },
   },
   {

@@ -229,10 +229,13 @@ export function useChatEngine(
 
   const deleteArtifact = useCallback(
     async (artifactId: string) => {
-      setArtifacts((prev) => prev.filter((a) => a.id !== artifactId));
-      if (activeArtifact?.id === artifactId) {
-        setActiveArtifact(null);
-      }
+      setArtifacts((prev) => {
+        const remaining = prev.filter((a) => a.id !== artifactId);
+        if (activeArtifact?.id === artifactId) {
+          setActiveArtifact(remaining.length > 0 ? remaining[0] : null);
+        }
+        return remaining;
+      });
       try {
         await artifactsApi.delete(artifactId);
         showToast('🗑️ Document removed from workspace');

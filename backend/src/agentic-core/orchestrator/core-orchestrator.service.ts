@@ -13,6 +13,7 @@ import { UniversalMcpToolHandler } from '../handlers/universal-mcp-tool.handler'
 import { WebSearchToolHandler } from '../handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from '../handlers/knowledge-tool.handler';
 import { AutomationToolHandler } from '../handlers/automation-tool.handler';
+import { ObsidianVaultService } from '../services/obsidian-vault.service';
 
 export type { StreamEvent, OrchestrationResult };
 
@@ -32,6 +33,7 @@ export class CoreOrchestratorService {
     private readonly webSearchHandler: WebSearchToolHandler,
     private readonly knowledgeHandler: KnowledgeToolHandler,
     private readonly automationHandler: AutomationToolHandler,
+    private readonly obsidianVaultService: ObsidianVaultService,
   ) {}
 
   /**
@@ -58,10 +60,19 @@ export class CoreOrchestratorService {
       0.2,
     );
 
+    // Live inspect user's existing vault folders to enforce contextual directory alignment
+    let vaultFolders: string[] = [];
+    try {
+      vaultFolders = await this.obsidianVaultService.getVaultFolders();
+    } catch {
+      // Fallback safe
+    }
+
     const systemInstruction = getAgentSystemPrompt(
       agentId,
       activeSkills,
       memorySummary,
+      vaultFolders,
     );
 
     // Cumulative conversation history for the ReAct loop
@@ -248,29 +259,39 @@ export class CoreOrchestratorService {
         }
       }
 
-      // If loop reached MAX_REACT_TURNS without concluding, force final text synthesis
-      if (!isCompleted && !finalResult.textContent) {
-        emit({
-          event: 'timeline_stage',
-          data: {
-            stage: 'reading',
-            label: 'Finalizing Multi-Step Synthesis...',
-          },
-        });
+      // Ensure rich text summary is always present and emitted to the user
+      if (!finalResult.textContent || finalResult.textContent.trim() === '') {
+        if (finalResult.artifact) {
+          const art = finalResult.artifact;
+          const locPath = art.location_path || 'Work/Notes/';
+          finalResult.textContent = `Dokumen **${art.title}** telah berhasil disusun dan disimpan di Obsidian Vault Anda pada path: \`${locPath}\`.\n\n### 📋 Ringkasan Dokumen:\n${art.content ? art.content.slice(0, 600) + (art.content.length > 600 ? '\n\n*(Buka dokumen lengkap di panel Aside)*' : '') : 'Telah dibuat dengan frontmatter YAML dan backlinks.'}`;
+          this.streamFinalText(finalResult.textContent, emit);
+        } else if (finalResult.intent?.summaryText) {
+          finalResult.textContent = finalResult.intent.summaryText;
+          this.streamFinalText(finalResult.textContent, emit);
+        } else {
+          emit({
+            event: 'timeline_stage',
+            data: {
+              stage: 'reading',
+              label: 'Finalizing Multi-Step Synthesis...',
+            },
+          });
 
-        // Call Gemini with existing turnContents without tools to force final text synthesis
-        const fallbackResponse = await this.ai.models.generateContent({
-          model: modelName,
-          contents: turnContents,
-          config: {
-            systemInstruction,
-            temperature,
-          },
-        });
+          // Call Gemini with existing turnContents without tools to force final text synthesis
+          const fallbackResponse = await this.ai.models.generateContent({
+            model: modelName,
+            contents: turnContents,
+            config: {
+              systemInstruction,
+              temperature,
+            },
+          });
 
-        finalResult.textContent =
-          fallbackResponse.text || 'Tugas telah selesai diproses.';
-        this.streamFinalText(finalResult.textContent, emit);
+          finalResult.textContent =
+            fallbackResponse.text || 'Tugas telah selesai diproses.';
+          this.streamFinalText(finalResult.textContent, emit);
+        }
       }
 
       if (allSourceDomains.size > 0) {

@@ -176,6 +176,21 @@ export class McpGatewayService {
       };
     }
 
+    if (toolName === 'obsidian_list_folders') {
+      const folders = await this.obsidianVaultService.getVaultFolders();
+      return {
+        success: true,
+        server: 'obsidian',
+        toolName: 'obsidian_list_folders',
+        data: {
+          vaultRoot: this.obsidianVaultService.getVaultRoot(),
+          folders,
+          count: folders.length,
+        },
+        summary: `Inspected Obsidian vault. Existing folders (${folders.length}): ${folders.join(', ') || 'Root only'}`,
+      };
+    }
+
     // Default reader
     return {
       success: true,

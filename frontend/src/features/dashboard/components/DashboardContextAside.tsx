@@ -1,4 +1,4 @@
-import { FileText, Layers } from 'lucide-react'
+import { FileText, Layers, BookOpen, ChevronRight } from 'lucide-react'
 import { useWorkspace } from '@/shared/context'
 import { Badge, EmptyState, IconBox } from '@/shared/components'
 import { ArtifactViewerAndEditor } from './ArtifactViewerAndEditor'
@@ -43,7 +43,40 @@ export default function DashboardContextAside() {
             allArtifacts={artifacts}
             onSelectArtifact={setActiveArtifact}
           />
+        ) : artifacts.length > 0 ? (
+          /* Persistent Document Library List (Visible when no active doc is selected) */
+          <div className="space-y-3 animate-in fade-in duration-150">
+            <div className="text-[11px] font-mono text-muted flex items-center justify-between">
+              <span>Select a document to preview:</span>
+              <span>{artifacts.length} available</span>
+            </div>
+            <div className="space-y-2">
+              {artifacts.map((art) => (
+                <button
+                  key={art.id}
+                  onClick={() => setActiveArtifact(art)}
+                  className="w-full text-left p-3 rounded-xl bg-surface-card border border-hairline hover:border-primary/40 hover:shadow-2xs transition-all flex items-center justify-between gap-2 cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <BookOpen size={14} className="text-primary shrink-0" />
+                    <div className="truncate">
+                      <div className="font-semibold text-xs text-ink group-hover:text-primary transition-colors truncate">
+                        {art.title}
+                      </div>
+                      {art.locationPath && (
+                        <div className="text-[10px] font-mono text-muted truncate">
+                          {art.locationPath}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronRight size={13} className="shrink-0 text-muted group-hover:text-ink transition-colors" />
+                </button>
+              ))}
+            </div>
+          </div>
         ) : (
+          /* Empty State (Only shown when 0 documents exist in workspace) */
           <EmptyState
             compact
             icon={
@@ -53,7 +86,7 @@ export default function DashboardContextAside() {
                 icon={<FileText size={18} className="text-muted" />}
               />
             }
-            title="No Active Document"
+            title="No Documents Created"
             description="Type an instruction in chat (e.g. 'Create note in Obsidian' or 'Generate architecture diagram') to preview and edit artifacts here."
           />
         )}
