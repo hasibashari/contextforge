@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 import {
   Modal,
   ModalHeader,

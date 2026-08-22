@@ -3,9 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Seed JSON data
-import calendarSeed from '../../../database/seeds/calendar_events.json';
 import memoriesSeed from '../../../database/seeds/user_memories.json';
-import connectionsSeed from '../../../database/seeds/workspace_connections.json';
 import agentsSeed from '../../../database/seeds/agents.json';
 import skillsSeed from '../../../database/seeds/skills.json';
 import integrationsSeed from '../../../database/seeds/integrations.json';
@@ -53,44 +51,10 @@ async function runSeed() {
       ALTER TABLE IF EXISTS knowledge_chunks ADD CONSTRAINT knowledge_chunks_source_id_fkey FOREIGN KEY (source_id) REFERENCES knowledge_sources(id) ON DELETE CASCADE;
       ALTER TABLE IF EXISTS activity_logs ALTER COLUMN id TYPE VARCHAR(100);
       ALTER TABLE IF EXISTS activity_logs ALTER COLUMN task_id TYPE VARCHAR(100);
-      ALTER TABLE IF EXISTS calendar_events ALTER COLUMN id TYPE VARCHAR(100);
       ALTER TABLE IF EXISTS user_memories ALTER COLUMN id TYPE VARCHAR(100);
     `);
 
-    // 2. Calendar Events
-    console.log('📅 Seeding Calendar Events...');
-    for (const item of calendarSeed) {
-      const dateVal =
-        item.eventDate === 'CURRENT_DATE + 1'
-          ? new Date(Date.now() + 86400000).toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0];
-
-      await client.query(
-        `INSERT INTO calendar_events (
-          id, title, event_date, event_time, duration, location, status, category, attendees
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        ON CONFLICT (id) DO UPDATE SET
-          title = EXCLUDED.title,
-          event_time = EXCLUDED.event_time,
-          duration = EXCLUDED.duration,
-          location = EXCLUDED.location,
-          status = EXCLUDED.status;`,
-        [
-          item.id,
-          item.title,
-          dateVal,
-          item.eventTime,
-          item.duration,
-          item.location,
-          item.status,
-          item.category,
-          item.attendees,
-        ],
-      );
-    }
-    console.log(`   ✓ Seeded ${calendarSeed.length} calendar events`);
-
-    // 4. Seed User Memories
+    // 2. Seed User Memories
     console.log('🧠 Seeding User Memories...');
     for (const item of memoriesSeed) {
       await client.query(
@@ -104,36 +68,6 @@ async function runSeed() {
       );
     }
     console.log(`   ✓ Seeded ${memoriesSeed.length} user memories`);
-
-    // 5. Seed Workspace Connections
-    console.log('🔌 Seeding Workspace Connections...');
-    for (const item of connectionsSeed) {
-      await client.query(
-        `INSERT INTO workspace_connections (
-          id, name, connection_type, provider, auth_type, endpoint_url, config_encrypted, status, is_active
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        ON CONFLICT (id) DO UPDATE SET
-          name = EXCLUDED.name,
-          connection_type = EXCLUDED.connection_type,
-          provider = EXCLUDED.provider,
-          auth_type = EXCLUDED.auth_type,
-          endpoint_url = EXCLUDED.endpoint_url,
-          status = EXCLUDED.status,
-          is_active = EXCLUDED.is_active;`,
-        [
-          item.id,
-          item.name,
-          item.connectionType,
-          item.provider,
-          item.authType,
-          item.endpointUrl,
-          JSON.stringify(item.configEncrypted),
-          item.status,
-          item.isActive,
-        ],
-      );
-    }
-    console.log(`   ✓ Seeded ${connectionsSeed.length} workspace connections`);
 
     // 6. Seed Workspace Agents
     console.log('🤖 Seeding Workspace Agents...');

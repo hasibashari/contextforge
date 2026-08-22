@@ -2,27 +2,19 @@ import { useState, useCallback, useEffect } from 'react';
 import type {
   Agent,
   Skill,
-  WorkspaceConnection,
   Integration,
   ToastType,
 } from '@/shared/types/workspace';
-import {
-  INITIAL_AGENTS,
-  INITIAL_SKILLS,
-  INITIAL_CONNECTIONS,
-  INITIAL_INTEGRATIONS,
-} from '../mockData';
 import { ecosystemApi } from '@/shared/api/ecosystemApi';
-import { connectionsApi } from '@/shared/api/connectionsApi';
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service';
 
 export function useEcosystemManager(
   showToast: (msg: string, type?: ToastType) => void,
 ) {
-  const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
-  const [skills, setSkills] = useState<Skill[]>(INITIAL_SKILLS);
-  const [connections, setConnections] = useState<WorkspaceConnection[]>(INITIAL_CONNECTIONS);
-  const [integrations, setIntegrations] = useState<Integration[]>(INITIAL_INTEGRATIONS);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -32,12 +24,10 @@ export function useEcosystemManager(
           backendAgents,
           backendSkills,
           backendIntegrations,
-          backendConnections,
         ] = await Promise.all([
           ecosystemApi.getAgents().catch(() => null),
           ecosystemApi.getSkills().catch(() => null),
           ecosystemApi.getIntegrations().catch(() => null),
-          connectionsApi.getConnections().catch(() => null),
         ]);
 
         if (!isMounted) return;
@@ -69,11 +59,12 @@ export function useEcosystemManager(
             }
           }
         }
-        if (backendConnections && backendConnections.length > 0) {
-          setConnections(backendConnections);
+      } catch (err) {
+        console.warn('Failed to load ecosystem from backend API:', err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
         }
-      } catch {
-        // keep fallback
       }
     }
 
@@ -150,94 +141,7 @@ export function useEcosystemManager(
   );
 
   // ==========================================
-  // CONNECTIONS ACTIONS (4. Connection)
-  // ==========================================
-
-  const addConnection = useCallback(
-    async (data: {
-      name: string;
-      connectionType: WorkspaceConnection['connectionType'];
-      provider: string;
-      authType: WorkspaceConnection['authType'];
-      endpointUrl?: string;
-      config?: Record<string, unknown>;
-    }) => {
-      try {
-        const created = await connectionsApi.createConnection(data);
-        setConnections((prev) => [created, ...prev]);
-        showToast(`Connection "${data.name}" created successfully`, 'success');
-      } catch {
-        const fallback: WorkspaceConnection = {
-          id: `conn-${Date.now()}`,
-          name: data.name,
-          connectionType: data.connectionType,
-          provider: data.provider,
-          authType: data.authType,
-          endpointUrl: data.endpointUrl,
-          status: 'active',
-          isActive: true,
-        };
-        setConnections((prev) => [fallback, ...prev]);
-        showToast(`Connection "${data.name}" added locally`, 'success');
-      }
-    },
-    [showToast],
-  );
-
-  const updateConnection = useCallback(
-    async (id: string, updates: Partial<WorkspaceConnection>) => {
-      setConnections((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-      );
-      showToast('Connection configuration updated', 'success');
-
-      try {
-        await connectionsApi.updateConnection(id, updates);
-      } catch (err: unknown) {
-        console.error('Failed to update connection on backend:', err);
-      }
-    },
-    [showToast],
-  );
-
-  const testConnection = useCallback(
-    async (connectionId: string) => {
-      const conn = connections.find((c) => c.id === connectionId);
-      showToast(`Verifying connection to ${conn?.name || connectionId}...`, 'info');
-
-      try {
-        const result = await connectionsApi.testConnection(connectionId);
-        showToast(result.message, 'success');
-        setConnections((prev) =>
-          prev.map((c) =>
-            c.id === connectionId ? { ...c, status: 'active' } : c,
-          ),
-        );
-        return true;
-      } catch {
-        showToast(`Connection verified successfully (latency: 24ms)`, 'success');
-        return true;
-      }
-    },
-    [connections, showToast],
-  );
-
-  const deleteConnection = useCallback(
-    async (connectionId: string) => {
-      setConnections((prev) => prev.filter((c) => c.id !== connectionId));
-      showToast('Connection deleted', 'warning');
-
-      try {
-        await connectionsApi.deleteConnection(connectionId);
-      } catch (err: unknown) {
-        console.error('Failed to delete connection on backend:', err);
-      }
-    },
-    [showToast],
-  );
-
-  // ==========================================
-  // MCP INTEGRATIONS ACTIONS (2. MCP)
+  // MCP INTEGRATIONS ACTIONS
   // ==========================================
 
   const toggleIntegrationConnect = useCallback(
@@ -447,16 +351,11 @@ export function useEcosystemManager(
     setAgents,
     skills,
     setSkills,
-    connections,
-    setConnections,
     integrations,
     setIntegrations,
+    isLoading,
     toggleSkill,
     addCustomSkill,
-    addConnection,
-    updateConnection,
-    testConnection,
-    deleteConnection,
     toggleIntegrationConnect,
     updateConnectorConfig,
     addCustomConnector,

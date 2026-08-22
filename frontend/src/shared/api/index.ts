@@ -4,6 +4,6 @@ export * from './chatApi';
 export * from './artifactsApi';
 export * from './personalHubApi';
 export * from './knowledgeApi';
-export * from './connectionsApi';
 export * from './ecosystemApi';
 export * from './automationApi';
+

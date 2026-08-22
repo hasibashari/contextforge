@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Brain } from 'lucide-react'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 import { PageHeader, EcosystemCard } from '@/shared/components'
 import { AgentInspectorModal } from '@/features/agents'
 

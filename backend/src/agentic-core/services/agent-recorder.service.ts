@@ -37,15 +37,6 @@ export interface CreateSideAgentExecutionDto {
   artifactId?: string;
 }
 
-export interface CreateCalendarEventDto {
-  title: string;
-  eventDate: string;
-  eventTime: string;
-  duration?: string;
-  category?: string;
-  status?: string;
-}
-
 @Injectable()
 export class AgentRecorderService {
   private readonly logger = new Logger(AgentRecorderService.name);
@@ -107,29 +98,6 @@ export class AgentRecorderService {
         dto.summary,
         dto.filesModified,
         dto.artifactId || null,
-      ],
-    );
-
-    return res.rows[0];
-  }
-
-  /**
-   * Persists a calendar event to PostgreSQL
-   */
-  async recordCalendarEvent(
-    dto: CreateCalendarEventDto,
-  ): Promise<Record<string, unknown>> {
-    const res = await this.db.query<Record<string, unknown>>(
-      `INSERT INTO calendar_events (title, event_date, event_time, duration, category, status)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *;`,
-      [
-        dto.title,
-        dto.eventDate,
-        dto.eventTime,
-        dto.duration || '30m',
-        dto.category || 'task',
-        dto.status || 'upcoming',
       ],
     );
 

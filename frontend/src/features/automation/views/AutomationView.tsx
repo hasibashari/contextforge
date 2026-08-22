@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus, Zap } from 'lucide-react'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 import {
   PageHeader,
   Button,

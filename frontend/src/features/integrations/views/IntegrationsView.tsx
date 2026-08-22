@@ -7,7 +7,7 @@ import {
   RotateCcw,
   Settings,
 } from 'lucide-react'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 import {
   IntegrationCard,
   SkillDetailModal,

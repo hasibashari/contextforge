@@ -3,4 +3,4 @@ export { IntegrationCard } from './components/IntegrationCard'
 export { SkillDetailModal } from './components/SkillDetailModal'
 export { ConnectorDetailModal } from './components/ConnectorDetailModal'
 export { ConnectAuthModal } from './components/ConnectAuthModal'
-export { AddConnectorModal } from './components/AddConnectorModal'
+

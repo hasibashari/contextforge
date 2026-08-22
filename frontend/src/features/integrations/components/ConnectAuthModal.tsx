@@ -18,7 +18,7 @@ import {
   FormField,
   Badge,
 } from '@/shared/components'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 import { ecosystemApi } from '@/shared/api/ecosystemApi'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 

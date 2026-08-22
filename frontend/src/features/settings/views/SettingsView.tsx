@@ -7,7 +7,7 @@ import {
   Database,
   Terminal,
 } from 'lucide-react'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 
 export default function SettingsView() {
   const { showToast, integrations, skills } = useWorkspace()

@@ -7,7 +7,7 @@ import {
   Globe,
   Calendar,
 } from 'lucide-react'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 
 interface DashboardHeaderProps {
   onOpenMobileMenu: () => void

@@ -147,18 +147,9 @@ export function syncSkillsToJsonFiles(skills: ParsedSkill[]) {
     __dirname,
     '../../../database/seeds/skills.json',
   );
-  const frontendPresetPath = path.resolve(
-    __dirname,
-    '../../../../frontend/src/shared/data/presets/skills.json',
-  );
 
   const jsonContent = JSON.stringify(skills, null, 2);
 
   fs.writeFileSync(backendSeedPath, jsonContent, 'utf8');
   console.log(`   ✓ Synced ${skills.length} skills to ${backendSeedPath}`);
-
-  if (fs.existsSync(path.dirname(frontendPresetPath))) {
-    fs.writeFileSync(frontendPresetPath, jsonContent, 'utf8');
-    console.log(`   ✓ Synced ${skills.length} skills to ${frontendPresetPath}`);
-  }
 }

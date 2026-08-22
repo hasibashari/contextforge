@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Brain, Terminal, Sparkles, Check, Settings2, RotateCcw, Layers, ShieldCheck } from 'lucide-react'
 import type { Agent } from '@/shared/types/workspace'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 import {
   Modal,
   ModalHeader,

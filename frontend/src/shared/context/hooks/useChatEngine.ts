@@ -5,7 +5,6 @@ import type {
   Artifact,
   ActionCardData,
   ActivityLogEntry,
-  CalendarEvent,
   AutomationWorkflow,
 } from '@/shared/types/workspace';
 import { chatApi } from '@/shared/api/chatApi';
@@ -15,7 +14,6 @@ import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 import { generateGeneralReasoningOutput } from '../generators/responseGenerators';
 
 export function useChatEngine(
-  calendarEvents: CalendarEvent[],
   showToast: (msg: string) => void,
   setActivities?: React.Dispatch<React.SetStateAction<ActivityLogEntry[]>>,
   setIsAsideOpen?: (open: boolean) => void,
@@ -348,13 +346,7 @@ export function useChatEngine(
       });
     } catch {
       // Fallback local briefing
-      const upcomingEvents = calendarEvents.filter((e) => e.status !== 'completed');
-      const eventsListText =
-        upcomingEvents.length > 0
-          ? upcomingEvents.map((e) => `• **${e.time}** - ${e.title} *(${e.duration})*`).join('\n')
-          : '• *No upcoming meetings scheduled for the rest of today.*';
-
-      const greetingContent = `🌅 **Good morning!** Here is your automated daily executive briefing:\n\n### 📅 Today's Schedule Overview\n${eventsListText}\n\n### ⚡ Priority Action Items\n1. **PR #104 (Token Compliance)** is awaiting your human approval checkpoint.\n2. **Obsidian Sprint Notes** have been synchronized.\n\nWould you like me to draft meeting agendas or prepare technical discussion points for your team sync?`;
+      const greetingContent = `🌅 **Good morning!** Here is your automated daily executive briefing:\n\n### ⚡ Priority Action Items\n1. **PR #104 (Token Compliance)** is awaiting your human approval checkpoint.\n2. **Obsidian Sprint Notes** have been synchronized.\n\nWould you like me to draft meeting agendas or prepare technical discussion points for your team sync?`;
 
       setChatSessions((prev) =>
         prev.map((session) =>
@@ -377,7 +369,8 @@ export function useChatEngine(
       setIsGeneratingResponse(false);
       showToast('🌅 Morning Briefing ready');
     }
-  }, [activeSessionId, calendarEvents, showToast]);
+  }, [activeSessionId, showToast]);
+
 
   const sendChatMessage = useCallback(
     async (prompt: string, customOptions?: { agentId?: string; sources?: string[] }) => {

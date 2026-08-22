@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { WorkspaceProvider } from './shared/mock/WorkspaceContext'
+import { WorkspaceProvider } from './shared/context'
 import { WorkspaceLayout } from './shared/layouts'
+
 
 // Lazy-loaded page components for optimal code-splitting
 const HomePage = lazy(() => import('./pages/HomePage'))

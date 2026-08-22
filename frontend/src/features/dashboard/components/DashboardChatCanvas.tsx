@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 import { ChatInputBar } from './ChatInputBar'
 import { ChatMessageItem } from './ChatMessageItem'
 import type { ChatMessage, Artifact } from '@/shared/types/workspace'

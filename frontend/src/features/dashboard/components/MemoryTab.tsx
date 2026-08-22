@@ -4,7 +4,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 import {
   EmptyState,
   IconBox,

@@ -1,10 +1,9 @@
 import React, { useState, useCallback } from 'react'
 import type { ToastNotification, ToastType } from '@/shared/types/workspace'
 import { WorkspaceContext } from './context'
-import { useCalendarMemory } from './hooks/useCalendarMemory'
+import { useUserMemory } from './hooks/useUserMemory'
 import { useEcosystemManager } from './hooks/useEcosystemManager'
 import { useKnowledgeManager } from './hooks/useKnowledgeManager'
-import { useTaskManager } from './hooks/useTaskManager'
 import { useChatEngine } from './hooks/useChatEngine'
 import { useAutomationManager } from './hooks/useAutomationManager'
 
@@ -58,13 +57,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [])
 
   // Domain Hooks
-  const calendarMemory = useCalendarMemory(showToast)
+  const userMemory = useUserMemory(showToast)
   const ecosystem = useEcosystemManager(showToast)
   const knowledge = useKnowledgeManager(showToast)
-  const taskManager = useTaskManager(ecosystem.agents, showToast)
   const automationManager = useAutomationManager(showToast)
   const chatEngine = useChatEngine(
-    calendarMemory.calendarEvents,
     showToast,
     undefined,
     setAsideOpen,
@@ -74,16 +71,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   return (
     <WorkspaceContext.Provider
       value={{
-        // 5 Pillars State
-        tasks: taskManager.tasks,
+        // 4 Pillars State
         agents: ecosystem.agents,
         skills: ecosystem.skills,
-        connections: ecosystem.connections,
         knowledgeSources: knowledge.knowledgeSources,
         integrations: ecosystem.integrations,
         toastMessage,
         toasts,
-        activeRunningTaskId: taskManager.activeRunningTaskId,
 
         // Automation & Trigger State
         automations: automationManager.automations,
@@ -105,12 +99,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         testIntegration: ecosystem.testIntegration,
         discoverTools: ecosystem.discoverTools,
         refreshIntegrations: ecosystem.refreshIntegrations,
-
-        // Connection Actions
-        addConnection: ecosystem.addConnection,
-        updateConnection: ecosystem.updateConnection,
-        testConnection: ecosystem.testConnection,
-        deleteConnection: ecosystem.deleteConnection,
 
         // Conversational Agentic State
         chatSessions: chatEngine.chatSessions,
@@ -150,21 +138,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         uploadKnowledgeFiles: knowledge.uploadKnowledgeFiles,
         deleteKnowledgeSource: knowledge.deleteKnowledgeSource,
 
-        // Personal Hub State & Actions
-        calendarEvents: calendarMemory.calendarEvents,
-        userMemories: calendarMemory.userMemories,
-        addCalendarEvent: calendarMemory.addCalendarEvent,
-        updateCalendarEventStatus: calendarMemory.updateCalendarEventStatus,
-        addUserMemory: calendarMemory.addUserMemory,
-        deleteUserMemory: calendarMemory.deleteUserMemory,
-
-        // Task Actions
-        createTask: taskManager.createTask,
-        getTaskById: taskManager.getTaskById,
-        approveTask: taskManager.approveTask,
-        rejectTask: taskManager.rejectTask,
-        advanceTaskStage: taskManager.advanceTaskStage,
-        simulateLiveRun: taskManager.simulateLiveRun,
+        // Long-Term Memory (PostgreSQL)
+        userMemories: userMemory.userMemories,
+        addUserMemory: userMemory.addUserMemory,
+        deleteUserMemory: userMemory.deleteUserMemory,
       }}
     >
       {children}

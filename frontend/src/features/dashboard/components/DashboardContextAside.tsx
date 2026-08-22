@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Sparkles, FileText } from 'lucide-react'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 import { SegmentedTabs, Badge, EmptyState, IconBox } from '@/shared/components'
 import { ArtifactViewerAndEditor } from './ArtifactViewerAndEditor'
 import { MemoryTab } from './MemoryTab'

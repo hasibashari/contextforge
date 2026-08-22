@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FolderOpen, Sparkles, BookOpen, HardDrive, Plus } from 'lucide-react'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import {
   KnowledgeSourceCard,

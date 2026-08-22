@@ -1,16 +1,13 @@
 import { createContext } from 'react'
 import type {
-  Task,
   Agent,
   Skill,
-  WorkspaceConnection,
   KnowledgeSource,
   Integration,
   McpTool,
   Artifact,
   ChatSession,
   ActionCardData,
-  CalendarEvent,
   UserMemoryItem,
   ToastNotification,
   ToastType,
@@ -19,15 +16,12 @@ import type {
 
 export interface WorkspaceContextType {
   // State
-  tasks: Task[]
   agents: Agent[]
   skills: Skill[]
-  connections: WorkspaceConnection[]
   knowledgeSources: KnowledgeSource[]
   integrations: Integration[]
   toastMessage: string | null
   toasts: ToastNotification[]
-  activeRunningTaskId: string | null
 
   // Automation & Trigger State (Autonomous AI Pillar)
   automations: AutomationWorkflow[]
@@ -50,12 +44,9 @@ export interface WorkspaceContextType {
   selectedAgentMode: string // 'auto' or agent ID
   activeSourceFilters: string[]
 
-  // Proactive, Calendar & Memory State
-  calendarEvents: CalendarEvent[]
+  // Long-Term Memory State (PostgreSQL)
   userMemories: UserMemoryItem[]
   triggerMorningBriefing: () => void
-  addCalendarEvent: (event: Omit<CalendarEvent, 'id'>) => Promise<CalendarEvent> | CalendarEvent
-  updateCalendarEventStatus: (id: string, status: CalendarEvent['status']) => void
   addUserMemory: (memory: Omit<UserMemoryItem, 'id' | 'lastUpdated'>) => void
   deleteUserMemory: (id: string) => void
 
@@ -97,19 +88,6 @@ export interface WorkspaceContextType {
   discoverTools: (integrationId: string) => Promise<McpTool[]>
   refreshIntegrations: () => Promise<void>
 
-  // Connections Actions (4. Connection)
-  addConnection: (data: {
-    name: string
-    connectionType: WorkspaceConnection['connectionType']
-    provider: string
-    authType: WorkspaceConnection['authType']
-    endpointUrl?: string
-    config?: Record<string, unknown>
-  }) => Promise<void>
-  updateConnection: (id: string, updates: Partial<WorkspaceConnection>) => Promise<void>
-  testConnection: (connectionId: string) => Promise<boolean>
-  deleteConnection: (connectionId: string) => Promise<void>
-
   // Conversational Actions
   sendChatMessage: (
     prompt: string,
@@ -126,25 +104,9 @@ export interface WorkspaceContextType {
   setSelectedAgentMode: (mode: string) => void
   toggleSourceFilter: (sourceId: string) => void
 
-  // Task & Legacy Actions
-  createTask: (params: {
-    title: string
-    objective: string
-    agentId?: string
-    selectedSources: string[]
-  }) => Task
-  getTaskById: (id: string) => Task | undefined
-  approveTask: (taskId: string) => void
-  rejectTask: (taskId: string, reason?: string) => void
-  advanceTaskStage: (taskId: string) => void
-  simulateLiveRun: (taskId: string) => void
+  // Grounding & Knowledge Actions
   toggleKnowledgeSync: (sourceId: string) => void
   toggleKnowledgeSourceConnect: (sourceId: string) => void
-
-  // Toast System
-  showToast: (message: string, type?: ToastType) => void
-  dismissToast: (id: string) => void
-
   addKnowledgeSource: (data: {
     name: string
     type: KnowledgeSource['type']
@@ -163,6 +125,10 @@ export interface WorkspaceContextType {
     sourceId?: string
   ) => Promise<KnowledgeSource>
   deleteKnowledgeSource: (sourceId: string) => void
+
+  // Toast System
+  showToast: (message: string, type?: ToastType) => void
+  dismissToast: (id: string) => void
   clearToast: () => void
 }
 

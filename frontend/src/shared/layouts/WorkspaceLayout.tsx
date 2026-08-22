@@ -5,7 +5,8 @@ import DashboardSidebar from '@/features/dashboard/components/DashboardSidebar'
 import DashboardHeader from '@/features/dashboard/components/DashboardHeader'
 import DashboardContextAside from '@/features/dashboard/components/DashboardContextAside'
 // import { GlobalToast } from '@/shared/components'
-import { useWorkspace } from '@/shared/mock'
+import { useWorkspace } from '@/shared/context'
+
 
 export default function WorkspaceLayout() {
   const { isAsideOpen, toggleAside } = useWorkspace()
