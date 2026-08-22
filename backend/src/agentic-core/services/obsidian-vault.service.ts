@@ -1,8 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import * as os from 'os';
 import { DatabaseService } from '../../common/database/database.service';
+import { UniversalPathResolver } from '../../common/utils/universal-path-resolver.util';
 
 export interface VaultWriteResult {
   absolutePath: string;
@@ -12,68 +12,21 @@ export interface VaultWriteResult {
   title: string;
   formattedContent: string;
   durationMs: number;
+  obsidianUri?: string;
+  isPhysicalDiskWrite: boolean;
 }
 
 @Injectable()
 export class ObsidianVaultService implements OnModuleInit {
   private readonly logger = new Logger(ObsidianVaultService.name);
   private vaultRoot: string = '';
+  private vaultName: string = 'Obsidian Vault';
+  private isPhysicallyAccessible: boolean = false;
 
   constructor(private readonly db: DatabaseService) {}
 
   async onModuleInit() {
     await this.refreshVaultRootFromDb();
-  }
-
-  /**
-   * Helper to expand tilde `~` to the system user home directory
-   */
-  private expandHomeDir(targetPath: string): string {
-    if (!targetPath) return '';
-    const clean = targetPath.trim();
-    if (clean.startsWith('~')) {
-      return path.join(os.homedir(), clean.slice(1));
-    }
-    return path.resolve(clean);
-  }
-
-  /**
-   * Extracts the folder path from an MCP integration endpoint string or auth config
-   */
-  private parseVaultPathFromEndpoint(
-    endpoint?: string,
-    authConfig?: { vaultPath?: string },
-  ): string {
-    if (authConfig?.vaultPath) {
-      return this.expandHomeDir(authConfig.vaultPath);
-    }
-    if (!endpoint) return '';
-
-    const clean = endpoint.trim();
-    // Direct path (e.g. /home/user/vault or ~/Documents/vault or D:/vault)
-    if (
-      clean.startsWith('/') ||
-      clean.startsWith('~') ||
-      clean.startsWith('./') ||
-      /^[a-zA-Z]:[\\/]/.test(clean)
-    ) {
-      return this.expandHomeDir(clean);
-    }
-
-    // CLI command pattern: "npx -y @modelcontextprotocol/server-obsidian ~/Documents/ObsidianVault"
-    const parts = clean.split(/\s+/);
-    const lastArg = parts[parts.length - 1];
-    if (
-      lastArg &&
-      (lastArg.startsWith('/') ||
-        lastArg.startsWith('~') ||
-        lastArg.startsWith('./') ||
-        /^[a-zA-Z]:[\\/]/.test(lastArg))
-    ) {
-      return this.expandHomeDir(lastArg);
-    }
-
-    return '';
   }
 
   /**
@@ -84,14 +37,14 @@ export class ObsidianVaultService implements OnModuleInit {
       // 1. Check environment variable override
       const envVaultPath = process.env.OBSIDIAN_VAULT_PATH;
       if (envVaultPath) {
-        this.setVaultRoot(this.expandHomeDir(envVaultPath));
+        this.setVaultRoot(envVaultPath);
         return this.vaultRoot;
       }
 
       // 2. Query active MCP integration from PostgreSQL
       const res = await this.db.query<{
         endpoint: string;
-        auth_config: { vaultPath?: string };
+        auth_config: { vaultName?: string; vaultPath?: string };
       }>(
         `SELECT endpoint, auth_config 
          FROM workspace_integrations 
@@ -102,12 +55,14 @@ export class ObsidianVaultService implements OnModuleInit {
 
       if (res.rows.length > 0) {
         const row = res.rows[0];
-        const parsedPath = this.parseVaultPathFromEndpoint(
-          row.endpoint,
-          row.auth_config,
-        );
-        if (parsedPath) {
-          this.setVaultRoot(parsedPath);
+        this.vaultName = row.auth_config?.vaultName || 'Obsidian Vault';
+
+        const rawPath =
+          row.auth_config?.vaultPath ||
+          this.extractRawPathFromEndpoint(row.endpoint);
+
+        if (rawPath) {
+          this.setVaultRoot(rawPath);
           return this.vaultRoot;
         }
       }
@@ -126,16 +81,48 @@ export class ObsidianVaultService implements OnModuleInit {
   }
 
   /**
-   * Sets or updates active mounted vault root (e.g. from MCP connection target)
+   * Extracts raw directory path from CLI command endpoint
    */
-  setVaultRoot(vaultPath: string): void {
-    if (vaultPath) {
-      this.vaultRoot = this.expandHomeDir(vaultPath);
+  private extractRawPathFromEndpoint(endpoint?: string): string {
+    if (!endpoint) return '';
+    const clean = endpoint.trim();
+
+    // Check quoted argument at end: e.g. npx ... "/path/with spaces"
+    const quotedMatch = clean.match(/(["'])(.+?)\1$/);
+    if (quotedMatch && quotedMatch[2]) {
+      return quotedMatch[2];
+    }
+
+    const parts = clean.split(/\s+/);
+    const last = parts[parts.length - 1];
+    if (
+      last &&
+      (last.startsWith('/') ||
+        last.startsWith('~') ||
+        last.startsWith('./') ||
+        /^[a-zA-Z]:[\\/]/.test(last))
+    ) {
+      return last;
+    }
+
+    return clean;
+  }
+
+  /**
+   * Sets or updates active mounted vault root using UniversalPathResolver
+   */
+  setVaultRoot(rawVaultPath: string): void {
+    if (rawVaultPath) {
+      const resolved = UniversalPathResolver.resolve(rawVaultPath);
+      this.vaultRoot = resolved.resolvedPath;
+      this.isPhysicallyAccessible = resolved.isAccessible;
+
       this.logger.log(
-        `🔗 [Obsidian MCP] Mounted Obsidian Vault root locked to: ${this.vaultRoot}`,
+        `🔗 [Universal Path Resolver] Mounted Obsidian Vault on [${resolved.platform.toUpperCase()}]: ${this.vaultRoot} (Accessible: ${resolved.isAccessible})`,
       );
     } else {
       this.vaultRoot = '';
+      this.isPhysicallyAccessible = false;
     }
   }
 
@@ -147,7 +134,8 @@ export class ObsidianVaultService implements OnModuleInit {
   }
 
   /**
-   * Safely formats and writes a Markdown note with YAML frontmatter directly to the MCP vault folder
+   * Safely formats and writes a Markdown note with YAML frontmatter
+   * Supports direct physical disk write (Local/WSL) and Obsidian URI protocol (Cloud/Remote).
    */
   async writeNote(
     title: string,
@@ -195,20 +183,21 @@ export class ObsidianVaultService implements OnModuleInit {
 
     const lineCount = formattedContent.split('\n').length;
     const bytesWritten = Buffer.byteLength(formattedContent, 'utf-8');
+    const obsidianUri = UniversalPathResolver.buildObsidianUri(
+      this.vaultName,
+      normalizedRelPath,
+      formattedContent,
+    );
 
-    // 3. If a physical vault path is mounted via MCP, write directly to disk
+    // 3. Physical Disk Write (for Local Windows, WSL, macOS, Linux deployments)
     if (this.vaultRoot) {
-      try {
-        const resolvedPath = path.resolve(this.vaultRoot, normalizedRelPath);
-        const resolvedRootWithSep = this.vaultRoot.endsWith(path.sep)
-          ? this.vaultRoot
-          : this.vaultRoot + path.sep;
+      const resolvedPath = UniversalPathResolver.sanitizeSubPath(
+        this.vaultRoot,
+        normalizedRelPath,
+      );
 
-        // Security check: Must reside strictly within the user's selected MCP vault folder
-        if (
-          resolvedPath.startsWith(resolvedRootWithSep) ||
-          resolvedPath === this.vaultRoot
-        ) {
+      if (resolvedPath) {
+        try {
           const targetDir = path.dirname(resolvedPath);
           await fs.mkdir(targetDir, { recursive: true });
           await fs.writeFile(resolvedPath, formattedContent, 'utf-8');
@@ -226,21 +215,21 @@ export class ObsidianVaultService implements OnModuleInit {
             title,
             formattedContent,
             durationMs,
+            obsidianUri,
+            isPhysicalDiskWrite: true,
           };
-        } else {
-          this.logger.warn(
-            `⚠️ Security Block: Attempted write outside mounted vault sandbox (${resolvedPath})`,
-          );
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.logger.error(`❌ Failed to write note to disk path: ${msg}`);
         }
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        this.logger.error(
-          `❌ Failed to write note to mounted disk path: ${msg}`,
+      } else {
+        this.logger.warn(
+          `⚠️ Security Block: Attempted write outside mounted vault sandbox (${normalizedRelPath})`,
         );
       }
     }
 
-    // 4. Default: Return clean formatted artifact for client view
+    // 4. Fallback / Cloud Mode: Return clean formatted artifact + Obsidian URI for client sync
     const durationMs = Date.now() - startTime;
     return {
       absolutePath: normalizedRelPath,
@@ -250,6 +239,8 @@ export class ObsidianVaultService implements OnModuleInit {
       title,
       formattedContent,
       durationMs,
+      obsidianUri,
+      isPhysicalDiskWrite: false,
     };
   }
 
@@ -264,13 +255,12 @@ export class ObsidianVaultService implements OnModuleInit {
       return null;
     }
 
-    const sanitized = targetRelPath.replace(/\0/g, '');
-    const resolvedPath = path.resolve(this.vaultRoot, sanitized);
-    const resolvedRootWithSep = this.vaultRoot.endsWith(path.sep)
-      ? this.vaultRoot
-      : this.vaultRoot + path.sep;
+    const resolvedPath = UniversalPathResolver.sanitizeSubPath(
+      this.vaultRoot,
+      targetRelPath,
+    );
 
-    if (!resolvedPath.startsWith(resolvedRootWithSep)) {
+    if (!resolvedPath) {
       throw new Error('Security Exception: Invalid path traversal.');
     }
 

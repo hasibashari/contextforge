@@ -264,7 +264,12 @@ export class CoreOrchestratorService {
         if (finalResult.artifact) {
           const art = finalResult.artifact;
           const locPath = art.location_path || 'Work/Notes/';
-          finalResult.textContent = `Dokumen **${art.title}** telah berhasil disusun dan disimpan di Obsidian Vault Anda pada path: \`${locPath}\`.\n\n### 📋 Ringkasan Dokumen:\n${art.content ? art.content.slice(0, 600) + (art.content.length > 600 ? '\n\n*(Buka dokumen lengkap di panel Aside)*' : '') : 'Telah dibuat dengan frontmatter YAML dan backlinks.'}`;
+          const snippet =
+            art.content && art.content.length > 600
+              ? `${art.content.slice(0, 600)}\n\n*(Buka dokumen lengkap di panel Aside)*`
+              : art.content ||
+                'Telah dibuat dengan frontmatter YAML dan backlinks.';
+          finalResult.textContent = `Dokumen **${art.title}** telah berhasil disusun dan disimpan di Obsidian Vault Anda pada path: \`${locPath}\`.\n\n### 📋 Ringkasan Dokumen:\n${snippet}`;
           this.streamFinalText(finalResult.textContent, emit);
         } else if (finalResult.intent?.summaryText) {
           finalResult.textContent = finalResult.intent.summaryText;

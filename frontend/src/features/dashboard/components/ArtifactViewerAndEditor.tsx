@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
   BookOpen,
   Globe,
@@ -6,59 +6,29 @@ import {
   Copy,
   Download,
   FileText,
-  Edit3,
-  Eye,
   ChevronRight,
-  CheckCircle2,
   Image as ImageIcon,
   Trash2,
 } from 'lucide-react'
 import { MarkdownRenderer } from '@/shared/components'
 import type { Artifact, ToastType } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
-import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service'
 
-interface ArtifactViewerAndEditorProps {
+interface ArtifactViewerProps {
   artifact: Artifact
-  onSave: (content: string) => void
   onDelete?: (id: string) => void
   showToast: (msg: string, type?: ToastType) => void
   allArtifacts: Artifact[]
   onSelectArtifact: (art: Artifact) => void
 }
 
-export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = ({
+export const ArtifactViewerAndEditor: React.FC<ArtifactViewerProps> = ({
   artifact,
-  onSave,
   onDelete,
   showToast,
   allArtifacts,
   onSelectArtifact,
 }) => {
-  const [isEditing, setIsEditing] = useState(false)
-  const [editContent, setEditContent] = useState(artifact.content)
-
-  const handleSave = async () => {
-    onSave(editContent)
-    setIsEditing(false)
-
-    // Direct Disk Write-Back to laptop folder (Scenario B)
-    const pathName = artifact.locationPath || `${artifact.title}.md`
-    const writeRes = await browserStorageBridge.writeDocument(
-      pathName,
-      pathName,
-      editContent
-    )
-    if (writeRes.success) {
-      showToast(
-        `✅ Saved & written to laptop disk: /${writeRes.folderName}/${writeRes.relativePath}`,
-        'success'
-      )
-    } else {
-      showToast('Document saved to workspace', 'success')
-    }
-  }
-
   const handleCopy = () => {
     navigator.clipboard?.writeText(artifact.content)
     showToast('Document content copied to clipboard', 'success')
@@ -116,9 +86,9 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = (
   }
 
   return (
-    <div className="space-y-3">
-      {/* Artifact Metadata Card */}
-      <div className="p-3.5 bg-surface-card rounded-xl border border-hairline shadow-2xs space-y-2">
+    <div className="space-y-3 animate-in fade-in duration-150">
+      {/* Artifact Metadata & Action Card */}
+      <div className="p-3.5 bg-surface-card rounded-xl border border-hairline shadow-2xs space-y-2.5">
         <div className="flex items-start justify-between gap-2">
           {getServiceBadge(artifact.serviceOrigin)}
           <span className="text-[10px] font-mono text-muted">
@@ -137,32 +107,9 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = (
           </div>
         )}
 
-        {/* Actions Header Bar */}
-        <div className="pt-2 border-t border-hairline flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
-                isEditing
-                  ? 'bg-primary text-on-primary border-primary'
-                  : 'bg-canvas-soft border-hairline text-ink hover:bg-canvas'
-              }`}
-            >
-              {isEditing ? <Eye size={12} /> : <Edit3 size={12} />}
-              <span>{isEditing ? 'Preview' : 'Edit'}</span>
-            </button>
-
-            {isEditing && (
-              <button
-                onClick={handleSave}
-                className="px-2.5 py-1 rounded text-[11px] font-medium bg-semantic-success text-white hover:bg-semantic-success/90 transition-colors cursor-pointer"
-              >
-                Save
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1">
+        {/* Action Header Bar */}
+        <div className="pt-2.5 border-t border-hairline flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
             {/* Open in Obsidian App Protocol */}
             <button
               onClick={() => {
@@ -173,44 +120,28 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = (
                 )
                 showToast('🚀 Opening note in Obsidian Desktop...', 'info')
               }}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#7c3aed]/10 hover:bg-[#7c3aed]/20 border border-[#7c3aed]/30 text-[#7c3aed] text-[11px] font-semibold transition-colors cursor-pointer"
-              title="Open or create directly in Obsidian Desktop"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#7c3aed]/10 hover:bg-[#7c3aed]/20 active:scale-[0.98] border border-[#7c3aed]/30 text-[#7c3aed] text-xs font-medium transition-all cursor-pointer truncate shadow-2xs"
+              title="Open and edit directly in Obsidian Desktop"
             >
-              <BookOpen size={12} />
-              <span className="hidden sm:inline">Open in Obsidian</span>
+              <BookOpen size={13} className="shrink-0" />
+              <span className="truncate">Open in Obsidian</span>
             </button>
+          </div>
 
-            {/* Save directly to Paired Vault Handle if active */}
-            {obsidianBridgeService.getPairedDirectoryHandle() && (
-              <button
-                onClick={async () => {
-                  const pathName = artifact.locationPath || `Work/Notes/${artifact.title}.md`
-                  const ok = await obsidianBridgeService.writeNoteToLocalVault(pathName, artifact.content)
-                  if (ok) {
-                    showToast('Note written directly to paired local Obsidian Vault disk!', 'success')
-                  } else {
-                    showToast('Failed to write to local vault. Try re-pairing folder.', 'error')
-                  }
-                }}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-semantic-success/10 hover:bg-semantic-success/20 border border-semantic-success/30 text-semantic-success text-[11px] font-semibold transition-colors cursor-pointer"
-                title="Write directly to paired local folder on disk"
-              >
-                <CheckCircle2 size={12} />
-                <span>Save to Vault</span>
-              </button>
-            )}
-
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={handleCopy}
-              className="p-1.5 rounded bg-canvas-soft border border-hairline hover:border-hairline-strong text-muted hover:text-ink transition-colors cursor-pointer"
-              title="Copy Markdown"
+              className="p-1.5 sm:p-2 rounded-lg bg-canvas-soft border border-hairline hover:border-hairline-strong text-muted hover:text-ink active:scale-95 transition-all cursor-pointer"
+              title="Copy Markdown content"
+              aria-label="Copy Markdown"
             >
               <Copy size={13} />
             </button>
             <button
               onClick={handleDownload}
-              className="p-1.5 rounded bg-canvas-soft border border-hairline hover:border-hairline-strong text-muted hover:text-ink transition-colors cursor-pointer"
-              title="Download File (.md)"
+              className="p-1.5 sm:p-2 rounded-lg bg-canvas-soft border border-hairline hover:border-hairline-strong text-muted hover:text-ink active:scale-95 transition-all cursor-pointer"
+              title="Download .md file"
+              aria-label="Download .md file"
             >
               <Download size={13} />
             </button>
@@ -225,8 +156,9 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = (
                     onDelete(artifact.id)
                   }
                 }}
-                className="p-1.5 rounded bg-canvas-soft border border-hairline hover:border-semantic-error text-muted hover:text-semantic-error hover:bg-semantic-error/10 transition-colors cursor-pointer"
-                title="Delete File from Workspace"
+                className="p-1.5 sm:p-2 rounded-lg bg-canvas-soft border border-hairline hover:border-semantic-error text-muted hover:text-semantic-error hover:bg-semantic-error/10 active:scale-95 transition-all cursor-pointer"
+                title="Delete Document"
+                aria-label="Delete Document"
               >
                 <Trash2 size={13} />
               </button>
@@ -246,21 +178,12 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = (
         </div>
       )}
 
-      {/* Content Viewer / Editor */}
-      <div className="bg-surface-card rounded-xl border border-hairline p-4 shadow-2xs">
-        {isEditing ? (
-          <textarea
-            rows={14}
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            className="w-full font-mono text-[11px] bg-canvas p-3 rounded-lg border border-hairline text-ink focus:outline-none focus:border-primary leading-relaxed resize-y"
-          />
-        ) : (
-          <MarkdownRenderer content={artifact.content} />
-        )}
+      {/* Content Viewer (Pure Markdown & Mermaid Renderer) */}
+      <div className="bg-surface-card rounded-xl border border-hairline p-4 shadow-2xs leading-relaxed">
+        <MarkdownRenderer content={artifact.content} />
       </div>
 
-      {/* Other Available Artifacts */}
+      {/* Document Library Directory */}
       <div className="space-y-2 pt-2">
         <div className="text-[10px] font-mono uppercase tracking-caption text-muted flex items-center justify-between">
           <span>Workspace Document Library:</span>

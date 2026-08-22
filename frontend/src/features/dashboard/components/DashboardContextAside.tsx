@@ -8,7 +8,6 @@ export default function DashboardContextAside() {
     artifacts,
     activeArtifact,
     setActiveArtifact,
-    saveArtifactContent,
     deleteArtifact,
     showToast,
   } = useWorkspace()
@@ -24,20 +23,17 @@ export default function DashboardContextAside() {
             {artifacts.length}
           </span>
         </div>
-        <Badge variant="success" size="xs">
-          Live Editor
+        <Badge variant="primary" size="xs">
+          Document Viewer
         </Badge>
       </div>
 
-      {/* Artifact Viewer / Editor Body */}
+      {/* Artifact Viewer Body */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {activeArtifact ? (
           <ArtifactViewerAndEditor
             key={activeArtifact.id}
             artifact={activeArtifact}
-            onSave={(newContent) =>
-              saveArtifactContent(activeArtifact.id, newContent)
-            }
             onDelete={deleteArtifact}
             showToast={showToast}
             allArtifacts={artifacts}

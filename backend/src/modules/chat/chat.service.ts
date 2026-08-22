@@ -152,6 +152,7 @@ export class ChatService {
         content: result.textContent,
         intent: result.intent,
         sideAgent: result.sideAgent,
+        actionCard: result.actionCard,
         artifactId: result.artifact?.id,
         sourceDomains: result.sourceDomains,
       });

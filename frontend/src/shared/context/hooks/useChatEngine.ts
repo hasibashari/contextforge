@@ -10,7 +10,6 @@ import type {
 } from '@/shared/types/workspace';
 import { chatApi } from '@/shared/api/chatApi';
 import { artifactsApi } from '@/shared/api/artifactsApi';
-import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service';
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service';
 import { generateGeneralReasoningOutput } from '../generators/responseGenerators';
 
@@ -614,24 +613,7 @@ export function useChatEngine(
               ]);
               setActiveArtifact(createdArtifact);
               setIsAsideOpen?.(true);
-
-              // Direct Disk Write-Back to laptop folder (Scenario B)
-              const pathName =
-                createdArtifact.locationPath || `${createdArtifact.title}.md`;
-              browserStorageBridge
-                .writeDocument(pathName, pathName, createdArtifact.content)
-                .then((writeRes) => {
-                  if (writeRes.success) {
-                    showToast(
-                      `✅ Written to laptop disk: /${writeRes.folderName}/${writeRes.relativePath}`,
-                    );
-                  } else {
-                    showToast(`📦 Artifact Created: ${createdArtifact.title}`);
-                  }
-                })
-                .catch(() => {
-                  showToast(`📦 Artifact Created: ${createdArtifact.title}`);
-                });
+              showToast(`📦 Catatan Berhasil Dibuat: ${createdArtifact.title}`);
             },
             onAutomationCreated: (createdAuto) => {
               createAutomation?.(createdAuto);
