@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { McpGatewayService } from '../services/mcp-gateway.service';
 import { AgentRecorderService } from '../services/agent-recorder.service';
 import { ArtifactRow } from '../../modules/artifacts/artifacts.repository';
+import { TOOL_CATALOG } from '../tools/builtin-tools';
 import {
   OrchestrationResult,
   StreamEmitter,
@@ -22,34 +23,23 @@ export class UniversalMcpToolHandler {
     args: Record<string, unknown>,
     emit: StreamEmitter,
   ): Promise<OrchestrationResult> {
+    void prompt;
+    const toolMeta = TOOL_CATALOG[toolName];
     const isObsidian =
       toolName.startsWith('obsidian_') ||
       toolName === 'dispatch_action_worker' ||
       toolName === 'dispatch_obsidian_worker';
 
-    const serverName = isObsidian ? 'Obsidian' : 'Notion';
-    const agentId = 'agent-action';
-    const agentName = isObsidian
-      ? 'Action Agent (Obsidian Vault Worker)'
-      : 'Action Agent (Notion Worker)';
-    const agentRole = isObsidian
-      ? 'Side Agent: Obsidian Vault Mutator'
-      : 'Side Agent: Notion Workspace Connector';
+    const serverName =
+      toolMeta?.serverName ||
+      (isObsidian ? 'Obsidian MCP Server' : 'Notion MCP Server');
+    const isReadOnly = toolMeta?.readOnly ?? !isObsidian;
 
     emit({
       event: 'timeline_stage',
       data: {
-        stage: isObsidian ? 'editing' : 'searching',
-        label: `${serverName} MCP: Executing ${toolName}...`,
-      },
-    });
-
-    emit({
-      event: 'side_agent_log',
-      data: {
-        sideAgentId: agentId,
-        log: `[MCP Invoker] Dispatching tool "${toolName}" to ${serverName} MCP Protocol Bridge...`,
-        riskLevel: 'low_risk',
+        stage: isReadOnly ? 'searching' : 'editing',
+        label: `${serverName}: Executing ${toolName}...`,
       },
     });
 
@@ -58,19 +48,26 @@ export class UniversalMcpToolHandler {
     const durationMs = Date.now() - startTime;
 
     emit({
-      event: 'side_agent_log',
+      event: 'tool_call_result',
       data: {
-        sideAgentId: agentId,
-        log: `[MCP Invoker] ${result.summary} (${durationMs}ms)`,
-        riskLevel: 'low_risk',
+        toolName,
+        server: serverName,
+        readOnly: isReadOnly,
+        summary: result.summary,
+        durationMs,
       },
     });
 
     let artifact: ArtifactRow | undefined;
     let actionCard: Record<string, unknown> | undefined;
-    let textContent = '';
 
-    if (isObsidian) {
+    // Generate persistent artifact & interactive Action Card for mutating write actions
+    if (
+      toolName === 'obsidian_write_note' ||
+      toolName === 'obsidian_vault_writer' ||
+      toolName === 'dispatch_action_worker' ||
+      toolName === 'obsidian_create_daily_note'
+    ) {
       const docTitle =
         (args.title as string) || (args.name as string) || 'Architecture Note';
       const rawData = result.data as Record<string, unknown>;
@@ -127,68 +124,26 @@ export class UniversalMcpToolHandler {
           },
         ],
       };
-
-      textContent = `I have delegated document synthesis execution to **${agentName}** via **Obsidian MCP**.\n\n### 📋 Document Summary:\n- **Document:** \`${docTitle}\`\n- **Target Path:** \`${relativePath}\`\n- **Status:** Available in Workspace Aside & Ready to Sync\n\n*Use the action buttons below or in the Aside panel to open directly in Obsidian Desktop or write to your local vault folder.*`;
-    } else {
-      // Notion Response
-      const nowStr = new Date().toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      });
-
-      textContent = `📋 **Notion Tasks Summary (${nowStr}):**
-
-I queried your Notion workspace tasks database via **Notion MCP** (\`${toolName}\`):
-
-| Priority | Task Name | Status | Deadline |
-| :--- | :--- | :--- | :--- |
-| 🔴 **High** | Finalize OAuth2 PKCE Flow & Security Check | In Progress | Today, 16:00 |
-| 🔴 **High** | Code Review PR #42: Agentic Automation Engine | In Progress | Today, 18:00 |
-| 🟡 **Medium** | PostgreSQL schema migration & index optimizations | To Do | Tomorrow |
-| 🟢 **Low** | Update TDD documentation & Architecture Diagrams | Backlog | Next sprint |
-
-### 💡 Focus Recommendations:
-Dedicate the first 2 hours to **OAuth2 PKCE Flow** and **Code Review PR #42**. All backend dependencies are ready in your local environment.`;
     }
 
-    const sideAgent = await this.recorder.recordSideAgentExecution({
-      agentId,
-      agentName,
-      agentRole,
-      taskGoal: `Execute MCP tool: ${toolName}`,
-      actionType: 'api_mutate',
-      targetResource: `${serverName} MCP Bridge [${toolName}]`,
-      status: 'completed',
-      riskLevel: 'low_risk',
-      executionTimeMs: durationMs || 250,
-      filesModified: result.filesModified || [],
-      logs: [
-        `[MCP Invoker] Connecting to ${serverName} MCP server...`,
-        `[MCP Invoker] Invoking tool "${toolName}" with payload: ${JSON.stringify(args)}`,
-        `[MCP Invoker] Result: ${result.summary}`,
-        `[MCP Invoker] Execution complete in ${durationMs}ms.`,
-      ],
-      summary: result.summary,
-      artifactId: artifact?.id,
-    });
-
-    emit({ event: 'chat_chunk', data: { delta: textContent } });
-    emit({
-      event: 'timeline_stage',
-      data: { stage: 'done', label: `${serverName} MCP Completed` },
-    });
-
     return {
-      textContent,
+      textContent: result.summary,
+      summary: result.summary,
+      rawResult: {
+        tool: toolName,
+        server: serverName,
+        readOnly: isReadOnly,
+        success: result.success,
+        data: result.data,
+        summary: result.summary,
+        artifactId: artifact?.id,
+      },
       intent: {
         toolName,
         service: isObsidian ? 'obsidian' : 'notion',
         status: 'completed',
         summaryText: result.summary,
       },
-      sideAgent,
       artifact,
       actionCard,
     };

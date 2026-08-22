@@ -3,7 +3,6 @@ import {
   AutomationRepository,
   AutomationWorkflowRow,
 } from '../../modules/automation/automation.repository';
-import { AgentRecorderService } from '../services/agent-recorder.service';
 import {
   OrchestrationResult,
   StreamEmitter,
@@ -23,10 +22,7 @@ export interface AutomationToolArgs {
 export class AutomationToolHandler {
   private readonly logger = new Logger(AutomationToolHandler.name);
 
-  constructor(
-    private readonly automationRepo: AutomationRepository,
-    private readonly recorder: AgentRecorderService,
-  ) {}
+  constructor(private readonly automationRepo: AutomationRepository) {}
 
   async execute(
     prompt: string,
@@ -71,15 +67,6 @@ export class AutomationToolHandler {
       },
     });
 
-    emit({
-      event: 'side_agent_log',
-      data: {
-        sideAgentId: 'agent-action',
-        log: `[AutomationDaemon] Creating background cron rule: "${cron}" (${scheduleLabel})`,
-        riskLevel: 'low_risk',
-      },
-    });
-
     // 1. Save automation record to PostgreSQL
     let createdWorkflow: AutomationWorkflowRow;
     try {
@@ -119,15 +106,6 @@ export class AutomationToolHandler {
     }
 
     emit({
-      event: 'side_agent_log',
-      data: {
-        sideAgentId: 'agent-action',
-        log: `[AutomationDaemon] Bound to MCP Server: ${mcpServerId} (Tools: ${mcpTools.join(', ')})`,
-        riskLevel: 'low_risk',
-      },
-    });
-
-    emit({
       event: 'automation_created',
       data: {
         id: createdWorkflow.id,
@@ -148,51 +126,33 @@ export class AutomationToolHandler {
       },
     });
 
-    const sideAgent = await this.recorder.recordSideAgentExecution({
-      agentId,
-      agentName,
-      agentRole: 'Background Orchestrator & Task Daemon',
-      taskGoal: `Schedule recurring automation: "${workflowName}"`,
-      actionType: 'api_mutate',
-      targetResource: `Automations Database [${createdWorkflow.id}]`,
-      status: 'completed',
-      riskLevel: 'low_risk',
-      executionTimeMs: 280,
-      filesModified: [],
-      logs: [
-        `[AutomationDaemon] Initializing background task registrar...`,
-        `[AutomationDaemon] Validated cron schedule: "${cron}" (${scheduleLabel})`,
-        `[AutomationDaemon] Bound MCP Target: ${mcpServerId} -> [${mcpTools.join(', ')}]`,
-        `[AutomationDaemon] Saved to PostgreSQL automations table: ID ${createdWorkflow.id}`,
-      ],
-      summary: `Successfully registered background automation "${workflowName}" (${scheduleLabel}).`,
-    });
+    const summaryText = `Registered background automation "${workflowName}" (${scheduleLabel}).`;
 
-    const textContent = `⏰ **Automation Successfully Scheduled!**
-
-I have registered a new background automation workflow:
-- **Workflow Name:** \`${workflowName}\`
-- **Execution Schedule:** **${scheduleLabel}** (\`${cron}\`)
-- **Worker Agent:** **${agentName}**
-- **MCP Tools:** ${mcpTools.map((t) => `\`${t}\``).join(', ')}
-
-*This workflow will run autonomously in the background. You can monitor and manage its execution rules anytime in [Automations](/automation).*`;
-
-    emit({ event: 'chat_chunk', data: { delta: textContent } });
     emit({
-      event: 'timeline_stage',
-      data: { stage: 'done', label: 'Automation Scheduled' },
+      event: 'tool_call_result',
+      data: {
+        toolName: 'create_scheduled_automation',
+        summary: summaryText,
+        automationId: createdWorkflow.id,
+      },
     });
 
     return {
-      textContent,
+      textContent: summaryText,
+      summary: summaryText,
+      rawResult: {
+        success: true,
+        automationId: createdWorkflow.id,
+        name: createdWorkflow.name,
+        scheduleCron: createdWorkflow.schedule_cron,
+        mcpServerId: createdWorkflow.mcp_server_id,
+      },
       intent: {
         toolName: 'create_scheduled_automation',
         service: 'automation',
         status: 'completed',
         summaryText: `Automation Scheduled: ${workflowName} (${cron})`,
       },
-      sideAgent,
     };
   }
 }

@@ -8,6 +8,7 @@ import {
   CoreOrchestratorService,
   StreamEvent,
 } from '../../agentic-core/orchestrator/core-orchestrator.service';
+import { EcosystemService } from '../ecosystem/ecosystem.service';
 import type { Response } from 'express';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class ChatService {
   constructor(
     private readonly chatRepo: ChatRepository,
     private readonly orchestrator: CoreOrchestratorService,
+    private readonly ecosystemService: EcosystemService,
   ) {}
 
   async getAllSessions(): Promise<ChatSessionRow[]> {
@@ -50,6 +52,7 @@ export class ChatService {
     sessionId: string,
     prompt: string,
     res: Response,
+    agentId?: string,
   ): Promise<void> {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -110,13 +113,19 @@ export class ChatService {
           parts: [{ text: m.content }],
         }));
 
-      // 4. Delegate to Core Orchestrator
+      // 4. Load active workspace skills (SOPs)
+      const activeSkills =
+        await this.ecosystemService.getActiveSkillsInstructions();
+
+      // 5. Delegate to Core Orchestrator with active Agent Persona & Skill SOPs
       const result = await this.orchestrator.processPromptStream(
         prompt,
         history,
         (evt: StreamEvent) => {
           sendSse(evt.event, evt.data);
         },
+        agentId,
+        activeSkills,
       );
 
       // 5. Save assistant response to DB
@@ -165,6 +174,11 @@ export class ChatService {
   ): Promise<void> {
     const prompt =
       'Berikan morning briefing harian untuk saya: rangkum agenda kalender hari ini, prioritas tugas teknis, dan saran fokus hari ini.';
-    return this.sendMessageStream(sessionId, prompt, res);
+    return this.sendMessageStream(
+      sessionId,
+      prompt,
+      res,
+      'agent-personal-assistant',
+    );
   }
 }

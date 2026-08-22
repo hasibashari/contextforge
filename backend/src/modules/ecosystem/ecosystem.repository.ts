@@ -240,6 +240,13 @@ export class EcosystemRepository implements OnModuleInit {
     return res.rows;
   }
 
+  async getActiveSkills(): Promise<WorkspaceSkillRow[]> {
+    const res = await this.db.query<WorkspaceSkillRow>(
+      `SELECT * FROM workspace_skills WHERE enabled = true ORDER BY created_at ASC;`,
+    );
+    return res.rows;
+  }
+
   async getSkillById(id: string): Promise<WorkspaceSkillRow | null> {
     const res = await this.db.query<WorkspaceSkillRow>(
       `SELECT * FROM workspace_skills WHERE id = $1;`,

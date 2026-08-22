@@ -102,22 +102,24 @@ export class WebSearchToolHandler {
         searchResponse.text || `Tidak ada hasil untuk: ${queryStr}`;
       const sources = this.extractGroundingDomains(searchResponse);
 
-      const chunkSize = 25;
-      for (let i = 0; i < synthesis.length; i += chunkSize) {
-        const chunk = synthesis.slice(i, i + chunkSize);
-        emit({
-          event: 'chat_chunk',
-          data: { delta: chunk },
-        });
-      }
-
       emit({
-        event: 'timeline_stage',
-        data: { stage: 'done', label: 'Completed' },
+        event: 'tool_call_result',
+        data: {
+          toolName: 'web_search',
+          summary: `Web search completed for "${queryStr}"`,
+          sourcesCount: sources.length,
+          sources,
+        },
       });
 
       return {
         textContent: synthesis,
+        summary: `Web search completed with ${sources.length} sources.`,
+        rawResult: {
+          query: queryStr,
+          synthesis,
+          sources,
+        },
         sourceDomains: sources.length > 0 ? sources : undefined,
       };
     } catch (searchErr: unknown) {
@@ -142,30 +144,32 @@ export class WebSearchToolHandler {
 
         const fallbackText =
           fallbackRes.text || `Hasil analisis untuk: ${queryStr}`;
-        const chunkSize = 25;
-        for (let i = 0; i < fallbackText.length; i += chunkSize) {
-          const chunk = fallbackText.slice(i, i + chunkSize);
-          emit({ event: 'chat_chunk', data: { delta: chunk } });
-        }
 
         emit({
-          event: 'timeline_stage',
-          data: { stage: 'done', label: 'Completed' },
+          event: 'tool_call_result',
+          data: {
+            toolName: 'web_search',
+            summary: `Direct technical synthesis completed for "${queryStr}"`,
+            sources: ['Google Knowledge Base'],
+          },
         });
 
         return {
           textContent: fallbackText,
+          summary: `Direct technical synthesis completed.`,
+          rawResult: {
+            query: queryStr,
+            synthesis: fallbackText,
+            sources: ['Google Knowledge Base'],
+          },
           sourceDomains: ['Google Knowledge Base'],
         };
       } catch {
-        const fallbackSynthesis = `### 🌐 Research: ${queryStr}\n\n*Analisis pengetahuan telah disiapkan untuk kebutuhan Anda.*`;
-        emit({ event: 'chat_chunk', data: { delta: fallbackSynthesis } });
-        emit({
-          event: 'timeline_stage',
-          data: { stage: 'done', label: 'Completed' },
-        });
+        const fallbackSynthesis = `Analisis pengetahuan untuk query: "${queryStr}".`;
         return {
           textContent: fallbackSynthesis,
+          summary: fallbackSynthesis,
+          rawResult: { query: queryStr, text: fallbackSynthesis },
         };
       }
     }

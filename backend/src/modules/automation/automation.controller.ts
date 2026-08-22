@@ -10,15 +10,25 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AutomationService } from './automation.service';
+import { AutomationSchedulerService } from './automation-scheduler.service';
 import { CreateAutomationDto, UpdateAutomationDto } from './dto/automation.dto';
 
 @Controller('api/automations')
 export class AutomationController {
-  constructor(private readonly service: AutomationService) {}
+  constructor(
+    private readonly service: AutomationService,
+    private readonly scheduler: AutomationSchedulerService,
+  ) {}
 
   @Get()
   async getAll() {
     const data = await this.service.getAllAutomations();
+    return { success: true, data };
+  }
+
+  @Get('scheduler/status')
+  async getSchedulerStatus() {
+    const data = await this.scheduler.getSchedulerStatus();
     return { success: true, data };
   }
 

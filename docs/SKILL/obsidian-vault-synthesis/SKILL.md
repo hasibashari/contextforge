@@ -4,8 +4,9 @@ description: Standard Operating Procedure for writing bi-directionally linked Ma
 category: knowledge
 icon: book-open
 assignedTools:
-  - obsidian_vault_writer
-  - obsidian_vault_reader
+  - obsidian_write_note
+  - obsidian_read_note
+  - obsidian_create_daily_note
 ---
 
 # Obsidian Vault Note Ingestion & Linking

@@ -2,7 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { GoogleGenAI } from '@google/genai';
 import { GEMINI_CLIENT } from '../gemini-client.provider';
-import { CORE_ORCHESTRATOR_SYSTEM_PROMPT } from '../prompts/orchestrator.prompt';
+import { getAgentSystemPrompt } from '../prompts/orchestrator.prompt';
 import { BUILTIN_FUNCTION_DECLARATIONS } from '../tools/builtin-tools';
 import {
   StreamEvent,
@@ -15,6 +15,8 @@ import { KnowledgeToolHandler } from '../handlers/knowledge-tool.handler';
 import { AutomationToolHandler } from '../handlers/automation-tool.handler';
 
 export type { StreamEvent, OrchestrationResult };
+
+const MAX_REACT_TURNS = 5;
 
 @Injectable()
 export class CoreOrchestratorService {
@@ -30,12 +32,14 @@ export class CoreOrchestratorService {
   ) {}
 
   /**
-   * Main conversational reasoning loop with streaming & dynamic tool dispatching
+   * Main conversational ReAct reasoning loop with streaming & iterative tool dispatching
    */
   async processPromptStream(
     prompt: string,
     history: { role: 'user' | 'model'; parts: { text?: string }[] }[] = [],
     onEvent?: StreamEmitter,
+    agentId?: string,
+    activeSkills: Array<{ name: string; instructions: string }> = [],
   ): Promise<OrchestrationResult> {
     const emit: StreamEmitter = (event: StreamEvent) => {
       if (onEvent) onEvent(event);
@@ -50,53 +54,198 @@ export class CoreOrchestratorService {
       0.2,
     );
 
-    emit({
-      event: 'timeline_stage',
-      data: { stage: 'thinking', label: 'Reasoning & Planning Execution...' },
-    });
+    const systemInstruction = getAgentSystemPrompt(agentId, activeSkills);
+
+    // Cumulative conversation history for the ReAct loop
+    const turnContents: any[] = [
+      ...history,
+      { role: 'user', parts: [{ text: prompt }] },
+    ];
+
+    let turn = 0;
+    let isCompleted = false;
+    const finalResult: OrchestrationResult = { textContent: '' };
+    const allSourceDomains: Set<string> = new Set();
+
+    this.logger.log(
+      `Starting ReAct reasoning loop [${modelName}, agent=${agentId || 'default'}] for: "${prompt.slice(0, 60)}..."`,
+    );
 
     try {
-      const contents = [
-        ...history,
-        { role: 'user', parts: [{ text: prompt }] },
-      ];
+      while (turn < MAX_REACT_TURNS && !isCompleted) {
+        turn++;
 
-      this.logger.log(
-        `Calling Gemini [${modelName}] for prompt: "${prompt.slice(0, 60)}..."`,
-      );
+        emit({
+          event: 'timeline_stage',
+          data: {
+            stage: 'thinking',
+            label:
+              turn === 1
+                ? 'Analyzing Goal & Planning Actions...'
+                : `Reasoning Step ${turn}: Evaluating Observation...`,
+          },
+        });
 
-      const response = await this.ai.models.generateContent({
-        model: modelName,
-        contents,
-        config: {
-          systemInstruction: CORE_ORCHESTRATOR_SYSTEM_PROMPT,
-          temperature,
-          tools: [{ functionDeclarations: BUILTIN_FUNCTION_DECLARATIONS }],
+        emit({
+          event: 'thought_step',
+          data: { turn, status: 'reasoning', agentId },
+        });
+
+        const response = await this.ai.models.generateContent({
+          model: modelName,
+          contents: turnContents,
+          config: {
+            systemInstruction,
+            temperature,
+            tools: [{ functionDeclarations: BUILTIN_FUNCTION_DECLARATIONS }],
+          },
+        });
+
+        const functionCalls = response.functionCalls;
+
+        // Case A: Model wants to invoke one or more tools (Reason -> Action)
+        if (functionCalls && functionCalls.length > 0) {
+          const modelParts: any[] = [];
+          const functionResponseParts: any[] = [];
+
+          for (const call of functionCalls) {
+            const toolName = call.name || '';
+            const args = (call.args || {}) as Record<string, any>;
+
+            this.logger.log(
+              `[Turn ${turn}] Tool Call: "${toolName}" with args: ${JSON.stringify(args)}`,
+            );
+
+            emit({
+              event: 'tool_call_start',
+              data: { toolName, input: args, turn },
+            });
+
+            // Execute the selected tool
+            let toolOutput: OrchestrationResult;
+            try {
+              toolOutput = await this.dispatchTool(
+                toolName,
+                prompt,
+                args,
+                emit,
+              );
+            } catch (toolErr) {
+              const errMessage =
+                toolErr instanceof Error ? toolErr.message : String(toolErr);
+              this.logger.error(
+                `Error executing tool "${toolName}": ${errMessage}`,
+              );
+              toolOutput = {
+                textContent: `Error executing tool "${toolName}": ${errMessage}`,
+                summary: `Failed to execute ${toolName}`,
+                rawResult: { error: errMessage, success: false },
+              };
+            }
+
+            // Accumulate artifacts, cards, or source domains
+            if (toolOutput.artifact) {
+              finalResult.artifact = toolOutput.artifact;
+            }
+            if (toolOutput.actionCard) {
+              finalResult.actionCard = toolOutput.actionCard;
+            }
+            if (toolOutput.intent) {
+              finalResult.intent = toolOutput.intent;
+            }
+            if (toolOutput.sourceDomains) {
+              toolOutput.sourceDomains.forEach((d) => allSourceDomains.add(d));
+            }
+
+            modelParts.push({ functionCall: call });
+            functionResponseParts.push({
+              functionResponse: {
+                name: toolName,
+                response: {
+                  output: toolOutput.rawResult || {
+                    summary: toolOutput.summary || toolOutput.textContent,
+                  },
+                },
+              },
+            });
+          }
+
+          // Append paired model turn (all functionCalls) and user turn (all functionResponses)
+          turnContents.push({
+            role: 'model',
+            parts: modelParts,
+          });
+
+          turnContents.push({
+            role: 'user',
+            parts: functionResponseParts,
+          });
+
+          // Loop continues: next turn will send observations back to Gemini
+        } else {
+          // Case B: Model has finished reasoning and produced the final response
+          isCompleted = true;
+          this.logger.log(
+            `[Turn ${turn}] ReAct loop completed with synthesized response.`,
+          );
+
+          const conversationalResult = this.handleConversationalResponse(
+            response,
+            emit,
+          );
+          finalResult.textContent = conversationalResult.textContent;
+          if (conversationalResult.sourceDomains) {
+            conversationalResult.sourceDomains.forEach((d) =>
+              allSourceDomains.add(d),
+            );
+          }
+        }
+      }
+
+      // If loop reached MAX_REACT_TURNS without concluding, force final text synthesis
+      if (!isCompleted && !finalResult.textContent) {
+        emit({
+          event: 'timeline_stage',
+          data: {
+            stage: 'reading',
+            label: 'Finalizing Multi-Step Synthesis...',
+          },
+        });
+
+        // Call Gemini with existing turnContents without tools to force final text synthesis
+        const fallbackResponse = await this.ai.models.generateContent({
+          model: modelName,
+          contents: turnContents,
+          config: {
+            systemInstruction,
+            temperature,
+          },
+        });
+
+        finalResult.textContent =
+          fallbackResponse.text || 'Tugas telah selesai diproses.';
+        this.streamFinalText(finalResult.textContent, emit);
+      }
+
+      if (allSourceDomains.size > 0) {
+        finalResult.sourceDomains = Array.from(allSourceDomains);
+      }
+
+      emit({
+        event: 'timeline_stage',
+        data: { stage: 'done', label: 'Completed' },
+      });
+
+      emit({
+        event: 'execution_done',
+        data: {
+          turnsCount: turn,
+          hasArtifact: Boolean(finalResult.artifact),
+          hasActionCard: Boolean(finalResult.actionCard),
         },
       });
 
-      const functionCalls = response.functionCalls;
-
-      // Case A: Model invoked a Tool / Action Worker via MCP
-      if (functionCalls && functionCalls.length > 0) {
-        const call = functionCalls[0];
-        const toolName = call.name || '';
-        const args = (call.args || {}) as Record<string, any>;
-
-        this.logger.log(
-          `Tool invoked: ${toolName} with args: ${JSON.stringify(args)}`,
-        );
-
-        emit({
-          event: 'tool_call_start',
-          data: { toolName, input: args },
-        });
-
-        return await this.dispatchTool(toolName, prompt, args, emit);
-      }
-
-      // Case B: Direct Conversational Response (with optional Search Grounding)
-      return this.handleConversationalResponse(response, emit);
+      return finalResult;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       const errorStack = err instanceof Error ? err.stack : undefined;
@@ -122,6 +271,50 @@ export class CoreOrchestratorService {
     emit: StreamEmitter,
   ): Promise<OrchestrationResult> {
     switch (toolName) {
+      case 'transfer_to_agent': {
+        const targetAgent =
+          (args.target_agent_id as string) || 'agent-research';
+        const subTask = (args.sub_task as string) || prompt;
+        const reason =
+          (args.reason as string) || 'Delegating specialized sub-task';
+
+        const agentName =
+          targetAgent === 'agent-research'
+            ? 'Research Specialist'
+            : targetAgent === 'agent-action'
+              ? 'Action Worker'
+              : 'Personal Assistant';
+
+        emit({
+          event: 'timeline_stage',
+          data: {
+            stage: 'thinking',
+            label: `Agent Handoff: Delegating to ${agentName}...`,
+          },
+        });
+
+        emit({
+          event: 'side_agent_log',
+          data: {
+            sideAgentId: targetAgent,
+            log: `[Handoff] Delegated to ${agentName}: "${subTask}" (${reason})`,
+            riskLevel: 'low_risk',
+          },
+        });
+
+        return {
+          textContent: `I have delegated this sub-task to **${agentName}**: "${subTask}".`,
+          summary: `Handoff to ${agentName}: ${subTask}`,
+          rawResult: {
+            handoffTo: targetAgent,
+            agentName,
+            subTask,
+            reason,
+            status: 'transferred',
+          },
+        };
+      }
+
       case 'create_scheduled_automation':
         return this.automationHandler.execute(prompt, args, emit);
 
@@ -140,6 +333,8 @@ export class CoreOrchestratorService {
       case 'notion_update_database':
       case 'dispatch_action_worker':
       case 'dispatch_obsidian_worker':
+      case 'obsidian_write_note':
+      case 'obsidian_read_note':
       case 'obsidian_vault_writer':
       case 'obsidian_vault_reader':
       case 'obsidian_create_daily_note':
@@ -157,6 +352,8 @@ export class CoreOrchestratorService {
         this.logger.warn(`Unrecognized tool requested: ${toolName}`);
         return {
           textContent: `Tool "${toolName}" executed with standard parameters.`,
+          summary: `Executed ${toolName}`,
+          rawResult: { toolName, args, status: 'unrecognized_fallback' },
         };
     }
   }
@@ -180,23 +377,25 @@ export class CoreOrchestratorService {
     const sourceDomains =
       this.webSearchHandler.extractGroundingDomains(response);
 
-    const chunkSize = 25;
-    for (let i = 0; i < fullText.length; i += chunkSize) {
-      const chunk = fullText.slice(i, i + chunkSize);
-      emit({
-        event: 'chat_chunk',
-        data: { delta: chunk },
-      });
-    }
-
-    emit({
-      event: 'timeline_stage',
-      data: { stage: 'done', label: 'Completed' },
-    });
+    this.streamFinalText(fullText, emit);
 
     return {
       textContent: fullText,
       sourceDomains: sourceDomains.length > 0 ? sourceDomains : undefined,
     };
+  }
+
+  /**
+   * Streams text to client in smooth chunks
+   */
+  private streamFinalText(text: string, emit: StreamEmitter): void {
+    const chunkSize = 30;
+    for (let i = 0; i < text.length; i += chunkSize) {
+      const chunk = text.slice(i, i + chunkSize);
+      emit({
+        event: 'chat_chunk',
+        data: { delta: chunk },
+      });
+    }
   }
 }

@@ -5,6 +5,8 @@ export interface StreamEvent {
     | 'timeline_stage'
     | 'chat_chunk'
     | 'tool_call_start'
+    | 'tool_call_result'
+    | 'thought_step'
     | 'side_agent_log'
     | 'artifact_created'
     | 'automation_created'
@@ -25,6 +27,8 @@ export interface OrchestrationResult {
   artifact?: ArtifactRow;
   actionCard?: Record<string, unknown>;
   sourceDomains?: string[];
+  rawResult?: unknown;
+  summary?: string;
 }
 
 export type StreamEmitter = (event: StreamEvent) => void;

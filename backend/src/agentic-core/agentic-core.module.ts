@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { GeminiClientProvider } from './gemini-client.provider';
 import { CoreOrchestratorService } from './orchestrator/core-orchestrator.service';
 import { EmbeddingService } from './embeddings/embedding.service';
@@ -7,14 +7,13 @@ import { ObsidianVaultService } from './services/obsidian-vault.service';
 import { AgentRecorderService } from './services/agent-recorder.service';
 import { McpGatewayService } from './services/mcp-gateway.service';
 import { UniversalMcpToolHandler } from './handlers/universal-mcp-tool.handler';
-import { ActionToolHandler } from './handlers/action-tool.handler';
 import { WebSearchToolHandler } from './handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from './handlers/knowledge-tool.handler';
 import { AutomationToolHandler } from './handlers/automation-tool.handler';
 import { AutomationModule } from '../modules/automation/automation.module';
 
 @Module({
-  imports: [AutomationModule],
+  imports: [forwardRef(() => AutomationModule)],
   providers: [
     GeminiClientProvider,
     CoreOrchestratorService,
@@ -24,7 +23,6 @@ import { AutomationModule } from '../modules/automation/automation.module';
     AgentRecorderService,
     McpGatewayService,
     UniversalMcpToolHandler,
-    ActionToolHandler,
     WebSearchToolHandler,
     KnowledgeToolHandler,
     AutomationToolHandler,
@@ -38,7 +36,6 @@ import { AutomationModule } from '../modules/automation/automation.module';
     AgentRecorderService,
     McpGatewayService,
     UniversalMcpToolHandler,
-    ActionToolHandler,
     WebSearchToolHandler,
     KnowledgeToolHandler,
     AutomationToolHandler,

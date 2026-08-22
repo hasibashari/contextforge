@@ -1,5 +1,8 @@
 import { API_BASE_URL, handleApiResponse } from './config';
-import type { AutomationWorkflow, AutomationStatus } from '@/shared/types/workspace';
+import type {
+  AutomationWorkflow,
+  AutomationStatus,
+} from '@/shared/types/workspace';
 
 export interface BackendAutomationWorkflow {
   id: string;
@@ -21,6 +24,24 @@ export interface BackendAutomationWorkflow {
   total_runs: number;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface SchedulerStatusResponse {
+  status: 'running' | 'paused' | 'idle';
+  intervalSeconds: number;
+  lastCheckedAt: string;
+  activeJobsCount: number;
+  totalWorkflowsCount: number;
+  jobs: Array<{
+    id: string;
+    name: string;
+    cron: string;
+    scheduleLabel: string;
+    isActive: boolean;
+    lastRunAt?: string;
+    lastRunStatus?: string;
+    totalRuns: number;
+  }>;
 }
 
 function mapToFrontend(a: BackendAutomationWorkflow): AutomationWorkflow {
@@ -59,7 +80,14 @@ export const automationApi = {
     return mapToFrontend(data);
   },
 
-  async create(payload: Omit<AutomationWorkflow, 'id' | 'totalRuns' | 'createdAt'>): Promise<AutomationWorkflow> {
+  async getSchedulerStatus(): Promise<SchedulerStatusResponse> {
+    const res = await fetch(`${API_BASE_URL}/automations/scheduler/status`);
+    return handleApiResponse<SchedulerStatusResponse>(res);
+  },
+
+  async create(
+    payload: Omit<AutomationWorkflow, 'id' | 'totalRuns' | 'createdAt'>,
+  ): Promise<AutomationWorkflow> {
     const res = await fetch(`${API_BASE_URL}/automations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -83,7 +111,10 @@ export const automationApi = {
     return mapToFrontend(data);
   },
 
-  async update(id: string, updates: Partial<AutomationWorkflow>): Promise<AutomationWorkflow> {
+  async update(
+    id: string,
+    updates: Partial<AutomationWorkflow>,
+  ): Promise<AutomationWorkflow> {
     const res = await fetch(`${API_BASE_URL}/automations/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

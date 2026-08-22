@@ -407,123 +407,145 @@ export function useChatEngine(
         ),
       );
 
-      setIsGeneratingResponse(true);
+      const targetAgentId =
+        customOptions?.agentId ||
+        (selectedAgentMode !== 'auto' ? selectedAgentMode : undefined);
 
       try {
-        await chatApi.sendMessageStream(activeSessionId, prompt.trim(), {
-          onSessionCreated: ({ id, title, previousId }) => {
-            setActiveSessionId(id);
-            setChatSessions((prev) =>
-              prev.map((s) =>
-                s.id === previousId || s.id === activeSessionId ? { ...s, id, title: s.title || title } : s,
-              ),
-            );
-          },
-          onSessionTitleUpdated: ({ title }) => {
-            setChatSessions((prev) =>
-              prev.map((s) => (s.id === activeSessionId ? { ...s, title } : s)),
-            );
-          },
-          onChatChunk: ({ delta }) => {
-            setChatSessions((prev) =>
-              prev.map((session) =>
-                session.id === activeSessionId
-                  ? {
-                      ...session,
-                      messages: session.messages.map((m) =>
-                        m.id === assistantMsgId ? { ...m, content: m.content + delta } : m,
-                      ),
-                    }
-                  : session,
-              ),
-            );
-          },
-          onSideAgentLog: ({ sideAgentId, log, riskLevel }) => {
-            const newAct: ActivityLogEntry = {
-              id: `act-${Date.now()}`,
-              timestamp: 'Just now',
-              agentId: sideAgentId,
-              agentName: sideAgentId.includes('doc')
-                ? 'Obsidian Vault Worker'
-                : sideAgentId.includes('code')
-                  ? 'CLI & Code Sandbox Runner'
-                  : 'Calendar Worker',
-              actionType: 'tool_invoked',
-              summary: log,
-              status: riskLevel === 'high_risk' ? 'warning' : 'success',
-            };
-            setActivities?.((prev) => [newAct, ...prev]);
-          },
-          onArtifactCreated: (createdArtifact) => {
-            setArtifacts((prev) => [createdArtifact, ...prev.filter((a) => a.id !== createdArtifact.id)]);
-            setActiveArtifact(createdArtifact);
-            setIsAsideOpen?.(true);
+        await chatApi.sendMessageStream(
+          activeSessionId,
+          prompt.trim(),
+          {
+            onSessionCreated: ({ id, title, previousId }) => {
+              setActiveSessionId(id);
+              setChatSessions((prev) =>
+                prev.map((s) =>
+                  s.id === previousId || s.id === activeSessionId
+                    ? { ...s, id, title: s.title || title }
+                    : s,
+                ),
+              );
+            },
+            onSessionTitleUpdated: ({ title }) => {
+              setChatSessions((prev) =>
+                prev.map((s) =>
+                  s.id === activeSessionId ? { ...s, title } : s,
+                ),
+              );
+            },
+            onChatChunk: ({ delta }) => {
+              setChatSessions((prev) =>
+                prev.map((session) =>
+                  session.id === activeSessionId
+                    ? {
+                        ...session,
+                        messages: session.messages.map((m) =>
+                          m.id === assistantMsgId
+                            ? { ...m, content: m.content + delta }
+                            : m,
+                        ),
+                      }
+                    : session,
+                ),
+              );
+            },
+            onSideAgentLog: ({ sideAgentId, log, riskLevel }) => {
+              const newAct: ActivityLogEntry = {
+                id: `act-${Date.now()}`,
+                timestamp: 'Just now',
+                agentId: sideAgentId,
+                agentName: sideAgentId.includes('doc')
+                  ? 'Obsidian Vault Worker'
+                  : sideAgentId.includes('code')
+                    ? 'CLI & Code Sandbox Runner'
+                    : 'Calendar Worker',
+                actionType: 'tool_invoked',
+                summary: log,
+                status: riskLevel === 'high_risk' ? 'warning' : 'success',
+              };
+              setActivities?.((prev) => [newAct, ...prev]);
+            },
+            onArtifactCreated: (createdArtifact) => {
+              setArtifacts((prev) => [
+                createdArtifact,
+                ...prev.filter((a) => a.id !== createdArtifact.id),
+              ]);
+              setActiveArtifact(createdArtifact);
+              setIsAsideOpen?.(true);
 
-            // Direct Disk Write-Back to laptop folder (Scenario B)
-            const pathName = createdArtifact.locationPath || `${createdArtifact.title}.md`;
-            browserStorageBridge
-              .writeDocument(pathName, pathName, createdArtifact.content)
-              .then((writeRes) => {
-                if (writeRes.success) {
-                  showToast(`✅ Written to laptop disk: /${writeRes.folderName}/${writeRes.relativePath}`);
-                } else {
+              // Direct Disk Write-Back to laptop folder (Scenario B)
+              const pathName =
+                createdArtifact.locationPath || `${createdArtifact.title}.md`;
+              browserStorageBridge
+                .writeDocument(pathName, pathName, createdArtifact.content)
+                .then((writeRes) => {
+                  if (writeRes.success) {
+                    showToast(
+                      `✅ Written to laptop disk: /${writeRes.folderName}/${writeRes.relativePath}`,
+                    );
+                  } else {
+                    showToast(`📦 Artifact Created: ${createdArtifact.title}`);
+                  }
+                })
+                .catch(() => {
                   showToast(`📦 Artifact Created: ${createdArtifact.title}`);
-                }
-              })
-              .catch(() => {
-                showToast(`📦 Artifact Created: ${createdArtifact.title}`);
-              });
+                });
+            },
+            onAutomationCreated: (createdAuto) => {
+              createAutomation?.(createdAuto);
+              showToast(`⏰ Automation Scheduled: "${createdAuto.name}"`);
+            },
+            onAssistantMessage: (backendMsg) => {
+              setChatSessions((prev) =>
+                prev.map((session) =>
+                  session.id === activeSessionId
+                    ? {
+                        ...session,
+                        activeArtifactId:
+                          backendMsg.artifactId || session.activeArtifactId,
+                        messages: session.messages.map((m) =>
+                          m.id === assistantMsgId
+                            ? { ...m, ...backendMsg }
+                            : m,
+                        ),
+                      }
+                    : session,
+                ),
+              );
+            },
+            onExecutionDone: () => {
+              setIsGeneratingResponse(false);
+            },
+            onError: (streamErr) => {
+              console.error('SSE Stream Error:', streamErr);
+              // Fallback gracefully
+              const fallback = generateGeneralReasoningOutput(prompt);
+              if (fallback.createdAutomation) {
+                createAutomation?.(fallback.createdAutomation);
+              }
+              setChatSessions((prev) =>
+                prev.map((session) =>
+                  session.id === activeSessionId
+                    ? {
+                        ...session,
+                        messages: session.messages.map((m) =>
+                          m.id === assistantMsgId
+                            ? {
+                                ...m,
+                                content: m.content || fallback.textContent,
+                                intent: fallback.intent,
+                              }
+                            : m,
+                        ),
+                      }
+                    : session,
+                ),
+              );
+              setIsGeneratingResponse(false);
+            },
           },
-          onAutomationCreated: (createdAuto) => {
-            createAutomation?.(createdAuto);
-            showToast(`⏰ Automation Scheduled: "${createdAuto.name}"`);
-          },
-          onAssistantMessage: (backendMsg) => {
-            setChatSessions((prev) =>
-              prev.map((session) =>
-                session.id === activeSessionId
-                  ? {
-                      ...session,
-                      activeArtifactId: backendMsg.artifactId || session.activeArtifactId,
-                      messages: session.messages.map((m) =>
-                        m.id === assistantMsgId ? { ...m, ...backendMsg } : m,
-                      ),
-                    }
-                  : session,
-              ),
-            );
-          },
-          onExecutionDone: () => {
-            setIsGeneratingResponse(false);
-          },
-          onError: (streamErr) => {
-            console.error('SSE Stream Error:', streamErr);
-            // Fallback gracefully
-            const fallback = generateGeneralReasoningOutput(prompt);
-            if (fallback.createdAutomation) {
-              createAutomation?.(fallback.createdAutomation);
-            }
-            setChatSessions((prev) =>
-              prev.map((session) =>
-                session.id === activeSessionId
-                  ? {
-                      ...session,
-                      messages: session.messages.map((m) =>
-                        m.id === assistantMsgId
-                          ? {
-                              ...m,
-                              content: m.content || fallback.textContent,
-                              intent: fallback.intent,
-                            }
-                          : m,
-                      ),
-                    }
-                  : session,
-              ),
-            );
-            setIsGeneratingResponse(false);
-          },
-        });
+          targetAgentId,
+        );
       } catch (err: unknown) {
         console.error('Failed to send message stream:', err);
         const fallback = generateGeneralReasoningOutput(prompt);
@@ -551,7 +573,15 @@ export function useChatEngine(
         setIsGeneratingResponse(false);
       }
     },
-    [activeSessionId, createAutomation, isGeneratingResponse, setActivities, setIsAsideOpen, showToast],
+    [
+      activeSessionId,
+      createAutomation,
+      isGeneratingResponse,
+      selectedAgentMode,
+      setActivities,
+      setIsAsideOpen,
+      showToast,
+    ],
   );
 
   return {

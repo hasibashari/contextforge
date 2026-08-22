@@ -6,7 +6,6 @@ icon: globe
 assignedTools:
   - web_search
   - search_knowledge_vault
-  - query_memory
 ---
 
 # Deep Web Synthesis & Citation Grounding

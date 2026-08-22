@@ -85,7 +85,7 @@ export class McpGatewayService {
       return {
         success: true,
         server: 'obsidian',
-        toolName: 'obsidian_vault_writer',
+        toolName: 'obsidian_write_note',
         data: {
           absolutePath: vaultResult.absolutePath,
           relativePath: vaultResult.relativePath,

@@ -87,10 +87,15 @@ export const chatApi = {
     await handleApiResponse<{ success: boolean }>(res);
   },
 
-  async sendMessageStream(sessionId: string, prompt: string, handlers: SseEventHandlers): Promise<void> {
+  async sendMessageStream(
+    sessionId: string,
+    prompt: string,
+    handlers: SseEventHandlers,
+    agentId?: string,
+  ): Promise<void> {
     await consumeSseStream(
       `${API_BASE_URL}/chat/sessions/${sessionId}/messages?stream=true`,
-      { prompt },
+      { prompt, agentId },
       handlers,
     );
   },

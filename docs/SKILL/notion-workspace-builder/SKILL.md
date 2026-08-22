@@ -4,10 +4,11 @@ description: Playbook for creating structured Notion pages with rich block hiera
 category: productivity
 icon: database
 assignedTools:
-  - notion_create_page
-  - notion_update_database
+  - notion_get_tasks
   - notion_search
   - notion_read_page
+  - notion_create_page
+  - notion_update_database
 ---
 
 # Notion Workspace Page & Database Builder

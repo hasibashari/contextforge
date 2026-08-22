@@ -11,32 +11,213 @@ const arrayProp = (description: string): Schema => ({
   items: { type: 'STRING' as unknown as Type },
 });
 
+export interface ToolMetadata {
+  name: string;
+  category:
+    | 'mcp_obsidian'
+    | 'mcp_notion'
+    | 'internal_rag'
+    | 'web_search'
+    | 'automation';
+  readOnly: boolean;
+  serverName: string;
+  description: string;
+}
+
+export const TOOL_CATALOG: Record<string, ToolMetadata> = {
+  obsidian_write_note: {
+    name: 'obsidian_write_note',
+    category: 'mcp_obsidian',
+    readOnly: false,
+    serverName: 'Obsidian MCP Server',
+    description:
+      'Writes a structured Markdown document with frontmatter and backlinks to local Obsidian Vault.',
+  },
+  obsidian_create_daily_note: {
+    name: 'obsidian_create_daily_note',
+    category: 'mcp_obsidian',
+    readOnly: false,
+    serverName: 'Obsidian MCP Server',
+    description:
+      'Creates an atomic Daily Note for today in the DailyNotes folder of Obsidian Vault.',
+  },
+  obsidian_read_note: {
+    name: 'obsidian_read_note',
+    category: 'mcp_obsidian',
+    readOnly: true,
+    serverName: 'Obsidian MCP Server',
+    description: 'Reads note contents and queries backlinks in Obsidian Vault.',
+  },
+  notion_get_tasks: {
+    name: 'notion_get_tasks',
+    category: 'mcp_notion',
+    readOnly: true,
+    serverName: 'Notion MCP Server',
+    description:
+      'Queries tasks, project items, and status boards from connected Notion workspace.',
+  },
+  notion_search: {
+    name: 'notion_search',
+    category: 'mcp_notion',
+    readOnly: true,
+    serverName: 'Notion MCP Server',
+    description:
+      'Performs semantic search across connected Notion database pages and blocks.',
+  },
+  search_knowledge_vault: {
+    name: 'search_knowledge_vault',
+    category: 'internal_rag',
+    readOnly: true,
+    serverName: 'PostgreSQL pgvector RAG',
+    description:
+      'Searches internal knowledge base, specifications, and uploaded documents using vector embeddings.',
+  },
+  web_search: {
+    name: 'web_search',
+    category: 'web_search',
+    readOnly: true,
+    serverName: 'Google Search Grounding',
+    description:
+      'Fetches live technical documentation and factual grounding from the web.',
+  },
+  create_scheduled_automation: {
+    name: 'create_scheduled_automation',
+    category: 'automation',
+    readOnly: false,
+    serverName: 'ContextForge Automation Scheduler',
+    description:
+      'Registers a background automation workflow triggered by cron schedule.',
+  },
+  transfer_to_agent: {
+    name: 'transfer_to_agent',
+    category: 'internal_rag',
+    readOnly: true,
+    serverName: 'ContextForge Multi-Agent Router',
+    description:
+      'Delegates conversational context or a specialized sub-task to another agent persona (e.g. Research Specialist or Action Worker).',
+  },
+};
+
 export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
-    name: 'dispatch_action_worker',
+    name: 'transfer_to_agent',
     description:
-      'Delegates markdown note creation, formatting, and file synchronization to the Action Agent (supports local Obsidian Vaults and Notion workspaces).',
+      'Multi-Agent Handoff: Delegates the current goal, deep research investigation, or document execution task to a specialized agent persona.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        target_agent_id: strProp(
+          'Target agent identifier: "agent-research" (for technical literature & web grounding), "agent-action" (for Obsidian vault & Notion mutations), or "agent-personal-assistant"',
+        ),
+        sub_task: strProp(
+          'Specific sub-task or question delegated to the target specialist',
+        ),
+        reason: strProp(
+          'Brief reasoning why this specialist persona is needed',
+        ),
+      },
+      required: ['target_agent_id', 'sub_task'],
+    },
+  },
+  {
+    name: 'obsidian_write_note',
+    description:
+      'MCP Obsidian Protocol: Writes or updates a Markdown document with YAML frontmatter, headings, and [[backlinks]] in the local Obsidian vault.',
     parameters: {
       type: 'OBJECT' as unknown as Type,
       properties: {
         title: strProp('Title of the markdown document'),
-        target: strProp(
-          'Target workspace destination: "obsidian" (default) or "notion"',
-        ),
         path: strProp(
-          'Relative vault file path, e.g. Work/Notes/system-architecture.md',
+          'Target relative vault file path, e.g. Work/Notes/system-architecture.md',
         ),
         content: strProp(
-          'Complete formatted markdown content including YAML frontmatter, headers, and bi-directional [[backlinks]]',
+          'Complete formatted markdown content including YAML frontmatter and [[backlinks]]',
         ),
       },
       required: ['title', 'content'],
     },
   },
   {
+    name: 'obsidian_create_daily_note',
+    description:
+      'MCP Obsidian Protocol: Creates or appends to a daily note for a given date in the Obsidian vault.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        date: strProp('ISO date string (YYYY-MM-DD), defaults to today'),
+        content: strProp('Markdown content for the daily note'),
+      },
+    },
+  },
+  {
+    name: 'obsidian_read_note',
+    description:
+      'MCP Obsidian Protocol: Reads note contents or index from the Obsidian vault.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        path: strProp('Relative path to the note file in the vault'),
+      },
+    },
+  },
+  {
+    name: 'notion_get_tasks',
+    description:
+      'MCP Notion Protocol: Queries tasks, action items, and project board statuses from connected Notion workspace.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        query: strProp('Optional filter keyword for tasks'),
+        status: strProp(
+          'Filter by task status e.g. "active", "in_progress", "all"',
+        ),
+      },
+    },
+  },
+  {
+    name: 'notion_search',
+    description:
+      'MCP Notion Protocol: Searches across connected Notion database pages and blocks.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        query: strProp(
+          'Search keyword or question to find in Notion workspace',
+        ),
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'search_knowledge_vault',
+    description:
+      'Internal Vector RAG: Searches indexed workspace documents and technical files using semantic vector similarity (pgvector).',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        query: strProp(
+          'Semantic search query or topic to look up in internal knowledge base',
+        ),
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'web_search',
+    description:
+      'Web Grounding: Performs live web research to retrieve up-to-date documentation and external facts.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        query: strProp('Search query keywords or research topic'),
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'create_scheduled_automation',
     description:
-      'Registers an autonomous background automation rule with cron schedule trigger and assigned MCP tools (e.g. daily morning Notion tasks check at 08:00 AM, periodic Obsidian sync, PR audits).',
+      'Automation Scheduler: Registers an autonomous background automation rule with cron schedule trigger and assigned MCP tools.',
     parameters: {
       type: 'OBJECT' as unknown as Type,
       properties: {
@@ -56,51 +237,13 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
           'Target MCP Server identifier, e.g. "int-notion-mcp" or "int-obsidian-vault-mcp"',
         ),
         mcp_tools: arrayProp(
-          'Array of tool names to execute, e.g. ["notion_get_tasks", "notion_read_page"]',
+          'Array of tool names to execute, e.g. ["notion_get_tasks", "obsidian_create_daily_note"]',
         ),
         prompt_template: strProp(
           'Instruction prompt template sent to the agent when triggered',
         ),
       },
       required: ['name', 'schedule_cron', 'mcp_server_id'],
-    },
-  },
-  {
-    name: 'query_notion_workspace',
-    description:
-      'Instant Chat Task: Queries active Notion tasks, database boards, or pages using Notion MCP protocol.',
-    parameters: {
-      type: 'OBJECT' as unknown as Type,
-      properties: {
-        query: strProp('Search keyword or filter criteria for Notion tasks'),
-        filter: strProp('Status filter e.g. "active", "in_progress", "all"'),
-      },
-    },
-  },
-  {
-    name: 'web_search',
-    description:
-      'Performs live web research and factual grounding via the Research Agent to fetch up-to-date documentation and technical facts.',
-    parameters: {
-      type: 'OBJECT' as unknown as Type,
-      properties: {
-        query: strProp('Search query keywords or research topic'),
-      },
-      required: ['query'],
-    },
-  },
-  {
-    name: 'search_knowledge_vault',
-    description:
-      'Searches internal knowledge base, indexed documents, specifications, and notes via the Research Agent using semantic vector similarity (pgvector RAG).',
-    parameters: {
-      type: 'OBJECT' as unknown as Type,
-      properties: {
-        query: strProp(
-          'Semantic search query or topic to look up in internal knowledge base',
-        ),
-      },
-      required: ['query'],
     },
   },
 ];

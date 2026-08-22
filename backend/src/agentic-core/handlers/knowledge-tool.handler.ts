@@ -121,21 +121,26 @@ export class KnowledgeToolHandler {
     const sourceNames: string[] = [];
 
     if (matchingChunks.length === 0) {
-      const fallbackText = `I searched your internal knowledge base (**Knowledge Sources**), but did not find documents or technical notes specifically discussing *"${queryStr}"*.\n\n*You can upload or index relevant documents in the Knowledge Sources panel.*`;
+      const fallbackMsg = `No relevant documents found in knowledge base for query: "${queryStr}".`;
 
-      emit({ event: 'chat_chunk', data: { delta: fallbackText } });
       emit({
-        event: 'timeline_stage',
-        data: { stage: 'done', label: 'Completed' },
+        event: 'tool_call_result',
+        data: {
+          toolName: 'search_knowledge_vault',
+          summary: 'Knowledge search completed (0 matches)',
+          resultsCount: 0,
+        },
       });
 
       return {
-        textContent: fallbackText,
+        textContent: fallbackMsg,
+        summary: fallbackMsg,
+        rawResult: { query: queryStr, matchesCount: 0, results: [] },
         sourceDomains: ['Knowledge Base (0 matches)'],
       };
     }
 
-    // Build synthesized response based on retrieved chunks
+    // Build source names
     for (const chunk of matchingChunks) {
       const name = `${chunk.source_name || 'Knowledge Source'} · ${chunk.file_path}`;
       if (!sourceNames.includes(name)) {
@@ -143,31 +148,33 @@ export class KnowledgeToolHandler {
       }
     }
 
-    const chunkExcerpts = matchingChunks
-      .map(
-        (c, idx) =>
-          `#### 📄 Reference ${idx + 1}: \`${c.file_path}\` (${Math.round(c.similarity * 100)}% Match)\n${c.chunk_content}`,
-      )
-      .join('\n\n---\n\n');
+    const chunkResults = matchingChunks.map((c) => ({
+      filePath: c.file_path,
+      sourceName: c.source_name,
+      similarity: c.similarity,
+      content: c.chunk_content,
+    }));
 
-    const synthesis = `### 🧠 Knowledge Grounding: ${queryStr}\n\nBased on semantic retrieval across indexed workspace documents:\n\n${chunkExcerpts}\n\n*Retrieved directly from your ContextForge indexed knowledge base.*`;
-
-    const chunkSize = 40;
-    for (let i = 0; i < synthesis.length; i += chunkSize) {
-      const chunk = synthesis.slice(i, i + chunkSize);
-      emit({
-        event: 'chat_chunk',
-        data: { delta: chunk },
-      });
-    }
+    const summaryText = `Found ${matchingChunks.length} relevant document chunk(s) across ${sourceNames.length} source(s).`;
 
     emit({
-      event: 'timeline_stage',
-      data: { stage: 'done', label: 'Completed' },
+      event: 'tool_call_result',
+      data: {
+        toolName: 'search_knowledge_vault',
+        summary: summaryText,
+        matchesCount: matchingChunks.length,
+        sources: sourceNames,
+      },
     });
 
     return {
-      textContent: synthesis,
+      textContent: summaryText,
+      summary: summaryText,
+      rawResult: {
+        query: queryStr,
+        matchesCount: matchingChunks.length,
+        documents: chunkResults,
+      },
       sourceDomains: sourceNames,
     };
   }

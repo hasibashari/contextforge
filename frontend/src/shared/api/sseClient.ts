@@ -6,7 +6,9 @@ export interface SseEventHandlers {
   onSessionTitleUpdated?: (data: { sessionId?: string; title: string }) => void;
   onTimelineStage?: (data: { stage: string; label: string }) => void;
   onChatChunk?: (data: { delta: string }) => void;
-  onToolCallStart?: (data: { toolName: string; input: Record<string, unknown> }) => void;
+  onToolCallStart?: (data: { toolName: string; input: Record<string, unknown>; turn?: number }) => void;
+  onToolCallResult?: (data: { toolName: string; summary: string; durationMs?: number }) => void;
+  onThoughtStep?: (data: { turn: number; status: string }) => void;
   onSideAgentLog?: (data: { sideAgentId: string; log: string; riskLevel: string }) => void;
   onArtifactCreated?: (artifact: Artifact) => void;
   onAutomationCreated?: (automation: AutomationWorkflow) => void;
@@ -88,6 +90,12 @@ export async function consumeSseStream(
               break;
             case 'tool_call_start':
               handlers.onToolCallStart?.(parsedData);
+              break;
+            case 'tool_call_result':
+              handlers.onToolCallResult?.(parsedData);
+              break;
+            case 'thought_step':
+              handlers.onThoughtStep?.(parsedData);
               break;
             case 'side_agent_log':
               handlers.onSideAgentLog?.(parsedData);

@@ -44,11 +44,12 @@ export class ChatController {
   async sendMessage(
     @Param('id') id: string,
     @Body('prompt') prompt: string,
+    @Body('agentId') agentId: string | undefined,
     @Query('stream') stream: string,
     @Res() res: Response,
   ) {
     if (stream === 'true' || stream === '1') {
-      return this.chatService.sendMessageStream(id, prompt, res);
+      return this.chatService.sendMessageStream(id, prompt, res, agentId);
     }
 
     let responseData: Record<string, unknown> | null = null;
@@ -76,6 +77,7 @@ export class ChatController {
       id,
       prompt,
       mockRes as unknown as Response,
+      agentId,
     );
   }
 

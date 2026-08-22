@@ -6,7 +6,7 @@ icon: book-open
 assignedTools:
   - web_search
   - search_knowledge_vault
-  - dispatch_action_worker
+  - obsidian_write_note
 ---
 
 # Architecture RFC & Technical Decision Records

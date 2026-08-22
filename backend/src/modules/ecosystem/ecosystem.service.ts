@@ -89,6 +89,16 @@ export class EcosystemService {
     return toggled;
   }
 
+  async getActiveSkillsInstructions(): Promise<
+    Array<{ name: string; instructions: string }>
+  > {
+    const active = await this.repo.getActiveSkills();
+    return active.map((s) => ({
+      name: s.name,
+      instructions: s.instructions,
+    }));
+  }
+
   // ==========================================
   // MCP INTEGRATIONS
   // ==========================================
@@ -496,11 +506,11 @@ export class EcosystemService {
       discoveredTools = [
         {
           id: `t-${id}-1`,
-          name: 'obsidian_vault_writer',
+          name: 'obsidian_write_note',
           description:
             'Append or create structured Markdown files with frontmatter inside Obsidian',
           parametersSchema: {
-            vaultName: 'string',
+            title: 'string',
             path: 'string',
             content: 'string',
           },
@@ -508,10 +518,10 @@ export class EcosystemService {
         },
         {
           id: `t-${id}-2`,
-          name: 'obsidian_vault_reader',
+          name: 'obsidian_read_note',
           description:
             'Read and search note contents, backlinks, and tags across markdown files',
-          parametersSchema: { vaultName: 'string', query: 'string' },
+          parametersSchema: { path: 'string', query: 'string' },
           readOnly: true,
         },
         {
