@@ -54,12 +54,6 @@ export default function SettingsView() {
     }
   }
 
-  const defaultSummaryFallback = `# Memory Summary
-
-- **Profile**: Lead Fullstack & AI Systems Architect specializing in TypeScript, NestJS, and Gemini models.
-- **Preference**: Prefers Clean Modular Architecture, Zero ORM overhead with Native SQL, Strict TypeScript typing, and warm-editorial UI design.
-- **Project**: Building ContextForge - AI-First Conversational Workspace & Agentic Control Plane.`
-
   const activeSummaryContent = memorySummary || (userMemories.length > 0
     ? `# Memory Summary\n\n` +
       userMemories
