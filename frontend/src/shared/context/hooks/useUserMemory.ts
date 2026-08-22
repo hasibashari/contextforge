@@ -4,18 +4,34 @@ import { personalHubApi } from '@/shared/api/personalHubApi';
 
 export function useUserMemory(showToast: (msg: string, type?: ToastType) => void) {
   const [userMemories, setUserMemories] = useState<UserMemoryItem[]>([]);
+  const [memorySummary, setMemorySummary] = useState<string>('');
+
+  const refreshMemorySummary = useCallback(async () => {
+    try {
+      const summary = await personalHubApi.getMemorySummary().catch(() => '');
+      setMemorySummary(summary);
+    } catch {
+      // gracefully handle network errors
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadData() {
       try {
-        const memories = await personalHubApi.getUserMemories().catch(() => null);
+        const [memories, summary] = await Promise.all([
+          personalHubApi.getUserMemories().catch(() => null),
+          personalHubApi.getMemorySummary().catch(() => ''),
+        ]);
 
         if (!isMounted) return;
 
         if (memories) {
           setUserMemories(memories);
+        }
+        if (summary) {
+          setMemorySummary(summary);
         }
       } catch {
         // gracefully handle network errors
@@ -46,12 +62,13 @@ export function useUserMemory(showToast: (msg: string, type?: ToastType) => void
           value: memoryData.value,
         });
         setUserMemories((prev) => prev.map((m) => (m.id === tempId ? created : m)));
-        showToast(`Saved to PostgreSQL Memory: ${created.key}`, 'success');
+        await refreshMemorySummary();
+        showToast(`Saved to Memory: ${created.key}`, 'success');
       } catch {
-        showToast(`Saved to Personal Memory: ${tempMem.key}`, 'success');
+        showToast(`Saved locally: ${tempMem.key}`, 'success');
       }
     },
-    [showToast],
+    [refreshMemorySummary, showToast],
   );
 
   const deleteUserMemory = useCallback(
@@ -59,18 +76,33 @@ export function useUserMemory(showToast: (msg: string, type?: ToastType) => void
       setUserMemories((prev) => prev.filter((m) => m.id !== id));
       try {
         await personalHubApi.deleteUserMemory(id);
-        showToast('Memory item removed from database', 'warning');
+        await refreshMemorySummary();
+        showToast('Memory item removed', 'warning');
       } catch {
         showToast('Memory item removed', 'warning');
       }
     },
-    [showToast],
+    [refreshMemorySummary, showToast],
   );
+
+  const clearAllMemories = useCallback(async () => {
+    setUserMemories([]);
+    setMemorySummary('');
+    try {
+      await personalHubApi.clearAllMemories();
+      showToast('🧹 Memory bank cleared and reset', 'warning');
+    } catch {
+      showToast('Memory bank reset', 'warning');
+    }
+  }, [showToast]);
 
   return {
     userMemories,
+    memorySummary,
     setUserMemories,
     addUserMemory,
     deleteUserMemory,
+    clearAllMemories,
+    refreshMemorySummary,
   };
 }

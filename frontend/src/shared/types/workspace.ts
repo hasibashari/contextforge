@@ -98,7 +98,7 @@ export interface AgentCapability {
   description: string
 }
 
-export type AgentRoleType = 'orchestrator' | 'researcher' | 'execution_worker'
+export type AgentRoleType = 'orchestrator' | 'researcher'
 export type AgentPermissionType = 'read_only' | 'sandbox_write' | 'full_system'
 
 export interface Agent {

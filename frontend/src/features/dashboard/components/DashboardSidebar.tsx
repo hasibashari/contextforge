@@ -38,36 +38,36 @@ export default function DashboardSidebar({
   } = useWorkspace()
 
   const NAV_ITEMS = [
-    { path: '/dashboard', label: 'Chat Canvas', icon: MessageSquare },
+    { path: '/dashboard', label: 'Workspace Chat', icon: MessageSquare },
     {
       path: '/agents',
-      label: 'Agents',
+      label: 'Agents & Personas',
       icon: Bot,
       badge: `${agents.length}`,
       badgeColor: 'bg-surface-strong text-body',
     },
     {
       path: '/knowledge',
-      label: 'Knowledge & Vaults',
+      label: 'Knowledge Base (RAG)',
       icon: BookOpen,
       badge: `${knowledgeSources.length}`,
       badgeColor: 'bg-surface-strong text-body',
     },
     {
       path: '/integrations',
-      label: 'MCP Tools & Skills',
+      label: 'MCP Servers & Skills',
       icon: Cpu,
       badge: `${integrations.length}`,
       badgeColor: 'bg-primary/10 text-primary font-semibold',
     },
     {
       path: '/automation',
-      label: 'Automation',
+      label: 'Automations & Tasks',
       icon: Zap,
       badge: `${activeAutomationsCount}`,
       badgeColor: 'bg-primary/10 text-primary font-semibold',
     },
-    { path: '/settings', label: 'Settings', icon: Settings },
+    { path: '/settings', label: 'Settings & Memory', icon: Settings },
   ]
 
   return (

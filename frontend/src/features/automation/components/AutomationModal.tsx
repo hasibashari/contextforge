@@ -65,7 +65,7 @@ function AutomationFormContent({
     initialWorkflow?.scheduleLabel || 'Every day at 08:00 AM (WIB)'
   )
   const [agentId, setAgentId] = useState(
-    initialWorkflow?.agentId || agents[0]?.id || 'agent-action'
+    initialWorkflow?.agentId || agents[0]?.id || 'agent-conversational'
   )
   const [mcpServerId, setMcpServerId] = useState(
     initialWorkflow?.mcpServerId || 'int-obsidian-vault-mcp'
@@ -144,7 +144,7 @@ function AutomationFormContent({
           : triggerType === 'event'
           ? 'Event Trigger: File Change / PR'
           : 'Manual Run On-Demand',
-      agentId: agentId || agents[0]?.id || 'agent-action',
+      agentId: agentId || agents[0]?.id || 'agent-conversational',
       agentName: selectedAgent?.name || 'ContextForge Agent',
       mcpServerId: mcpServerId || undefined,
       mcpTools: selectedTools,

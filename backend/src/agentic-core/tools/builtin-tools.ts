@@ -107,7 +107,7 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
       type: 'OBJECT' as unknown as Type,
       properties: {
         target_agent_id: strProp(
-          'Target agent identifier: "agent-research" (for technical literature & web grounding), "agent-action" (for Obsidian vault & Notion mutations), or "agent-personal-assistant"',
+          'Target agent identifier: "agent-research" (for deep technical literature, source verification & web grounding), or "agent-personal-assistant"',
         ),
         sub_task: strProp(
           'Specific sub-task or question delegated to the target specialist',

@@ -21,7 +21,7 @@
     "tools": [
       {
         "id": "t-obsidian-1",
-        "name": "obsidian_vault_writer",
+        "name": "obsidian_write_note",
         "description": "Append or create structured Markdown files with frontmatter inside Obsidian",
         "parametersSchema": {
           "vaultName": "string",
@@ -32,7 +32,7 @@
       },
       {
         "id": "t-obsidian-2",
-        "name": "obsidian_vault_reader",
+        "name": "obsidian_read_note",
         "description": "Read and search note contents, backlinks, and tags across markdown files",
         "parametersSchema": {
           "vaultName": "string",

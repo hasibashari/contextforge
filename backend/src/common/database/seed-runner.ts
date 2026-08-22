@@ -72,7 +72,7 @@ async function runSeed() {
     // 6. Seed Workspace Agents
     console.log('🤖 Seeding Workspace Agents...');
     await client.query(`
-      DELETE FROM workspace_agents WHERE id NOT IN ('agent-conversational', 'agent-research', 'agent-action');
+      DELETE FROM workspace_agents WHERE id NOT IN ('agent-conversational', 'agent-research');
     `);
     for (const agent of agentsSeed) {
       await client.query(

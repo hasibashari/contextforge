@@ -22,6 +22,17 @@ export class ArtifactsService {
   }
 
   async delete(id: string): Promise<{ success: boolean }> {
+    const art = await this.repo.getById(id);
+    if (art?.location_path) {
+      try {
+        const fs = await import('fs/promises');
+        if (await fs.stat(art.location_path).catch(() => null)) {
+          await fs.unlink(art.location_path).catch(() => null);
+        }
+      } catch {
+        // Silently handle filesystem unlink if file was already moved/deleted on disk
+      }
+    }
     await this.repo.delete(id);
     return { success: true };
   }

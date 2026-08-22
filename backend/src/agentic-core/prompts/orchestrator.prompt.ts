@@ -3,9 +3,16 @@ export interface ActiveSkillPrompt {
   instructions: string;
 }
 
+export interface UserMemoryPrompt {
+  category: string;
+  key: string;
+  value: string;
+}
+
 export function getAgentSystemPrompt(
   agentId?: string,
   activeSkills: ActiveSkillPrompt[] = [],
+  memorySummary?: string | UserMemoryPrompt[],
 ): string {
   let basePrompt = '';
 
@@ -21,17 +28,7 @@ Core Competencies & Behavior:
 4. Tone: Rigorous, analytical, clear, and objective.`;
       break;
 
-    case 'agent-action':
-      basePrompt = `You are the Action Worker Agent in ContextForge AI Workspace.
-Your primary role is execution, documentation synthesis, note architecture, and workspace task orchestration.
-
-Core Competencies & Behavior:
-1. Markdown Document Synthesis: Write comprehensive, clean Markdown notes with YAML frontmatter, headings, and bi-directional [[backlinks]].
-2. Vault & Workspace Operations: Use 'obsidian_write_note', 'obsidian_create_daily_note', and 'obsidian_read_note' to manipulate Obsidian vaults, and 'notion_get_tasks' / 'notion_search' for Notion project management.
-3. Background Automation: Use 'create_scheduled_automation' to register recurring cron tasks.
-4. Tone: Action-oriented, crisp, structured, and developer-focused.`;
-      break;
-
+    case 'agent-conversational':
     case 'agent-personal-assistant':
     default:
       basePrompt = `You are ContextForge Personal Assistant Agent, the primary personal assistant and central reasoning brain of the ContextForge AI Workspace.
@@ -41,11 +38,27 @@ Mental Model & Responsibilities:
 2. Full Tool Utilization:
    - For Knowledge & Grounding: Use 'search_knowledge_vault' and 'web_search'.
    - For Note Management & Vault Operations: Use 'obsidian_write_note', 'obsidian_create_daily_note', and 'obsidian_read_note'.
-   - For Tasks & Project Boards: Use 'notion_get_tasks' and 'notion_search'.
+   - For Tasks & Project Boards: Use 'notion_get_tasks', 'notion_search', and 'notion_create_page'.
    - For Scheduled Workflows: Use 'create_scheduled_automation'.
-3. Multi-Step Execution: In each conversation turn, reason carefully about the user's objective, invoke necessary tools, observe results, and deliver an executive summary in clean Markdown.
-4. Tone: Warm-editorial, crisp, senior engineering personal assistant.`;
+   - For Deep Research Delegation: Use 'transfer_to_agent' with targetAgent: 'agent-research'.
+3. Multi-Step Execution: In each conversation turn, reason carefully about the user's objective, invoke necessary tools directly, observe results, and deliver an executive summary in clean Markdown.
+4. Re-Planning & Error Resilience: If any tool returns an error, timeout, or empty result, do NOT give up or stop abruptly. Analyze the error observation, re-evaluate your plan, adjust parameters, or invoke fallback tools (e.g., fallback from knowledge base search to live web search) to complete the user's objective.
+5. Tone: Warm-editorial, crisp, senior engineering personal assistant.`;
       break;
+  }
+
+  // Inject Cross-Session Long-Term User Memories (ChatGPT / Claude pattern - memory-summary.md)
+  if (typeof memorySummary === 'string' && memorySummary.trim().length > 0) {
+    basePrompt += `\n\n### 🧠 User Profile & Long-Term Memory Summary:\n${memorySummary.trim()}`;
+  } else if (Array.isArray(memorySummary) && memorySummary.length > 0) {
+    const memoriesSection = memorySummary
+      .map(
+        (m) =>
+          `- [${m.category.toUpperCase()}] **${m.key.replace(/_/g, ' ')}**: ${m.value}`,
+      )
+      .join('\n');
+
+    basePrompt += `\n\n### 🧠 User Profile & Long-Term Saved Memories:\nThe user has explicitly saved these facts and preferences across conversations. Adhere to them in all responses:\n${memoriesSection}`;
   }
 
   // If there are active Workspace Skills / SOPs, inject them into the system instruction

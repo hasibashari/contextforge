@@ -102,15 +102,15 @@ export default function IntegrationsView() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
       {/* Top Banner Header */}
       <PageHeader
-        eyebrow="Extensibility & Agentic Tools"
-        title="MCP Tools & Reasoning Skills"
-        description="Connect Model Context Protocol (MCP) servers to give agents tool execution capabilities, and configure reasoning SOP playbooks (Skills) to guide problem-solving workflows."
+        eyebrow="Ecosystem & Protocol Extensibility"
+        title="Connected MCP Servers & Agent Skills"
+        description="Connect external Model Context Protocol (MCP) servers (Obsidian, Notion) to provide specialized tool capabilities, and configure Standard Operating Procedures (Skills) for AI Agents."
         actions={
           <div className="flex items-center gap-3 bg-canvas-soft border border-hairline rounded-xl px-3.5 py-2 text-ink shadow-2xs whitespace-nowrap">
             <span className="flex items-center gap-1.5">
               <Cpu size={13} className="text-primary" />
               <strong className="text-ink font-semibold">{integrations.length}</strong>
-              <span className="text-muted">MCP Tools</span>
+              <span className="text-muted">MCP Servers</span>
             </span>
             <span className="text-hairline">|</span>
             <span className="flex items-center gap-1.5">
@@ -122,7 +122,7 @@ export default function IntegrationsView() {
         }
       />
 
-      {/* Tab Navigation (2 Clean Pillars: MCP Tools & Skills SOP) */}
+      {/* Tab Navigation (2 Clean Pillars: MCP Servers & Skills SOP) */}
       <div className="flex items-center gap-2 border-b border-hairline pb-2 text-xs font-mono font-semibold overflow-x-auto">
         <button
           onClick={() => {
@@ -136,7 +136,7 @@ export default function IntegrationsView() {
           }`}
         >
           <Cpu size={14} />
-          <span>MCP Catalog ({integrations.length})</span>
+          <span>Connected MCP Servers ({integrations.length})</span>
         </button>
 
         <button

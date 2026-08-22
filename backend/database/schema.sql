@@ -122,21 +122,7 @@ CREATE TABLE IF NOT EXISTS tool_calls (
     started_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Entitas Personal Hub (Schedule & Memories)
-CREATE TABLE IF NOT EXISTS calendar_events (
-    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    user_id UUID,
-    title VARCHAR(255) NOT NULL,
-    event_date DATE NOT NULL,
-    event_time VARCHAR(20) NOT NULL,
-    duration VARCHAR(50) DEFAULT '30m',
-    location TEXT,
-    status VARCHAR(30) NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'in_progress', 'completed')),
-    category VARCHAR(30) NOT NULL DEFAULT 'task' CHECK (category IN ('meeting', 'task', 'review', 'personal')),
-    attendees TEXT[] DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
+-- 4. Entitas Personal Hub (User Memories)
 CREATE TABLE IF NOT EXISTS user_memories (
     id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
@@ -192,28 +178,12 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     status VARCHAR(20) NOT NULL DEFAULT 'info' CHECK (status IN ('info', 'success', 'warning', 'error'))
 );
 
--- 7. Entitas Connections & Credential Vault (4. Connection)
-CREATE TABLE IF NOT EXISTS workspace_connections (
-    id VARCHAR(100) PRIMARY KEY,
-    user_id UUID,
-    name VARCHAR(150) NOT NULL,
-    connection_type VARCHAR(50) NOT NULL CHECK (connection_type IN ('llm_provider', 'mcp_server', 'database', 'oauth_service')),
-    provider VARCHAR(50) NOT NULL,
-    auth_type VARCHAR(50) NOT NULL CHECK (auth_type IN ('api_key', 'oauth2', 'connection_string', 'bearer_token', 'none')),
-    endpoint_url TEXT,
-    config_encrypted JSONB DEFAULT '{}',
-    status VARCHAR(30) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'invalid', 'testing', 'disabled')),
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 8. Entitas Workspace Agents (5. Agent)
+-- 7. Entitas Workspace Agents (5. Agent)
 CREATE TABLE IF NOT EXISTS workspace_agents (
     id VARCHAR(100) PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     role VARCHAR(150) NOT NULL,
-    agent_type VARCHAR(50) NOT NULL CHECK (agent_type IN ('orchestrator', 'execution_worker', 'planner')),
+    agent_type VARCHAR(50) NOT NULL CHECK (agent_type IN ('orchestrator', 'researcher')),
     permissions VARCHAR(50) NOT NULL CHECK (permissions IN ('read_only', 'sandbox_write', 'full_system')),
     description TEXT NOT NULL,
     avatar_color VARCHAR(50) DEFAULT 'bg-primary',
@@ -230,7 +200,7 @@ CREATE TABLE IF NOT EXISTS workspace_agents (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 9. Entitas Workspace Skills (3. Skill)
+-- 8. Entitas Workspace Skills (3. Skill)
 CREATE TABLE IF NOT EXISTS workspace_skills (
     id VARCHAR(100) PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
@@ -246,10 +216,9 @@ CREATE TABLE IF NOT EXISTS workspace_skills (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. Entitas Workspace Integrations (2. MCP Server)
+-- 9. Entitas Workspace Integrations (2. MCP Server)
 CREATE TABLE IF NOT EXISTS workspace_integrations (
     id VARCHAR(100) PRIMARY KEY,
-    connection_id VARCHAR(100) REFERENCES workspace_connections(id) ON DELETE SET NULL,
     name VARCHAR(150) NOT NULL,
     category VARCHAR(50) DEFAULT 'mcp_server',
     status VARCHAR(30) DEFAULT 'connected' CHECK (status IN ('connected', 'disconnected', 'error')),
@@ -316,10 +285,8 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id
 CREATE INDEX IF NOT EXISTS idx_artifacts_session ON artifacts(session_id);
 CREATE INDEX IF NOT EXISTS idx_execution_steps_task ON execution_steps(task_id);
 CREATE INDEX IF NOT EXISTS idx_tool_calls_step ON tool_calls(step_id);
-CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events(event_date, status);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_time ON activity_logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source ON knowledge_chunks(source_id);
-CREATE INDEX IF NOT EXISTS idx_workspace_connections_provider ON workspace_connections(provider, is_active);
 CREATE INDEX IF NOT EXISTS idx_workspace_skills_category ON workspace_skills(category, enabled);
 CREATE INDEX IF NOT EXISTS idx_workspace_integrations_status ON workspace_integrations(status);
 CREATE INDEX IF NOT EXISTS idx_automations_active ON automations(is_active, trigger_type);

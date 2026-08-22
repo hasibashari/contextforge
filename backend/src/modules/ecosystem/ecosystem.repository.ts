@@ -5,7 +5,7 @@ export interface WorkspaceAgentRow {
   id: string;
   name: string;
   role: string;
-  agent_type: 'orchestrator' | 'researcher' | 'execution_worker';
+  agent_type: 'orchestrator' | 'researcher';
   permissions: 'read_only' | 'sandbox_write' | 'full_system';
   description: string;
   avatar_color: string;
@@ -45,7 +45,6 @@ export interface WorkspaceSkillRow {
 
 export interface WorkspaceIntegrationRow {
   id: string;
-  connection_id?: string;
   name: string;
   category?: string;
   status: 'connected' | 'disconnected' | 'error';
@@ -129,7 +128,6 @@ export class EcosystemRepository implements OnModuleInit {
       await this.db.query(`
         CREATE TABLE IF NOT EXISTS workspace_integrations (
           id VARCHAR(100) PRIMARY KEY,
-          connection_id VARCHAR(100),
           name VARCHAR(150) NOT NULL,
           category VARCHAR(50) DEFAULT 'mcp_server',
           status VARCHAR(30) DEFAULT 'connected',

@@ -61,9 +61,9 @@ export default function AutomationView() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
       {/* Top Banner Header */}
       <PageHeader
-        eyebrow="Autonomous Agent Workflows & Triggers"
-        title="Automations"
-        description="Configure autonomous background tasks, cron schedule triggers, and MCP tool execution rules (Obsidian Vault daily note synthesis, PR triage, and briefings)."
+        eyebrow="Autonomous Background Workers & Scheduled Tasks"
+        title="Automations & Workflows"
+        description="Configure autonomous background schedules (Triggers), prompt templates, and direct MCP tool executions (Obsidian Vault daily note synthesis, Notion task briefings)."
         actions={
           <Button
             variant="primary"

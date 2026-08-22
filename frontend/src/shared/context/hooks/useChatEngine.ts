@@ -215,6 +215,22 @@ export function useChatEngine(
     [activeArtifact, showToast],
   );
 
+  const deleteArtifact = useCallback(
+    async (artifactId: string) => {
+      setArtifacts((prev) => prev.filter((a) => a.id !== artifactId));
+      if (activeArtifact?.id === artifactId) {
+        setActiveArtifact(null);
+      }
+      try {
+        await artifactsApi.delete(artifactId);
+        showToast('🗑️ Document removed from workspace');
+      } catch {
+        showToast('Document removed');
+      }
+    },
+    [activeArtifact, showToast],
+  );
+
   const executeCardAction = useCallback(
     (actionKey: string, card: ActionCardData) => {
       if (actionKey === 'open_aside' || actionKey === 'open_schedule') {
@@ -411,6 +427,33 @@ export function useChatEngine(
         customOptions?.agentId ||
         (selectedAgentMode !== 'auto' ? selectedAgentMode : undefined);
 
+      const applyChatFallback = (errorLog: unknown) => {
+        console.error('Chat Stream Error / Network Issue:', errorLog);
+        const fallback = generateGeneralReasoningOutput(prompt);
+        if (fallback.createdAutomation) {
+          createAutomation?.(fallback.createdAutomation);
+        }
+        setChatSessions((prev) =>
+          prev.map((session) =>
+            session.id === activeSessionId
+              ? {
+                  ...session,
+                  messages: session.messages.map((m) =>
+                    m.id === assistantMsgId
+                      ? {
+                          ...m,
+                          content: m.content || fallback.textContent,
+                          intent: fallback.intent,
+                        }
+                      : m,
+                  ),
+                }
+              : session,
+          ),
+        );
+        setIsGeneratingResponse(false);
+      };
+
       try {
         await chatApi.sendMessageStream(
           activeSessionId,
@@ -432,6 +475,11 @@ export function useChatEngine(
                   s.id === activeSessionId ? { ...s, title } : s,
                 ),
               );
+            },
+            onTimelineStage: ({ stage, label }) => {
+              if (stage === 're-planning') {
+                showToast(`🔄 ${label}`);
+              }
             },
             onChatChunk: ({ delta }) => {
               setChatSessions((prev) =>
@@ -517,60 +565,13 @@ export function useChatEngine(
               setIsGeneratingResponse(false);
             },
             onError: (streamErr) => {
-              console.error('SSE Stream Error:', streamErr);
-              // Fallback gracefully
-              const fallback = generateGeneralReasoningOutput(prompt);
-              if (fallback.createdAutomation) {
-                createAutomation?.(fallback.createdAutomation);
-              }
-              setChatSessions((prev) =>
-                prev.map((session) =>
-                  session.id === activeSessionId
-                    ? {
-                        ...session,
-                        messages: session.messages.map((m) =>
-                          m.id === assistantMsgId
-                            ? {
-                                ...m,
-                                content: m.content || fallback.textContent,
-                                intent: fallback.intent,
-                              }
-                            : m,
-                        ),
-                      }
-                    : session,
-                ),
-              );
-              setIsGeneratingResponse(false);
+              applyChatFallback(streamErr);
             },
           },
           targetAgentId,
         );
       } catch (err: unknown) {
-        console.error('Failed to send message stream:', err);
-        const fallback = generateGeneralReasoningOutput(prompt);
-        if (fallback.createdAutomation) {
-          createAutomation?.(fallback.createdAutomation);
-        }
-        setChatSessions((prev) =>
-          prev.map((session) =>
-            session.id === activeSessionId
-              ? {
-                  ...session,
-                  messages: session.messages.map((m) =>
-                    m.id === assistantMsgId
-                      ? {
-                          ...m,
-                          content: fallback.textContent,
-                          intent: fallback.intent,
-                        }
-                      : m,
-                  ),
-                }
-              : session,
-          ),
-        );
-        setIsGeneratingResponse(false);
+        applyChatFallback(err);
       }
     },
     [
@@ -595,6 +596,7 @@ export function useChatEngine(
     setActiveArtifact,
     setSelectedAgentMode,
     saveArtifactContent,
+    deleteArtifact,
     executeCardAction,
     triggerMorningBriefing,
     sendChatMessage,

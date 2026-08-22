@@ -12,6 +12,12 @@ export class PersonalHubController {
     return { success: true, data };
   }
 
+  @Get('memory-summary')
+  async getMemorySummary() {
+    const summary = await this.service.getMemorySummaryMarkdown();
+    return { success: true, data: { summary } };
+  }
+
   @Post('memories')
   async createUserMemory(
     @Body()
@@ -22,6 +28,12 @@ export class PersonalHubController {
     },
   ) {
     const data = await this.service.createUserMemory(body);
+    return { success: true, data };
+  }
+
+  @Delete('memories')
+  async clearAllMemories() {
+    const data = await this.service.clearAllMemories();
     return { success: true, data };
   }
 

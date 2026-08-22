@@ -6,11 +6,27 @@ import {
   Cpu,
   Database,
   Terminal,
+  Brain,
+  Trash2,
+  BookOpen,
+  FileCode,
+  RotateCcw,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/context'
+import { MarkdownRenderer } from '@/shared/components'
 
 export default function SettingsView() {
-  const { showToast, integrations, skills } = useWorkspace()
+  const {
+    showToast,
+    integrations,
+    skills,
+    userMemories,
+    memorySummary,
+    deleteUserMemory,
+    clearAllMemories,
+  } = useWorkspace()
+
+  // Guardrail settings state
   const [strictHitl, setStrictHitl] = useState(() => {
     const saved = localStorage.getItem('cf_strict_hitl')
     return saved !== null ? saved === 'true' : true
@@ -24,13 +40,35 @@ export default function SettingsView() {
     return saved !== null ? saved === 'true' : true
   })
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSavePolicies = (e: React.FormEvent) => {
     e.preventDefault()
     localStorage.setItem('cf_strict_hitl', String(strictHitl))
     localStorage.setItem('cf_ast_sandboxing', String(astSandboxing))
     localStorage.setItem('cf_auto_vector_sync', String(autoVectorSync))
     showToast('✓ Workspace safety policies and guardrails saved!')
   }
+
+  const handleClearMemory = async () => {
+    if (window.confirm('Are you sure you want to clear and reset your AI Memory Summary?')) {
+      await clearAllMemories()
+    }
+  }
+
+  const defaultSummaryFallback = `# Memory Summary
+
+- **Profile**: Lead Fullstack & AI Systems Architect specializing in TypeScript, NestJS, and Gemini models.
+- **Preference**: Prefers Clean Modular Architecture, Zero ORM overhead with Native SQL, Strict TypeScript typing, and warm-editorial UI design.
+- **Project**: Building ContextForge - AI-First Conversational Workspace & Agentic Control Plane.`
+
+  const activeSummaryContent = memorySummary || (userMemories.length > 0
+    ? `# Memory Summary\n\n` +
+      userMemories
+        .map(
+          (m) =>
+            `- **${m.category.toUpperCase()}** (${m.key.replace(/_/g, ' ')}): ${m.value}`,
+        )
+        .join('\n')
+    : '')
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto space-y-6">
@@ -39,19 +77,112 @@ export default function SettingsView() {
         <div className="min-w-0 flex-1">
           <div className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-caption text-primary mb-1">
             <Sparkles size={13} />
-            <span>Runtime Configuration & Guardrails</span>
+            <span>Workspace Preferences & Configuration</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
-            Settings & Safety Policies
+            Settings & Memory Summary
           </h1>
           <p className="text-xs sm:text-sm text-body mt-1">
-            Manage autonomous execution guardrails, Human-in-the-Loop approval enforcement, and workspace runtime policies.
+            Manage cross-session AI memories, autonomous execution guardrails, and workspace runtime policies.
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
-        {/* Safety & HITL Guardrails */}
+      {/* ========================================================================= */}
+      {/* 1. AI MEMORY SUMMARY (ChatGPT / Claude Pattern - memory-summary.md)       */}
+      {/* ========================================================================= */}
+      <div className="bg-surface-card border border-hairline rounded-xl p-5 sm:p-6 space-y-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-3">
+          <div className="flex items-center gap-2">
+            <Brain size={17} className="text-primary" />
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-ink">
+                  AI Memory Summary
+                </h2>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-primary/10 text-primary border border-primary/20">
+                  <FileCode size={11} />
+                  <span>memory-summary.md</span>
+                </span>
+              </div>
+              <p className="text-[11px] text-body mt-0.5">
+                Consolidated developer profile and preferences automatically maintained by the system and injected into Gemini context.
+              </p>
+            </div>
+          </div>
+          {activeSummaryContent && (
+            <button
+              type="button"
+              onClick={handleClearMemory}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-semantic-error/10 hover:bg-semantic-error/20 text-semantic-error font-medium text-xs rounded-lg transition-colors cursor-pointer shrink-0"
+              title="Clear all saved memories and reset memory-summary.md"
+            >
+              <RotateCcw size={13} />
+              <span>Clear Memory</span>
+            </button>
+          )}
+        </div>
+
+        {/* Memory Summary Markdown Document Preview */}
+        {activeSummaryContent ? (
+          <div className="rounded-xl bg-canvas-soft border border-hairline p-4 space-y-3">
+            <div className="text-[10px] font-mono uppercase tracking-caption text-muted flex items-center justify-between">
+              <span>Active Context Injected to Gemini:</span>
+              <span>Auto-Managed</span>
+            </div>
+            <div className="bg-surface-card p-3.5 rounded-lg border border-hairline text-xs">
+              <MarkdownRenderer content={activeSummaryContent} />
+            </div>
+
+            {/* Granular Individual Memory Items */}
+            {userMemories.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-hairline">
+                <div className="text-[10px] font-mono uppercase tracking-caption text-muted">
+                  Indexed Memory Items ({userMemories.length}):
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {userMemories.map((mem) => (
+                    <div
+                      key={mem.id}
+                      className="p-2.5 rounded-lg bg-surface-card border border-hairline flex items-start justify-between gap-2 text-[11px]"
+                    >
+                      <div className="space-y-0.5 min-w-0 flex-1">
+                        <div className="font-semibold text-ink font-mono truncate">
+                          {mem.key}
+                        </div>
+                        <div className="text-body line-clamp-2 text-[10.5px]">
+                          {mem.value}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteUserMemory(mem.id)}
+                        title="Delete specific memory item"
+                        className="text-muted hover:text-semantic-error p-1 rounded hover:bg-semantic-error/10 transition-colors shrink-0 cursor-pointer"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-body text-xs bg-canvas-soft rounded-xl border border-hairline space-y-2">
+            <BookOpen size={24} className="mx-auto text-muted opacity-50" />
+            <p className="font-medium text-ink">Memory bank is empty</p>
+            <p className="text-[11px] text-muted max-w-sm mx-auto">
+              As you interact with your Personal Assistant in chat, the system will automatically summarize and remember your coding preferences and mission here.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. SAFETY & HITL POLICIES FORM                                            */}
+      {/* ========================================================================= */}
+      <form onSubmit={handleSavePolicies} className="space-y-6">
         <div className="bg-surface-card border border-hairline rounded-xl p-5 sm:p-6 space-y-5 shadow-xs">
           <div className="flex items-center gap-2 text-sm font-semibold text-ink border-b border-hairline pb-3">
             <ShieldCheck size={16} className="text-semantic-success" />
@@ -71,7 +202,7 @@ export default function SettingsView() {
                   Enforce Strict Human-in-the-Loop Sign-Off Gate
                 </div>
                 <p className="text-[11px] text-body leading-relaxed mt-0.5">
-                  When enabled, agents cannot dispatch Pull Requests, merge code, or execute filesystem write mutations without explicit human engineer sign-off in the Task Detail view.
+                  When enabled, agents cannot dispatch filesystem write mutations or database modifications without explicit approval.
                 </p>
               </div>
             </label>
@@ -85,7 +216,7 @@ export default function SettingsView() {
               />
               <div>
                 <div className="text-xs font-semibold text-ink">
-                  Automated Sandboxed AST & CVE Pre-Flight Check
+                  Automated Sandboxed AST & Security Pre-Flight Check
                 </div>
                 <p className="text-[11px] text-body leading-relaxed mt-0.5">
                   Automatically spins up isolated test runners and dependency audits before formatting any Action Plan deliverable.

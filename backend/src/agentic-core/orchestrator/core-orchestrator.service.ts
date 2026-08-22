@@ -18,6 +18,9 @@ export type { StreamEvent, OrchestrationResult };
 
 const MAX_REACT_TURNS = 5;
 
+export type MemorySummaryInput =
+  string | Array<{ category: string; key: string; value: string }>;
+
 @Injectable()
 export class CoreOrchestratorService {
   private readonly logger = new Logger(CoreOrchestratorService.name);
@@ -40,6 +43,7 @@ export class CoreOrchestratorService {
     onEvent?: StreamEmitter,
     agentId?: string,
     activeSkills: Array<{ name: string; instructions: string }> = [],
+    memorySummary?: MemorySummaryInput,
   ): Promise<OrchestrationResult> {
     const emit: StreamEmitter = (event: StreamEvent) => {
       if (onEvent) onEvent(event);
@@ -54,7 +58,11 @@ export class CoreOrchestratorService {
       0.2,
     );
 
-    const systemInstruction = getAgentSystemPrompt(agentId, activeSkills);
+    const systemInstruction = getAgentSystemPrompt(
+      agentId,
+      activeSkills,
+      memorySummary,
+    );
 
     // Cumulative conversation history for the ReAct loop
     const turnContents: any[] = [
@@ -121,25 +129,58 @@ export class CoreOrchestratorService {
               data: { toolName, input: args, turn },
             });
 
-            // Execute the selected tool
-            let toolOutput: OrchestrationResult;
-            try {
-              toolOutput = await this.dispatchTool(
-                toolName,
-                prompt,
-                args,
-                emit,
-              );
-            } catch (toolErr) {
+            // Execute the selected tool with automatic 1-shot transient retry
+            let toolOutput: OrchestrationResult | undefined;
+            let executionError: Error | null = null;
+
+            for (let attempt = 1; attempt <= 2; attempt++) {
+              try {
+                toolOutput = await this.dispatchTool(
+                  toolName,
+                  prompt,
+                  args,
+                  emit,
+                );
+                executionError = null;
+                break;
+              } catch (toolErr) {
+                executionError =
+                  toolErr instanceof Error
+                    ? toolErr
+                    : new Error(String(toolErr));
+                if (attempt === 1) {
+                  this.logger.warn(
+                    `[Attempt 1 Failed] Tool "${toolName}": ${executionError.message}. Retrying...`,
+                  );
+                  await new Promise((res) => setTimeout(res, 500));
+                }
+              }
+            }
+
+            if (executionError || !toolOutput) {
               const errMessage =
-                toolErr instanceof Error ? toolErr.message : String(toolErr);
+                executionError?.message || 'Tool returned empty output';
               this.logger.error(
                 `Error executing tool "${toolName}": ${errMessage}`,
               );
+
+              emit({
+                event: 'timeline_stage',
+                data: {
+                  stage: 're-planning',
+                  label: `Tool ${toolName} encountered an issue. Agent is re-evaluating strategy & re-planning...`,
+                },
+              });
+
               toolOutput = {
                 textContent: `Error executing tool "${toolName}": ${errMessage}`,
                 summary: `Failed to execute ${toolName}`,
-                rawResult: { error: errMessage, success: false },
+                rawResult: {
+                  success: false,
+                  tool: toolName,
+                  error: errMessage,
+                  instruction: `Execution of "${toolName}" failed. Please re-evaluate your plan: adjust input parameters, try an alternative tool (e.g. search_knowledge_vault vs web_search), or explain next steps to the user.`,
+                },
               };
             }
 
@@ -281,9 +322,7 @@ export class CoreOrchestratorService {
         const agentName =
           targetAgent === 'agent-research'
             ? 'Research Specialist'
-            : targetAgent === 'agent-action'
-              ? 'Action Worker'
-              : 'Personal Assistant';
+            : 'Personal Assistant';
 
         emit({
           event: 'timeline_stage',

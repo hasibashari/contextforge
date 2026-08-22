@@ -142,6 +142,7 @@ export class AutomationService {
             }
           }
         },
+        workflow.agent_id || 'agent-conversational',
       );
 
       outputSummary =

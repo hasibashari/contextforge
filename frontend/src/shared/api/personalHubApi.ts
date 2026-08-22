@@ -44,6 +44,19 @@ export const personalHubApi = {
     };
   },
 
+  async getMemorySummary(): Promise<string> {
+    const res = await fetch(`${API_BASE_URL}/personal-hub/memory-summary`);
+    const data = await handleApiResponse<{ summary: string }>(res);
+    return data.summary || '';
+  },
+
+  async clearAllMemories(): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/personal-hub/memories`, {
+      method: 'DELETE',
+    });
+    await handleApiResponse<{ success: boolean }>(res);
+  },
+
   async deleteUserMemory(id: string): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/personal-hub/memories/${id}`, { method: 'DELETE' });
     await handleApiResponse<{ success: boolean }>(res);

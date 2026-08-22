@@ -54,10 +54,8 @@ export class AutomationToolHandler {
       args.prompt_template ||
       `Tinjau seluruh data dan tugas terkait dari konektor MCP (${mcpServerId}). Buatkan ringkasan prioritas tinggi untuk hari ini ({{today}}).`;
 
-    const agentId = 'agent-action';
-    const agentName = isNotion
-      ? 'Action Agent (Notion Worker)'
-      : 'Action Agent (Obsidian Vault Worker)';
+    const agentId = 'agent-conversational';
+    const agentName = 'Personal Assistant Agent';
 
     emit({
       event: 'timeline_stage',

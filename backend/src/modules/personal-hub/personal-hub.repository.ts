@@ -66,4 +66,8 @@ export class PersonalHubRepository implements OnModuleInit {
   async deleteUserMemory(id: string): Promise<void> {
     await this.db.query(`DELETE FROM user_memories WHERE id = $1;`, [id]);
   }
+
+  async clearAll(): Promise<void> {
+    await this.db.query(`DELETE FROM user_memories;`);
+  }
 }

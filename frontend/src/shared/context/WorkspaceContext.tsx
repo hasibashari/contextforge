@@ -117,6 +117,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         deleteChatSession: chatEngine.deleteChatSession,
         setActiveArtifact: chatEngine.setActiveArtifact,
         saveArtifactContent: chatEngine.saveArtifactContent,
+        deleteArtifact: chatEngine.deleteArtifact,
         executeCardAction: chatEngine.executeCardAction,
         triggerMorningBriefing: chatEngine.triggerMorningBriefing,
         setSelectedAgentMode: chatEngine.setSelectedAgentMode,
@@ -138,10 +139,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         uploadKnowledgeFiles: knowledge.uploadKnowledgeFiles,
         deleteKnowledgeSource: knowledge.deleteKnowledgeSource,
 
-        // Long-Term Memory (PostgreSQL)
+        // Long-Term Memory (PostgreSQL & memory-summary.md)
         userMemories: userMemory.userMemories,
+        memorySummary: userMemory.memorySummary,
         addUserMemory: userMemory.addUserMemory,
         deleteUserMemory: userMemory.deleteUserMemory,
+        clearAllMemories: userMemory.clearAllMemories,
       }}
     >
       {children}

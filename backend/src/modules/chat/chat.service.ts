@@ -9,6 +9,7 @@ import {
   StreamEvent,
 } from '../../agentic-core/orchestrator/core-orchestrator.service';
 import { EcosystemService } from '../ecosystem/ecosystem.service';
+import { PersonalHubService } from '../personal-hub/personal-hub.service';
 import type { Response } from 'express';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class ChatService {
     private readonly chatRepo: ChatRepository,
     private readonly orchestrator: CoreOrchestratorService,
     private readonly ecosystemService: EcosystemService,
+    private readonly personalHubService: PersonalHubService,
   ) {}
 
   async getAllSessions(): Promise<ChatSessionRow[]> {
@@ -105,19 +107,33 @@ export class ChatService {
         });
       }
 
-      // 3. Prepare conversation history for Gemini
-      const history = messages
-        .filter((m) => m.id !== userMsg.id)
-        .map((m) => ({
-          role: m.role === 'user' ? ('user' as const) : ('model' as const),
-          parts: [{ text: m.content }],
-        }));
+      // 3. Prepare compacted sliding conversation history for Gemini (Token Budget Optimization)
+      const previousMessages = messages.filter((m) => m.id !== userMsg.id);
+      let compactedMessages = previousMessages;
 
-      // 4. Load active workspace skills (SOPs)
-      const activeSkills =
-        await this.ecosystemService.getActiveSkillsInstructions();
+      const MAX_HISTORY_MESSAGES = 20;
+      if (previousMessages.length > MAX_HISTORY_MESSAGES) {
+        // Keep the very first message (root session context) + the most recent 16 messages
+        const rootMessage = previousMessages[0];
+        const recentMessages = previousMessages.slice(-16);
+        compactedMessages = [rootMessage, ...recentMessages];
+        this.logger.log(
+          `[Context Compaction] Compacted conversation history from ${previousMessages.length} to ${compactedMessages.length} turns.`,
+        );
+      }
 
-      // 5. Delegate to Core Orchestrator with active Agent Persona & Skill SOPs
+      const history = compactedMessages.map((m) => ({
+        role: m.role === 'user' ? ('user' as const) : ('model' as const),
+        parts: [{ text: m.content }],
+      }));
+
+      // 4. Load active workspace skills (SOPs) and persistent memory summary (ChatGPT/Claude pattern - memory-summary.md)
+      const [activeSkills, memorySummary] = await Promise.all([
+        this.ecosystemService.getActiveSkillsInstructions(),
+        this.personalHubService.getMemorySummaryMarkdown(),
+      ]);
+
+      // 5. Delegate to Core Orchestrator with active Agent Persona, Skill SOPs & Memory Summary
       const result = await this.orchestrator.processPromptStream(
         prompt,
         history,
@@ -126,6 +142,7 @@ export class ChatService {
         },
         agentId,
         activeSkills,
+        memorySummary,
       );
 
       // 5. Save assistant response to DB
@@ -152,6 +169,12 @@ export class ChatService {
         sessionId: targetSessionId,
         status: 'completed',
       });
+
+      // 6. Trigger non-blocking background memory extraction (ChatGPT/Claude pattern)
+      void this.personalHubService.autoExtractMemoriesFromDialogue(
+        prompt,
+        result.textContent,
+      );
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       const errorStack = err instanceof Error ? err.stack : undefined;

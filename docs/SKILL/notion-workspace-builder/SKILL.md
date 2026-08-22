@@ -61,7 +61,7 @@ Follow this standard procedure when creating or synchronizing pages, documents, 
 \`\`\`json
 {
   "event": "side_agent_execution",
-  "agentId": "agent-action",
+  "agentId": "agent-conversational",
   "status": "completed"
 }
 \`\`\`

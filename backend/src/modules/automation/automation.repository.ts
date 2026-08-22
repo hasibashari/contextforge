@@ -95,10 +95,11 @@ export class AutomationRepository implements OnModuleInit {
         );
 
         -- Normalize legacy agent IDs
-        UPDATE automations SET agent_id = 'agent-action' WHERE agent_id = 'agent-action-worker';
+        UPDATE automations SET agent_id = 'agent-conversational' WHERE agent_id IN ('agent-action-worker', 'agent-action');
         UPDATE automations SET agent_id = 'agent-research' WHERE agent_id = 'agent-researcher';
-        UPDATE automations SET mcp_tools = ARRAY['obsidian_vault_reader', 'obsidian_vault_writer']
-        WHERE mcp_tools = ARRAY['obsidian_read_vault', 'obsidian_write_note'];
+        UPDATE automations SET mcp_tools = ARRAY['obsidian_read_note', 'obsidian_write_note']
+        WHERE mcp_tools = ARRAY['obsidian_vault_reader', 'obsidian_vault_writer']
+           OR mcp_tools = ARRAY['obsidian_read_vault', 'obsidian_write_note'];
       `);
 
       // Seed standard presets if table is empty
@@ -122,13 +123,13 @@ export class AutomationRepository implements OnModuleInit {
         name: 'Daily Morning Obsidian Briefing & Journaling',
         description:
           'Automatically summarizes open action items and generates an atomic Markdown daily note directly in the local Obsidian Vault.',
-        agent_id: 'agent-action',
-        agent_name: 'Action Agent (Obsidian Vault Worker)',
+        agent_id: 'agent-conversational',
+        agent_name: 'Personal Assistant Agent',
         mcp_server_id: 'int-obsidian-vault-mcp',
         mcp_tools: [
           'obsidian_create_daily_note',
-          'obsidian_vault_writer',
-          'obsidian_vault_reader',
+          'obsidian_write_note',
+          'obsidian_read_note',
         ],
         trigger_type: 'schedule',
         schedule_cron: '0 8 * * *',
@@ -143,8 +144,8 @@ export class AutomationRepository implements OnModuleInit {
         name: 'Daily Notion Tasks Triage & Focus Briefing',
         description:
           'Queries the Notion Task Database every morning, filters active/high-priority tasks, and prepares a clear executive focus briefing.',
-        agent_id: 'agent-action',
-        agent_name: 'Action Agent (Notion Worker)',
+        agent_id: 'agent-conversational',
+        agent_name: 'Personal Assistant Agent',
         mcp_server_id: 'int-notion-mcp',
         mcp_tools: ['notion_get_tasks', 'notion_read_page', 'notion_search'],
         trigger_type: 'schedule',
@@ -161,9 +162,9 @@ export class AutomationRepository implements OnModuleInit {
         description:
           'Periodically scans notes in the Obsidian Inbox directory, generates semantic embeddings, and appends bi-directional backlinks to related concept notes.',
         agent_id: 'agent-research',
-        agent_name: 'Research & Grounding Agent',
+        agent_name: 'Research Specialist Agent',
         mcp_server_id: 'int-obsidian-vault-mcp',
-        mcp_tools: ['obsidian_vault_reader', 'obsidian_vault_writer'],
+        mcp_tools: ['obsidian_read_note', 'obsidian_write_note'],
         trigger_type: 'schedule',
         schedule_cron: '0 */6 * * *',
         schedule_label: 'Every 6 hours',
@@ -177,12 +178,12 @@ export class AutomationRepository implements OnModuleInit {
         name: 'Notion Tasks to Obsidian Vault Weekly Sync',
         description:
           'Cross-syncs completed Notion tasks into the local Obsidian Vault archives every Friday evening for offline permanent documentation.',
-        agent_id: 'agent-action',
-        agent_name: 'Action Agent (Obsidian & Notion Worker)',
+        agent_id: 'agent-conversational',
+        agent_name: 'Personal Assistant Agent',
         mcp_server_id: 'int-obsidian-vault-mcp',
         mcp_tools: [
           'notion_get_tasks',
-          'obsidian_vault_writer',
+          'obsidian_write_note',
           'obsidian_create_daily_note',
         ],
         trigger_type: 'schedule',

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   CheckCircle2,
   Image as ImageIcon,
+  Trash2,
 } from 'lucide-react'
 import { MarkdownRenderer } from '@/shared/components'
 import type { Artifact, ToastType } from '@/shared/types/workspace'
@@ -20,6 +21,7 @@ import { browserStorageBridge } from '@/shared/services/browserStorageBridge.ser
 interface ArtifactViewerAndEditorProps {
   artifact: Artifact
   onSave: (content: string) => void
+  onDelete?: (id: string) => void
   showToast: (msg: string, type?: ToastType) => void
   allArtifacts: Artifact[]
   onSelectArtifact: (art: Artifact) => void
@@ -28,6 +30,7 @@ interface ArtifactViewerAndEditorProps {
 export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = ({
   artifact,
   onSave,
+  onDelete,
   showToast,
   allArtifacts,
   onSelectArtifact,
@@ -211,6 +214,23 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = (
             >
               <Download size={13} />
             </button>
+            {onDelete && (
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Permanently delete "${artifact.title}" from your workspace?`,
+                    )
+                  ) {
+                    onDelete(artifact.id)
+                  }
+                }}
+                className="p-1.5 rounded bg-canvas-soft border border-hairline hover:border-semantic-error text-muted hover:text-semantic-error hover:bg-semantic-error/10 transition-colors cursor-pointer"
+                title="Delete File from Workspace"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -242,8 +262,9 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerAndEditorProps> = (
 
       {/* Other Available Artifacts */}
       <div className="space-y-2 pt-2">
-        <div className="text-[10px] font-mono uppercase tracking-caption text-muted">
-          All Documents in this Session:
+        <div className="text-[10px] font-mono uppercase tracking-caption text-muted flex items-center justify-between">
+          <span>Workspace Document Library:</span>
+          <span>{allArtifacts.length} files</span>
         </div>
         <div className="space-y-1.5">
           {allArtifacts.map((art) => (

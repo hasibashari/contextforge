@@ -39,16 +39,19 @@ export interface WorkspaceContextType {
   activeSession: ChatSession | undefined
   activeArtifact: Artifact | null
   artifacts: Artifact[]
+  deleteArtifact: (id: string) => Promise<void>
   isAsideOpen: boolean
   isGeneratingResponse: boolean
   selectedAgentMode: string // 'auto' or agent ID
   activeSourceFilters: string[]
 
-  // Long-Term Memory State (PostgreSQL)
+  // Long-Term Memory State (PostgreSQL & memory-summary.md)
   userMemories: UserMemoryItem[]
+  memorySummary: string
   triggerMorningBriefing: () => void
   addUserMemory: (memory: Omit<UserMemoryItem, 'id' | 'lastUpdated'>) => void
   deleteUserMemory: (id: string) => void
+  clearAllMemories: () => Promise<void>
 
   // Ecosystem, MCP & Skills Actions
   toggleSkill: (skillId: string) => void

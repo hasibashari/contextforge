@@ -32,7 +32,9 @@ export class McpGatewayService {
       toolName.startsWith('obsidian_') ||
       toolName === 'dispatch_action_worker'
     ) {
-      return this.handleObsidianTool(toolName, params);
+      return this.executeWithRetryAndTimeout(toolName, () =>
+        this.handleObsidianTool(toolName, params),
+      );
     }
 
     // 2. Route to Notion MCP Server
@@ -40,7 +42,9 @@ export class McpGatewayService {
       toolName.startsWith('notion_') ||
       toolName === 'query_notion_workspace'
     ) {
-      return this.handleNotionTool(toolName, params);
+      return this.executeWithRetryAndTimeout(toolName, () =>
+        this.handleNotionTool(toolName, params),
+      );
     }
 
     // Fallback: Default safe MCP response
@@ -51,6 +55,51 @@ export class McpGatewayService {
       data: { status: 'executed', params },
       summary: `MCP Tool "${toolName}" executed successfully.`,
     };
+  }
+
+  /**
+   * Resilient execution wrapper with Exponential Backoff + Jitter & Timeout Circuit Breaker
+   */
+  private async executeWithRetryAndTimeout<T>(
+    operationName: string,
+    fn: () => Promise<T>,
+    timeoutMs = 12000,
+    maxRetries = 3,
+  ): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          const timer = setTimeout(() => {
+            reject(
+              new Error(
+                `Timeout: MCP Operation "${operationName}" exceeded ${timeoutMs}ms limit`,
+              ),
+            );
+          }, timeoutMs);
+          if (typeof timer.unref === 'function') timer.unref();
+        });
+
+        return await Promise.race([fn(), timeoutPromise]);
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        if (attempt < maxRetries) {
+          const baseDelay = 300 * Math.pow(2, attempt - 1);
+          const jitter = Math.floor(Math.random() * 150);
+          const delay = baseDelay + jitter;
+          this.logger.warn(
+            `[Retry ${attempt}/${maxRetries}] MCP Operation "${operationName}" failed: ${lastError.message}. Retrying in ${delay}ms...`,
+          );
+          await new Promise((res) => setTimeout(res, delay));
+        }
+      }
+    }
+
+    throw (
+      lastError ||
+      new Error(`MCP Operation "${operationName}" failed after retries.`)
+    );
   }
 
   /**
@@ -144,10 +193,11 @@ export class McpGatewayService {
   /**
    * Handles all tools exposed by Notion MCP Server
    */
-  private handleNotionTool(
+  private async handleNotionTool(
     toolName: string,
     params: Record<string, unknown>,
-  ): McpToolCallResult {
+  ): Promise<McpToolCallResult> {
+    await Promise.resolve();
     void params;
     const nowStr = new Date().toLocaleDateString('id-ID', {
       weekday: 'long',
