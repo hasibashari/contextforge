@@ -7,7 +7,6 @@ import {
   Database,
   Terminal,
   Brain,
-  Trash2,
   BookOpen,
   FileCode,
   RotateCcw,
@@ -22,7 +21,6 @@ export default function SettingsView() {
     skills,
     userMemories,
     memorySummary,
-    deleteUserMemory,
     clearAllMemories,
   } = useWorkspace()
 
@@ -127,40 +125,6 @@ export default function SettingsView() {
             <div className="bg-surface-card p-3.5 rounded-lg border border-hairline text-xs">
               <MarkdownRenderer content={activeSummaryContent} />
             </div>
-
-            {/* Granular Individual Memory Items */}
-            {userMemories.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-hairline">
-                <div className="text-[10px] font-mono uppercase tracking-caption text-muted">
-                  Indexed Memory Items ({userMemories.length}):
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {userMemories.map((mem) => (
-                    <div
-                      key={mem.id}
-                      className="p-2.5 rounded-lg bg-surface-card border border-hairline flex items-start justify-between gap-2 text-[11px]"
-                    >
-                      <div className="space-y-0.5 min-w-0 flex-1">
-                        <div className="font-semibold text-ink font-mono truncate">
-                          {mem.key}
-                        </div>
-                        <div className="text-body line-clamp-2 text-[10.5px]">
-                          {mem.value}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => deleteUserMemory(mem.id)}
-                        title="Delete specific memory item"
-                        className="text-muted hover:text-semantic-error p-1 rounded hover:bg-semantic-error/10 transition-colors shrink-0 cursor-pointer"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         ) : (
           <div className="text-center py-8 text-body text-xs bg-canvas-soft rounded-xl border border-hairline space-y-2">
