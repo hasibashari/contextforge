@@ -13,6 +13,8 @@ import {
   UploadCloud,
   Terminal,
   Layers,
+  Brain,
+  Compass,
 } from 'lucide-react'
 import {
   SiNotion,
@@ -23,7 +25,7 @@ import {
   SiGoogledrive,
   SiGmail,
 } from 'react-icons/si'
-import type { Integration, KnowledgeSource, Skill } from '@/shared/types/workspace'
+import type { Integration, KnowledgeSource, Skill, Agent } from '@/shared/types/workspace'
 
 export interface IconBoxProps {
   icon: React.ReactNode
@@ -206,4 +208,40 @@ export const KnowledgeIconBox: React.FC<{
     default:
       return <IconBox size={size} variant="primary" icon={<FileText size={iconPx} />} />
   }
+}
+
+export const AgentIconBox: React.FC<{
+  agent?: Pick<Agent, 'id' | 'name' | 'agentType' | 'avatarColor'> | null
+  agentId?: string
+  size?: 'sm' | 'md' | 'lg'
+  className?: string
+}> = ({ agent, agentId, size = 'sm', className = '' }) => {
+  const id = (agent?.id || agentId || '').toLowerCase()
+  const name = (agent?.name || '').toLowerCase()
+  const agentType = agent?.agentType
+  const iconPx = size === 'sm' ? 17 : size === 'md' ? 19 : 22
+
+  if (
+    id.includes('research') ||
+    name.includes('research') ||
+    agentType === 'researcher'
+  ) {
+    return (
+      <IconBox
+        size={size}
+        variant="blue"
+        icon={<Compass size={iconPx} />}
+        className={className}
+      />
+    )
+  }
+
+  return (
+    <IconBox
+      size={size}
+      variant="primary"
+      icon={<Brain size={iconPx} />}
+      className={className}
+    />
+  )
 }

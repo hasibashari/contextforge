@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Brain, Terminal, Sparkles, Check, Settings2, RotateCcw, Layers, ShieldCheck } from 'lucide-react'
+import { Terminal, Sparkles, Check, Settings2, RotateCcw, Layers, ShieldCheck } from 'lucide-react'
 import type { Agent } from '@/shared/types/workspace'
 import { useWorkspace } from '@/shared/context'
 import {
@@ -7,6 +7,7 @@ import {
   ModalHeader,
   ModalFooter,
   Button,
+  AgentIconBox,
 } from '@/shared/components'
 
 interface AgentInspectorModalProps {
@@ -71,13 +72,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
     }))
   )
 
-  const icon = (
-    <div
-      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${agent.avatarColor} text-canvas flex items-center justify-center font-mono font-bold text-sm shadow-xs shrink-0`}
-    >
-      <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
-    </div>
-  )
+  const icon = <AgentIconBox agent={agent} size="md" />
 
   const renderActions = () => {
     if (isCoreOrchestrator) {

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Cpu } from 'lucide-react'
 import type { Agent } from '@/shared/types/workspace'
+import { AgentIconBox } from '@/shared/components'
 
 interface AgentMentionPopoverProps {
   agents: Agent[]
@@ -22,9 +23,10 @@ export const AgentMentionPopover: React.FC<AgentMentionPopoverProps> = ({
           key={ag.id}
           type="button"
           onClick={() => onSelectAgent(ag.id.replace('agent-', ''))}
-          className="w-full px-2.5 py-1.5 rounded-lg hover:bg-canvas-soft text-left flex items-center justify-between text-ink transition-colors cursor-pointer"
+          className="w-full px-2 py-1.5 rounded-lg hover:bg-canvas-soft text-left flex items-center justify-between text-ink transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2">
+            <AgentIconBox agent={ag} size="sm" className="w-6 h-6 rounded-md" />
             <span className="font-semibold text-primary">
               @{ag.id.replace('agent-', '')}
             </span>

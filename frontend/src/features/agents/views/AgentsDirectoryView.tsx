@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { Brain } from 'lucide-react'
 import { useWorkspace } from '@/shared/context'
-import { PageHeader, EcosystemCard } from '@/shared/components'
+import { PageHeader, EcosystemCard, AgentIconBox } from '@/shared/components'
 import { AgentInspectorModal } from '@/features/agents'
 
 export default function AgentsDirectoryView() {
@@ -36,13 +35,7 @@ export default function AgentsDirectoryView() {
           return (
             <EcosystemCard
               key={agent.id}
-              icon={
-                <div
-                  className={`w-8 h-8 rounded-lg ${agent.avatarColor} text-canvas flex items-center justify-center font-mono font-bold text-xs shadow-2xs`}
-                >
-                  <Brain size={18} />
-                </div>
-              }
+              icon={<AgentIconBox agent={agent} size="sm" />}
               title={agent.name}
               subtitle={roleSubtitle}
               description={agent.description}
