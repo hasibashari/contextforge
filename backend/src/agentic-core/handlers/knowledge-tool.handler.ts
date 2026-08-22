@@ -72,6 +72,10 @@ export class KnowledgeToolHandler {
     );
 
     const scored: ChunkMatch[] = [];
+    const terms = queryStr
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length >= 3);
 
     for (const row of res.rows) {
       const vec: number[] =
@@ -83,8 +87,21 @@ export class KnowledgeToolHandler {
 
       if (vec.length === 0) continue;
 
-      const sim = this.computeCosineSimilarity(queryEmbedding, vec);
-      if (sim >= 0.2) {
+      let sim = this.computeCosineSimilarity(queryEmbedding, vec);
+
+      // Hybrid keyword boost for exact terms
+      if (terms.length > 0) {
+        const text = `${row.file_path} ${row.chunk_content}`.toLowerCase();
+        let keywordHits = 0;
+        for (const term of terms) {
+          if (text.includes(term)) keywordHits++;
+        }
+        if (keywordHits > 0) {
+          sim = Math.max(sim, 0.45 + (keywordHits / terms.length) * 0.45);
+        }
+      }
+
+      if (sim >= 0.15) {
         scored.push({
           id: row.id,
           source_id: row.source_id,

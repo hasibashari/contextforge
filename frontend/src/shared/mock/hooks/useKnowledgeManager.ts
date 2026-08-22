@@ -62,7 +62,7 @@ export function useKnowledgeManager(
         await refreshSources();
         const count = result?.chunksCount ?? 0;
         showToast(
-          `Re-indexed ${count} chunks with gemini-embedding-002 (1536-dim)`,
+          `Re-indexed ${count} chunks with gemini-embedding-2 (1536-dim)`,
           'success',
         );
       } catch (err: unknown) {
@@ -150,6 +150,35 @@ export function useKnowledgeManager(
     [showToast, refreshSources],
   );
 
+  const ingestDirectDocuments = useCallback(
+    async (payload: {
+      name: string;
+      type: string;
+      location: string;
+      description?: string;
+      documents: Array<{ filePath: string; title: string; content: string }>;
+    }) => {
+      showToast(
+        `Vectorizing ${payload.documents.length} document(s) into PostgreSQL...`,
+        'info',
+      );
+      try {
+        const result = await knowledgeApi.ingestDocumentsDirectly(payload);
+        await refreshSources();
+        showToast(
+          `Indexed ${result.chunksCount} chunks into PostgreSQL pgvector!`,
+          'success',
+        );
+        return result;
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : 'Ingestion failed';
+        showToast(`Vector ingestion error: ${errMsg}`, 'error');
+        throw err;
+      }
+    },
+    [showToast, refreshSources],
+  );
+
   const uploadKnowledgeFiles = useCallback(
     async (files: File[], name: string, sourceId?: string) => {
       showToast(
@@ -196,6 +225,7 @@ export function useKnowledgeManager(
     toggleKnowledgeSync,
     toggleKnowledgeSourceConnect,
     addKnowledgeSource,
+    ingestDirectDocuments,
     uploadKnowledgeFiles,
     deleteKnowledgeSource,
     refreshSources,

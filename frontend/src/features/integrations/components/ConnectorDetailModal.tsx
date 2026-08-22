@@ -74,6 +74,12 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
     apiKey: 'sec_live_mcp_9a4f21e08cb4418a',
   })
 
+  const [selectedFolder, setSelectedFolder] = useState(
+    currentIntegration.targetBinding?.folderScope ||
+      obsidianBridgeService.getPairedDirectoryHandle()?.name ||
+      '',
+  )
+
   const isConnected = currentIntegration.status === 'connected'
 
   const handleSave = (e: React.FormEvent) => {
@@ -83,6 +89,12 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
       description: formData.description,
       endpoint: formData.endpoint,
       transport: formData.transport,
+      targetBinding: integration.id.includes('obsidian')
+        ? {
+            folderScope: selectedFolder,
+            defaultOutputPath: '',
+          }
+        : currentIntegration.targetBinding,
     })
     setIsEditing(false)
   }
@@ -220,6 +232,58 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
               placeholder="e.g. http://localhost:27123/mcp/obsidian"
             />
           </FormField>
+
+          {/* Obsidian Connected Folder Configuration in Edit Mode */}
+          {integration.id.includes('obsidian') && (
+            <div className="p-3.5 bg-[#7c3aed]/5 rounded-xl border border-[#7c3aed]/20 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
+                  <Folder size={14} className="text-[#7c3aed]" />
+                  <span>Connected Obsidian Folder</span>
+                </div>
+                {selectedFolder && (
+                  <Badge variant="success" size="xs">
+                    ✓ Connected
+                  </Badge>
+                )}
+              </div>
+
+              <div className="p-3 bg-canvas rounded-xl border border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#7c3aed]/10 text-[#7c3aed] flex items-center justify-center shrink-0">
+                    <Folder size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-ink text-xs truncate">
+                      {selectedFolder ? `📁 ${selectedFolder}` : 'No folder selected'}
+                    </div>
+                    <div className="text-[11px] text-muted font-sans truncate">
+                      {selectedFolder
+                        ? 'Notes will be saved directly into this folder'
+                        : 'Click the button to select an Obsidian folder'}
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  leftIcon={<Folder size={12} />}
+                  onClick={async () => {
+                    const res =
+                      await obsidianBridgeService.requestVaultDirectory('', '')
+                    if (res) {
+                      setSelectedFolder(res.handle.name)
+                    }
+                  }}
+                  className="shrink-0"
+                >
+                  Change Folder
+                </Button>
+              </div>
+            </div>
+          )}
 
           <FormField label="Description">
             <Textarea

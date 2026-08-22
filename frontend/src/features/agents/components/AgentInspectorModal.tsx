@@ -239,8 +239,8 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
               <Terminal size={12} className="text-primary" />
               <span>
                 {isCoreOrchestrator
-                  ? `Built-in Delegation Tools (${agent.assignedTools.length}):`
-                  : `Authorized MCP Tools (${isEditing ? selectedTools.length : agent.assignedTools.length}):`}
+                  ? `Built-in Delegation Tools (${agent.assignedTools?.length || 0}):`
+                  : `Authorized MCP Tools (${isEditing ? selectedTools.length : agent.assignedTools?.length || 0}):`}
               </span>
             </span>
             {isEditing && !isCoreOrchestrator && (
@@ -281,7 +281,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
                     </button>
                   )
                 })
-              : agent.assignedTools.map((t) => (
+              : (agent.assignedTools || []).map((t) => (
                   <div
                     key={t}
                     className="p-2 rounded bg-canvas border border-hairline flex items-center gap-2 text-ink"

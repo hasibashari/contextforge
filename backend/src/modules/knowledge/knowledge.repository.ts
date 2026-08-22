@@ -250,16 +250,36 @@ export class KnowledgeRepository implements OnModuleInit {
   async searchSimilarChunks(
     queryEmbedding: number[],
     limit = 5,
-    minSimilarity = 0.25,
+    minSimilarity = 0.15,
+    queryText?: string,
   ): Promise<SearchResultChunk[]> {
     const chunks = await this.getAllChunksWithEmbeddings();
     if (chunks.length === 0) return [];
 
     const scored: SearchResultChunk[] = [];
+    const terms = queryText
+      ? queryText
+          .toLowerCase()
+          .split(/\s+/)
+          .filter((w) => w.length >= 3)
+      : [];
 
     for (const chunk of chunks) {
       if (!chunk.embedding || chunk.embedding.length === 0) continue;
-      const sim = this.computeCosineSimilarity(queryEmbedding, chunk.embedding);
+      let sim = this.computeCosineSimilarity(queryEmbedding, chunk.embedding);
+
+      // Hybrid keyword boost for exact terms
+      if (terms.length > 0) {
+        const text = `${chunk.file_path} ${chunk.chunk_content}`.toLowerCase();
+        let keywordHits = 0;
+        for (const term of terms) {
+          if (text.includes(term)) keywordHits++;
+        }
+        if (keywordHits > 0) {
+          sim = Math.max(sim, 0.45 + (keywordHits / terms.length) * 0.45);
+        }
+      }
+
       if (sim >= minSimilarity) {
         scored.push({
           ...chunk,

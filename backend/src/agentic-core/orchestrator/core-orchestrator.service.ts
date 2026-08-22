@@ -147,7 +147,10 @@ export class CoreOrchestratorService {
 
       default:
         // Dynamic fallback: if tool name matches MCP patterns, route to MCP Gateway
-        if (toolName.startsWith('obsidian_') || toolName.startsWith('notion_')) {
+        if (
+          toolName.startsWith('obsidian_') ||
+          toolName.startsWith('notion_')
+        ) {
           return this.mcpHandler.execute(toolName, prompt, args, emit);
         }
 

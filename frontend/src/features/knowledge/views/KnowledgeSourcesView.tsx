@@ -15,6 +15,7 @@ export default function KnowledgeSourcesView() {
     toggleKnowledgeSync,
     toggleKnowledgeSourceConnect,
     addKnowledgeSource,
+    ingestDirectDocuments,
     uploadKnowledgeFiles,
     deleteKnowledgeSource,
   } = useWorkspace()
@@ -114,6 +115,7 @@ export default function KnowledgeSourcesView() {
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddSource}
         onUpload={handleUploadFiles}
+        onIngestDirect={ingestDirectDocuments}
       />
     </div>
   )

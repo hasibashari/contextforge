@@ -22,12 +22,12 @@ export class EmbeddingService {
   ) {}
 
   /**
-   * Generate 1536-dimensional embedding vector using Google gemini-embedding-002
+   * Generate 1536-dimensional embedding vector using Google gemini-embedding-2
    */
   async embedText(text: string): Promise<number[]> {
     const model = this.configService.get<string>(
       'gemini.embeddingModel',
-      'gemini-embedding-002',
+      'gemini-embedding-2',
     );
     const dimension = this.configService.get<number>(
       'gemini.embeddingDimension',

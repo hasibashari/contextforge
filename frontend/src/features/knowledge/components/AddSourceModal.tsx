@@ -37,6 +37,13 @@ interface AddSourceModalProps {
     name: string,
     sourceId?: string,
   ) => Promise<unknown>
+  onIngestDirect?: (data: {
+    name: string
+    type: string
+    location: string
+    description?: string
+    documents: Array<{ filePath: string; title: string; content: string }>
+  }) => Promise<unknown>
 }
 
 export const AddSourceModal: React.FC<AddSourceModalProps> = ({
@@ -44,6 +51,7 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
   onClose,
   onAdd,
   onUpload,
+  onIngestDirect,
 }) => {
   const [sourceName, setSourceName] = useState('')
   const [detectedType, setDetectedType] = useState<KnowledgeSource['type']>('local_folder')
@@ -201,13 +209,19 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
             }),
           )
 
-          await knowledgeApi.ingestDocumentsDirectly({
+          const payload = {
             name: finalName,
             type: detectedType,
             location: folderPathLabel ? `paired://${folderPathLabel}` : `paired://${finalName}`,
             description: `Live paired ${detectedType === 'obsidian_vault' ? 'Obsidian Vault' : 'Local Folder'}: "${folderPathLabel || finalName}"`,
             documents: documents.filter((d) => d.content.trim().length > 0),
-          })
+          }
+
+          if (onIngestDirect) {
+            await onIngestDirect(payload)
+          } else {
+            await knowledgeApi.ingestDocumentsDirectly(payload)
+          }
         } else if (onUpload) {
           await onUpload(files, finalName)
         }

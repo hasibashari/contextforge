@@ -103,6 +103,24 @@ function AutomationFormContent({
     )
   }
 
+  const handleMcpServerChange = (newServerId: string) => {
+    setMcpServerId(newServerId)
+    const targetIntg = integrations.find((i) => i.id === newServerId)
+    if (targetIntg && targetIntg.tools && targetIntg.tools.length > 0) {
+      setSelectedTools(targetIntg.tools.map((t) => t.name))
+    } else if (newServerId === 'int-notion-mcp') {
+      setSelectedTools(['notion_get_tasks', 'notion_read_page', 'notion_search'])
+    } else if (newServerId === 'int-obsidian-vault-mcp') {
+      setSelectedTools([
+        'obsidian_create_daily_note',
+        'obsidian_vault_writer',
+        'obsidian_vault_reader',
+      ])
+    } else {
+      setSelectedTools([])
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
@@ -281,7 +299,7 @@ function AutomationFormContent({
           <FormField label="Target MCP Protocol Server">
             <Select
               value={mcpServerId}
-              onChange={(e) => setMcpServerId(e.target.value)}
+              onChange={(e) => handleMcpServerChange(e.target.value)}
             >
               <option value="int-obsidian-vault-mcp">
                 📚 Obsidian Vault MCP Bridge (Local Vaults & Daily Notes)

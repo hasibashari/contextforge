@@ -150,6 +150,13 @@ export interface WorkspaceContextType {
     type: KnowledgeSource['type']
     location: string
   }) => void
+  ingestDirectDocuments: (payload: {
+    name: string
+    type: string
+    location: string
+    description?: string
+    documents: Array<{ filePath: string; title: string; content: string }>
+  }) => Promise<KnowledgeSource>
   uploadKnowledgeFiles: (
     files: File[],
     name: string,

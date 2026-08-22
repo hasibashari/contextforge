@@ -116,7 +116,7 @@ export class KnowledgeService {
   ): Promise<SearchResultChunk[]> {
     if (!query || query.trim().length === 0) return [];
     const queryEmbedding = await this.embedding.embedText(query);
-    return this.repo.searchSimilarChunks(queryEmbedding, limit);
+    return this.repo.searchSimilarChunks(queryEmbedding, limit, 0.15, query);
   }
 
   /**

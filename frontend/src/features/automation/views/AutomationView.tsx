@@ -23,26 +23,28 @@ export default function AutomationView() {
     integrations,
   } = useWorkspace()
 
-  // Modals state
+  // Modals state (ID-based for full reactivity)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingWorkflow, setEditingWorkflow] = useState<AutomationWorkflow | null>(null)
+  const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(null)
   const [deletingWorkflowId, setDeletingWorkflowId] = useState<string | null>(null)
 
+  const editingWorkflow = automations.find((a) => a.id === editingWorkflowId) || null
+
   const handleOpenCreateModal = () => {
-    setEditingWorkflow(null)
+    setEditingWorkflowId(null)
     setIsModalOpen(true)
   }
 
   const handleOpenEditModal = (workflow: AutomationWorkflow) => {
-    setEditingWorkflow(workflow)
+    setEditingWorkflowId(workflow.id)
     setIsModalOpen(true)
   }
 
   const handleSaveWorkflow = (
     data: Omit<AutomationWorkflow, 'id' | 'totalRuns' | 'createdAt'>
   ) => {
-    if (editingWorkflow) {
-      updateAutomation(editingWorkflow.id, data)
+    if (editingWorkflowId) {
+      updateAutomation(editingWorkflowId, data)
     } else {
       createAutomation(data)
     }

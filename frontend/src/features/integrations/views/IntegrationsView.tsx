@@ -8,7 +8,6 @@ import {
   Settings,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
-import type { Skill, Integration } from '@/shared/types/workspace'
 import {
   IntegrationCard,
   SkillDetailModal,
@@ -41,10 +40,14 @@ export default function IntegrationsView() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
-  // Modals & Inspection State
-  const [inspectedSkill, setInspectedSkill] = useState<Skill | null>(null)
-  const [selectedConnector, setSelectedConnector] = useState<Integration | null>(null)
-  const [connectingConnector, setConnectingConnector] = useState<Integration | null>(null)
+  // Modals & Inspection State (ID-based for full reactivity)
+  const [inspectedSkillId, setInspectedSkillId] = useState<string | null>(null)
+  const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null)
+  const [connectingConnectorId, setConnectingConnectorId] = useState<string | null>(null)
+
+  const inspectedSkill = skills.find((s) => s.id === inspectedSkillId) || null
+  const selectedConnector = integrations.find((i) => i.id === selectedConnectorId) || null
+  const connectingConnector = integrations.find((i) => i.id === connectingConnectorId) || null
 
   // Testing State
   const [testingId, setTestingId] = useState<string | null>(null)
@@ -234,8 +237,8 @@ export default function IntegrationsView() {
                 <IntegrationCard
                   key={intg.id}
                   integration={intg}
-                  onOpenDetail={() => setSelectedConnector(intg)}
-                  onConnect={() => setConnectingConnector(intg)}
+                  onOpenDetail={() => setSelectedConnectorId(intg.id)}
+                  onConnect={() => setConnectingConnectorId(intg.id)}
                 />
               ))}
             </div>
@@ -291,8 +294,8 @@ export default function IntegrationsView() {
                     skill.enabled ? 'Active in Workspace' : 'Inactive SOP'
                   }`}
                   actionIcon={skill.enabled ? <Settings size={16} /> : <Plus size={16} />}
-                  onClick={() => setInspectedSkill(skill)}
-                  onActionClick={() => setInspectedSkill(skill)}
+                  onClick={() => setInspectedSkillId(skill.id)}
+                  onActionClick={() => setInspectedSkillId(skill.id)}
                   actionTooltip={
                     skill.enabled
                       ? 'Active SOP: Click to inspect & configure'
@@ -330,22 +333,13 @@ export default function IntegrationsView() {
       {/* Modals & Drawers */}
       <ConnectorDetailModal
         integration={selectedConnector}
-        onClose={() => setSelectedConnector(null)}
+        onClose={() => setSelectedConnectorId(null)}
         onTest={handleTestPing}
         onToggleConnect={(id) => {
           toggleIntegrationConnect(id)
-          setSelectedConnector((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  status: prev.status === 'connected' ? 'disconnected' : 'connected',
-                }
-              : null
-          )
         }}
         onSaveConfig={(id, updates) => {
           updateConnectorConfig(id, updates)
-          setSelectedConnector((prev) => (prev ? { ...prev, ...updates } : null))
         }}
         isTesting={Boolean(selectedConnector && testingId === selectedConnector.id)}
       />
@@ -353,19 +347,15 @@ export default function IntegrationsView() {
       <ConnectAuthModal
         integration={connectingConnector}
         isOpen={Boolean(connectingConnector)}
-        onClose={() => setConnectingConnector(null)}
+        onClose={() => setConnectingConnectorId(null)}
       />
 
       <SkillDetailModal
         skill={inspectedSkill}
-        onClose={() => setInspectedSkill(null)}
+        onClose={() => setInspectedSkillId(null)}
         onToggle={() => {
           if (inspectedSkill) {
             toggleSkill(inspectedSkill.id)
-            setInspectedSkill({
-              ...inspectedSkill,
-              enabled: !inspectedSkill.enabled,
-            })
           }
         }}
       />

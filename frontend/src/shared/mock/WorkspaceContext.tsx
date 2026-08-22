@@ -146,6 +146,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         toggleKnowledgeSync: knowledge.toggleKnowledgeSync,
         toggleKnowledgeSourceConnect: knowledge.toggleKnowledgeSourceConnect,
         addKnowledgeSource: knowledge.addKnowledgeSource,
+        ingestDirectDocuments: knowledge.ingestDirectDocuments,
         uploadKnowledgeFiles: knowledge.uploadKnowledgeFiles,
         deleteKnowledgeSource: knowledge.deleteKnowledgeSource,
 

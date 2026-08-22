@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Brain } from 'lucide-react'
 import { useWorkspace } from '@/shared/mock'
-import type { Agent } from '@/shared/types/workspace'
 import { PageHeader, EcosystemCard } from '@/shared/components'
 import { AgentInspectorModal } from '@/features/agents'
 
 export default function AgentsDirectoryView() {
   const { agents } = useWorkspace()
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId) || null
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
@@ -47,7 +47,7 @@ export default function AgentsDirectoryView() {
               subtitle={roleSubtitle}
               description={agent.description}
               metaLine={`${skillsCount} Skills · ${toolsCount} Tools · ${agent.model} · ${agent.successRatePct}% Success`}
-              onClick={() => setSelectedAgent(agent)}
+              onClick={() => setSelectedAgentId(agent.id)}
               hideAction={true}
             />
           )
@@ -57,7 +57,7 @@ export default function AgentsDirectoryView() {
       {/* Detail Inspector Modal */}
       <AgentInspectorModal
         agent={selectedAgent}
-        onClose={() => setSelectedAgent(null)}
+        onClose={() => setSelectedAgentId(null)}
       />
     </div>
   )
