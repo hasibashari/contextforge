@@ -113,7 +113,6 @@ export class CoreOrchestratorService {
 
         // Case A: Model wants to invoke one or more tools (Reason -> Action)
         if (functionCalls && functionCalls.length > 0) {
-          const modelParts: any[] = [];
           const functionResponseParts: any[] = [];
 
           for (const call of functionCalls) {
@@ -198,7 +197,6 @@ export class CoreOrchestratorService {
               toolOutput.sourceDomains.forEach((d) => allSourceDomains.add(d));
             }
 
-            modelParts.push({ functionCall: call });
             functionResponseParts.push({
               functionResponse: {
                 name: toolName,
@@ -211,7 +209,14 @@ export class CoreOrchestratorService {
             });
           }
 
-          // Append paired model turn (all functionCalls) and user turn (all functionResponses)
+          // Preserve exact candidate parts to retain Gemini thought_signature and thinking tokens
+          const candidateParts = response.candidates?.[0]?.content?.parts;
+          const modelParts =
+            candidateParts && candidateParts.length > 0
+              ? candidateParts
+              : functionCalls.map((call) => ({ functionCall: call }));
+
+          // Append paired model turn (all functionCalls + thought_signature) and user turn (all functionResponses)
           turnContents.push({
             role: 'model',
             parts: modelParts,
@@ -398,10 +403,10 @@ export class CoreOrchestratorService {
   }
 
   /**
-   * Handles streaming and citation extraction for direct conversational responses
+   * Handles final conversational / synthesis response from the model
    */
   private handleConversationalResponse(
-    response: { text?: string },
+    response: { text?: string; candidates?: any[] },
     emit: StreamEmitter,
   ): OrchestrationResult {
     emit({
@@ -412,8 +417,8 @@ export class CoreOrchestratorService {
       },
     });
 
-    const fullText = response.text || '';
-    const sourceDomains =
+    const fullText: string = response.text || '';
+    const sourceDomains: string[] =
       this.webSearchHandler.extractGroundingDomains(response);
 
     this.streamFinalText(fullText, emit);
@@ -425,16 +430,13 @@ export class CoreOrchestratorService {
   }
 
   /**
-   * Streams text to client in smooth chunks
+   * Streams synthesized text directly to client via SSE chunk
    */
   private streamFinalText(text: string, emit: StreamEmitter): void {
-    const chunkSize = 30;
-    for (let i = 0; i < text.length; i += chunkSize) {
-      const chunk = text.slice(i, i + chunkSize);
-      emit({
-        event: 'chat_chunk',
-        data: { delta: chunk },
-      });
-    }
+    if (!text) return;
+    emit({
+      event: 'chat_chunk',
+      data: { delta: text },
+    });
   }
 }

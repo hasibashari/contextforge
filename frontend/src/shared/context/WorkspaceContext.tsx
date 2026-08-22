@@ -107,6 +107,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         activeArtifact: chatEngine.activeArtifact,
         artifacts: chatEngine.artifacts,
         isGeneratingResponse: chatEngine.isGeneratingResponse,
+        liveReasoningState: chatEngine.liveReasoningState,
         selectedAgentMode: chatEngine.selectedAgentMode,
         isAsideOpen,
 

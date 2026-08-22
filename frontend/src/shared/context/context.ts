@@ -42,6 +42,13 @@ export interface WorkspaceContextType {
   deleteArtifact: (id: string) => Promise<void>
   isAsideOpen: boolean
   isGeneratingResponse: boolean
+  liveReasoningState: {
+    isThinking: boolean
+    stageLabel: string
+    steps: import('@/shared/types/workspace').ReasoningStep[]
+    startTime?: number
+    agentName?: string
+  }
   selectedAgentMode: string // 'auto' or agent ID
   activeSourceFilters: string[]
 

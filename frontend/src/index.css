@@ -87,3 +87,29 @@ main, .overflow-y-auto {
 code, pre, .font-mono {
   font-family: var(--font-mono);
 }
+
+/* Claude-style animated thinking logo */
+@keyframes thinking-logo-spin {
+  0% {
+    transform: rotate(0deg) scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(360deg) scale(0.9);
+    opacity: 0.7;
+  }
+}
+
+.animate-thinking-logo {
+  display: inline-block;
+  animation: thinking-logo-spin 2.4s infinite ease-in-out !important;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+
+

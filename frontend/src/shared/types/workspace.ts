@@ -320,6 +320,16 @@ export interface SideAgentExecution {
   artifactId?: string
 }
 
+export interface ReasoningStep {
+  id: string
+  stage: 'thinking' | 'planning' | 'tool_execution' | 'reading' | 're-planning' | 'done' | string
+  label: string
+  toolName?: string
+  agentName?: string
+  timestamp?: string
+  durationMs?: number
+}
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -335,6 +345,8 @@ export interface ChatMessage {
   actionCard?: ActionCardData
   artifactId?: string
   sourceDomains?: string[]
+  reasoningSteps?: ReasoningStep[]
+  thinkingDurationMs?: number
 }
 
 export interface ChatSession {

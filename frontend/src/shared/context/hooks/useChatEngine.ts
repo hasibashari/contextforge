@@ -6,6 +6,7 @@ import type {
   ActionCardData,
   ActivityLogEntry,
   AutomationWorkflow,
+  ReasoningStep,
 } from '@/shared/types/workspace';
 import { chatApi } from '@/shared/api/chatApi';
 import { artifactsApi } from '@/shared/api/artifactsApi';
@@ -25,6 +26,17 @@ export function useChatEngine(
   const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState<boolean>(false);
   const [selectedAgentMode, setSelectedAgentMode] = useState<string>('auto');
+  const [liveReasoningState, setLiveReasoningState] = useState<{
+    isThinking: boolean;
+    stageLabel: string;
+    steps: ReasoningStep[];
+    startTime?: number;
+    agentName?: string;
+  }>({
+    isThinking: false,
+    stageLabel: 'Analyzing Goal & Planning Actions...',
+    steps: [],
+  });
 
   // Load initial sessions and artifacts from backend on mount
   useEffect(() => {
@@ -427,8 +439,34 @@ export function useChatEngine(
         customOptions?.agentId ||
         (selectedAgentMode !== 'auto' ? selectedAgentMode : undefined);
 
+      const streamStartTime = Date.now();
+      const collectedSteps: ReasoningStep[] = [
+        {
+          id: `step-${Date.now()}-init`,
+          stage: 'planning',
+          label: 'Analyzing Goal & Planning Actions...',
+          timestamp: 'Just now',
+          durationMs: 0,
+        },
+      ];
+
+      setIsGeneratingResponse(true);
+      setLiveReasoningState({
+        isThinking: true,
+        stageLabel: 'Analyzing Goal & Planning Actions...',
+        steps: [...collectedSteps],
+        startTime: streamStartTime,
+        agentName:
+          targetAgentId === 'agent-research'
+            ? 'Research Specialist'
+            : targetAgentId
+              ? 'Personal Assistant'
+              : undefined,
+      });
+
       const applyChatFallback = (errorLog: unknown) => {
         console.error('Chat Stream Error / Network Issue:', errorLog);
+        const durationMs = Date.now() - streamStartTime;
         const fallback = generateGeneralReasoningOutput(prompt);
         if (fallback.createdAutomation) {
           createAutomation?.(fallback.createdAutomation);
@@ -444,6 +482,8 @@ export function useChatEngine(
                           ...m,
                           content: m.content || fallback.textContent,
                           intent: fallback.intent,
+                          reasoningSteps: collectedSteps,
+                          thinkingDurationMs: durationMs,
                         }
                       : m,
                   ),
@@ -452,6 +492,11 @@ export function useChatEngine(
           ),
         );
         setIsGeneratingResponse(false);
+        setLiveReasoningState({
+          isThinking: false,
+          stageLabel: '',
+          steps: [],
+        });
       };
 
       try {
@@ -480,6 +525,36 @@ export function useChatEngine(
               if (stage === 're-planning') {
                 showToast(`🔄 ${label}`);
               }
+              const step: ReasoningStep = {
+                id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                stage,
+                label,
+                timestamp: 'Just now',
+                durationMs: Date.now() - streamStartTime,
+              };
+              collectedSteps.push(step);
+              setLiveReasoningState((prev) => ({
+                ...prev,
+                stageLabel: label,
+                steps: [...prev.steps, step],
+              }));
+            },
+            onToolCallStart: ({ toolName }) => {
+              const cleanTool = toolName.replace(/_/g, ' ');
+              const step: ReasoningStep = {
+                id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                stage: 'tool_execution',
+                label: `Invoking tool: ${toolName}`,
+                toolName,
+                timestamp: 'Just now',
+                durationMs: Date.now() - streamStartTime,
+              };
+              collectedSteps.push(step);
+              setLiveReasoningState((prev) => ({
+                ...prev,
+                stageLabel: `Executing ${cleanTool}...`,
+                steps: [...prev.steps, step],
+              }));
             },
             onChatChunk: ({ delta }) => {
               setChatSessions((prev) =>
@@ -498,15 +573,31 @@ export function useChatEngine(
               );
             },
             onSideAgentLog: ({ sideAgentId, log, riskLevel }) => {
+              const agentName = sideAgentId.includes('research')
+                ? 'Research Specialist'
+                : sideAgentId.includes('doc')
+                  ? 'Obsidian Vault Worker'
+                  : 'Personal Assistant';
+              const step: ReasoningStep = {
+                id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                stage: 'handoff',
+                label: log,
+                agentName,
+                timestamp: 'Just now',
+                durationMs: Date.now() - streamStartTime,
+              };
+              collectedSteps.push(step);
+              setLiveReasoningState((prev) => ({
+                ...prev,
+                stageLabel: log,
+                steps: [...prev.steps, step],
+              }));
+
               const newAct: ActivityLogEntry = {
                 id: `act-${Date.now()}`,
                 timestamp: 'Just now',
                 agentId: sideAgentId,
-                agentName: sideAgentId.includes('doc')
-                  ? 'Obsidian Vault Worker'
-                  : sideAgentId.includes('code')
-                    ? 'CLI & Code Sandbox Runner'
-                    : 'Calendar Worker',
+                agentName,
                 actionType: 'tool_invoked',
                 summary: log,
                 status: riskLevel === 'high_risk' ? 'warning' : 'success',
@@ -562,7 +653,34 @@ export function useChatEngine(
               );
             },
             onExecutionDone: () => {
+              const durationMs = Date.now() - streamStartTime;
+              setChatSessions((prev) =>
+                prev.map((session) =>
+                  session.id === activeSessionId
+                    ? {
+                        ...session,
+                        messages: session.messages.map((m) =>
+                          m.id === assistantMsgId
+                            ? {
+                                ...m,
+                                reasoningSteps:
+                                  collectedSteps.length > 0
+                                    ? [...collectedSteps]
+                                    : m.reasoningSteps,
+                                thinkingDurationMs: durationMs,
+                              }
+                            : m,
+                        ),
+                      }
+                    : session,
+                ),
+              );
               setIsGeneratingResponse(false);
+              setLiveReasoningState({
+                isThinking: false,
+                stageLabel: '',
+                steps: [],
+              });
             },
             onError: (streamErr) => {
               applyChatFallback(streamErr);
@@ -592,6 +710,7 @@ export function useChatEngine(
     artifacts,
     activeArtifact,
     isGeneratingResponse,
+    liveReasoningState,
     selectedAgentMode,
     setActiveArtifact,
     setSelectedAgentMode,

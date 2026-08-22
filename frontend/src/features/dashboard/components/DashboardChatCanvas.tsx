@@ -1,5 +1,4 @@
 import { useRef, useEffect } from 'react'
-import { RefreshCw } from 'lucide-react'
 import { useWorkspace } from '@/shared/context'
 import { ChatInputBar } from './ChatInputBar'
 import { ChatMessageItem } from './ChatMessageItem'
@@ -29,6 +28,7 @@ export default function DashboardChatCanvas() {
   const {
     activeSession,
     isGeneratingResponse,
+    liveReasoningState,
     sendChatMessage,
     agents,
     skills,
@@ -47,7 +47,7 @@ export default function DashboardChatCanvas() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [activeSession?.messages, isGeneratingResponse])
+  }, [activeSession?.messages, isGeneratingResponse, liveReasoningState?.steps?.length])
 
   const handleOpenArtifact = (art: Artifact) => {
     setActiveArtifact(art)
@@ -88,23 +88,21 @@ export default function DashboardChatCanvas() {
       <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="w-full max-w-188 mx-auto space-y-6 pb-8">
           {/* Message Feed */}
-          {activeSession?.messages.map((msg: ChatMessage) => (
-            <ChatMessageItem
-              key={msg.id}
-              msg={msg}
-              artifacts={artifacts}
-              onOpenArtifact={handleOpenArtifact}
-              onExecuteAction={executeCardAction}
-            />
-          ))}
+          {activeSession?.messages.map((msg: ChatMessage, idx: number) => {
+            const isLast = idx === (activeSession.messages.length - 1)
+            const isMessageStreaming = isGeneratingResponse && isLast && msg.role === 'assistant'
 
-          {/* Generating Indicator */}
-          {isGeneratingResponse && (
-            <div className="flex items-center gap-2.5 py-2 text-xs text-muted">
-              <RefreshCw size={14} className="animate-spin text-primary shrink-0" />
-              <span className="font-mono">Processing instruction & executing tools...</span>
-            </div>
-          )}
+            return (
+              <ChatMessageItem
+                key={msg.id}
+                msg={msg}
+                artifacts={artifacts}
+                isStreaming={isMessageStreaming}
+                onOpenArtifact={handleOpenArtifact}
+                onExecuteAction={executeCardAction}
+              />
+            )
+          })}
 
           <div ref={messagesEndRef} />
         </div>
