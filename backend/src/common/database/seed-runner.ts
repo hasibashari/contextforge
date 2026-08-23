@@ -56,7 +56,13 @@ async function runSeed() {
 
     // 2. Seed User Memories
     console.log('🧠 Seeding User Memories...');
-    for (const item of memoriesSeed) {
+    const memoryItems = memoriesSeed as Array<{
+      id: string;
+      category: string;
+      key: string;
+      value: string;
+    }>;
+    for (const item of memoryItems) {
       await client.query(
         `INSERT INTO user_memories (id, category, key, value)
         VALUES ($1, $2, $3, $4)
@@ -67,7 +73,7 @@ async function runSeed() {
         [item.id, item.category, item.key, item.value],
       );
     }
-    console.log(`   ✓ Seeded ${memoriesSeed.length} user memories`);
+    console.log(`   ✓ Seeded ${memoryItems.length} user memories`);
 
     // 6. Seed Workspace Agents
     console.log('🤖 Seeding Workspace Agents...');

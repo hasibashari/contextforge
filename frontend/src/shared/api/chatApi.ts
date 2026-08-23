@@ -82,6 +82,22 @@ export const chatApi = {
     };
   },
 
+  async updateSessionTitle(id: string, title: string): Promise<ChatSession> {
+    const res = await fetch(`${API_BASE_URL}/chat/sessions/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    });
+    const s = await handleApiResponse<BackendChatSession>(res);
+    return {
+      id: s.id,
+      title: s.title,
+      createdAt: s.created_at,
+      messages: [],
+      activeArtifactId: s.active_artifact_id,
+    };
+  },
+
   async deleteSession(id: string): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/chat/sessions/${id}`, { method: 'DELETE' });
     await handleApiResponse<{ success: boolean }>(res);

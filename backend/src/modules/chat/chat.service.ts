@@ -1,4 +1,10 @@
-import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import type { GoogleGenAI } from '@google/genai';
 import { GEMINI_CLIENT } from '../../agentic-core/gemini-client.provider';
 import {
@@ -43,6 +49,19 @@ export class ChatService {
 
   async createSession(title?: string): Promise<ChatSessionRow> {
     return this.chatRepo.createSession(title || 'New Investigation');
+  }
+
+  async updateSessionTitle(id: string, title: string): Promise<ChatSessionRow> {
+    const cleanTitle = title?.trim();
+    if (!cleanTitle) {
+      throw new BadRequestException('Session title cannot be empty');
+    }
+    await this.chatRepo.updateSessionTitle(id, cleanTitle);
+    const session = await this.chatRepo.getSessionById(id);
+    if (!session) {
+      throw new NotFoundException(`Chat session ${id} not found`);
+    }
+    return session;
   }
 
   async deleteSession(id: string): Promise<{ success: boolean }> {
@@ -97,20 +116,30 @@ export class ChatService {
 
       sendSse('user_message', userMsg);
 
-      // Auto-update session title if it's the first message
+      // Auto-update session title with AI Semantic Titling on first user message
       let titlePromise: Promise<void> | null = null;
       const messages =
         await this.chatRepo.getMessagesBySessionId(targetSessionId);
       if (messages.length <= 2) {
-        const initialTitle =
-          prompt.length > 35 ? prompt.slice(0, 35) + '...' : prompt;
-        await this.chatRepo.updateSessionTitle(targetSessionId, initialTitle);
-        sendSse('session_title_updated', {
-          sessionId: targetSessionId,
-          title: initialTitle,
-        });
+        // If the session was created manually before without a custom title, set initial fallback
+        if (
+          existingSession &&
+          (existingSession.title === 'New Investigation' ||
+            !existingSession.title)
+        ) {
+          const fallbackTitle =
+            prompt.length > 35 ? prompt.slice(0, 35) + '...' : prompt;
+          await this.chatRepo.updateSessionTitle(
+            targetSessionId,
+            fallbackTitle,
+          );
+          sendSse('session_title_updated', {
+            sessionId: targetSessionId,
+            title: fallbackTitle,
+          });
+        }
 
-        // Trigger AI Semantic Titling concurrently
+        // Trigger AI Semantic Titling concurrently (Runs once per session)
         titlePromise = this.generateSemanticTitleAsync(
           targetSessionId,
           prompt,
@@ -263,8 +292,11 @@ Title:`,
 
       const rawTitle = response.text?.trim() || '';
       const cleanTitle = rawTitle
+        .replace(/^title:\s*/i, '')
         .replace(/^["'`]|["'`]$/g, '')
-        .replace(/^[#*-]\s*/, '')
+        .replace(/^[#*-]+\s*/, '')
+        .replace(/^\*\*|\*\*$/g, '')
+        .replace(/^[0-9]+\.\s*/, '')
         .trim();
 
       if (cleanTitle && cleanTitle.length > 2) {

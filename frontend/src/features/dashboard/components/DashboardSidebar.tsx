@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Terminal,
   MessageSquare,
@@ -11,6 +12,10 @@ import {
   Plus,
   BookOpen,
   Trash2,
+  MoreVertical,
+  Edit2,
+  Check,
+  X,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWorkspace } from '@/shared/context'
@@ -25,6 +30,10 @@ export default function DashboardSidebar({
   onCloseMobile,
 }: DashboardSidebarProps) {
   const location = useLocation()
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState('')
+  const [openMenuSessionId, setOpenMenuSessionId] = useState<string | null>(null)
+
   const {
     agents,
     knowledgeSources,
@@ -34,6 +43,7 @@ export default function DashboardSidebar({
     activeSessionId,
     switchChatSession,
     createNewChatSession,
+    renameChatSession,
     deleteChatSession,
   } = useWorkspace()
 
@@ -167,46 +177,146 @@ export default function DashboardSidebar({
                 const isCurrent =
                   session.id === activeSessionId &&
                   location.pathname === '/dashboard'
+                const isEditing = editingSessionId === session.id
 
                 return (
                   <div
                     key={session.id}
-                    className={`group relative w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
+                    className={`group relative w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center justify-between gap-1.5 ${
                       isCurrent
                         ? 'bg-surface-card text-ink font-semibold border border-hairline shadow-2xs'
                         : 'text-muted hover:text-ink hover:bg-surface-card'
                     }`}
                   >
-                    <Link
-                      to="/dashboard"
-                      onClick={() => {
-                        switchChatSession(session.id)
-                        onCloseMobile?.()
-                      }}
-                      className="flex items-center gap-2 truncate flex-1 min-w-0 py-0.5"
-                    >
-                      <MessageSquare
-                        size={13}
-                        className={`shrink-0 ${
-                          isCurrent ? 'text-primary' : 'text-muted'
-                        }`}
-                      />
-                      <span className="truncate">{session.title}</span>
-                    </Link>
+                    {isEditing ? (
+                      <div
+                        className="flex items-center gap-1.5 w-full py-0.5"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="text"
+                          autoFocus
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              if (editingTitle.trim()) {
+                                renameChatSession(session.id, editingTitle.trim())
+                              }
+                              setEditingSessionId(null)
+                            }
+                            if (e.key === 'Escape') setEditingSessionId(null)
+                          }}
+                          className="flex-1 min-w-0 bg-canvas border border-primary px-2 py-0.5 rounded text-xs text-ink focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editingTitle.trim()) {
+                              renameChatSession(session.id, editingTitle.trim())
+                            }
+                            setEditingSessionId(null)
+                          }}
+                          className="p-1 rounded text-semantic-success hover:bg-semantic-success/15 transition-colors cursor-pointer"
+                          title="Save title (Enter)"
+                        >
+                          <Check size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingSessionId(null)}
+                          className="p-1 rounded text-muted hover:text-ink transition-colors cursor-pointer"
+                          title="Cancel (Esc)"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <Link
+                          to="/dashboard"
+                          onClick={() => {
+                            switchChatSession(session.id)
+                            onCloseMobile?.()
+                          }}
+                          className="flex items-center gap-2 truncate flex-1 min-w-0 py-0.5"
+                        >
+                          <MessageSquare
+                            size={13}
+                            className={`shrink-0 ${
+                              isCurrent ? 'text-primary' : 'text-muted'
+                            }`}
+                          />
+                          <span className="truncate">{session.title}</span>
+                        </Link>
 
-                    {/* Delete Session Button on Hover */}
-                    <button
-                      type="button"
-                      title="Delete chat session"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        deleteChatSession(session.id)
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted hover:text-semantic-error hover:bg-semantic-error/15 transition-all shrink-0 focus:opacity-100"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                        {/* Context Menu Button */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            title="Chat options"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setOpenMenuSessionId(
+                                openMenuSessionId === session.id
+                                  ? null
+                                  : session.id,
+                              )
+                            }}
+                            className={`p-1 rounded text-muted hover:text-ink hover:bg-surface-strong transition-all shrink-0 cursor-pointer ${
+                              openMenuSessionId === session.id
+                                ? 'opacity-100 bg-surface-strong text-ink'
+                                : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
+                            }`}
+                          >
+                            <MoreVertical size={13} />
+                          </button>
+
+                          {openMenuSessionId === session.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-20"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setOpenMenuSessionId(null)
+                                }}
+                              />
+                              <div className="absolute right-0 top-full mt-1 w-36 rounded-lg bg-surface-card border border-hairline shadow-md py-1 z-30 space-y-0.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setEditingSessionId(session.id)
+                                    setEditingTitle(session.title)
+                                    setOpenMenuSessionId(null)
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-body hover:text-ink hover:bg-surface-strong text-left cursor-pointer"
+                                >
+                                  <Edit2 size={12} className="text-muted" />
+                                  <span>Rename</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setOpenMenuSessionId(null)
+                                    deleteChatSession(session.id)
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-semantic-error hover:bg-semantic-error/10 text-left cursor-pointer"
+                                >
+                                  <Trash2 size={12} />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )
               })}

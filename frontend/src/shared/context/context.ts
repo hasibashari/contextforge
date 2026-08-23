@@ -105,6 +105,7 @@ export interface WorkspaceContextType {
   ) => Promise<void>
   createNewChatSession: () => Promise<string> | string
   switchChatSession: (sessionId: string) => void
+  renameChatSession: (sessionId: string, newTitle: string) => Promise<void>
   deleteChatSession: (sessionId: string) => Promise<void>
   setActiveArtifact: (artifact: Artifact | null) => void
   saveArtifactContent: (artifactId: string, newContent: string) => void

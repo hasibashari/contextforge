@@ -195,6 +195,27 @@ export function useChatEngine(
     [activeSessionId, showToast],
   );
 
+  const renameChatSession = useCallback(
+    async (sessionId: string, newTitle: string) => {
+      const cleanTitle = newTitle.trim();
+      if (!cleanTitle) return;
+
+      // Optimistic update
+      setChatSessions((prev) =>
+        prev.map((s) => (s.id === sessionId ? { ...s, title: cleanTitle } : s)),
+      );
+
+      try {
+        await chatApi.updateSessionTitle(sessionId, cleanTitle);
+        showToast('✏️ Title updated');
+      } catch (err: unknown) {
+        console.error('Failed to rename chat session:', err);
+        showToast('⚠️ Failed to save title update');
+      }
+    },
+    [showToast],
+  );
+
   const saveArtifactContent = useCallback(
     async (artifactId: string, newContent: string) => {
       // Optimistic update
@@ -720,6 +741,7 @@ export function useChatEngine(
     sendChatMessage,
     createNewChatSession,
     switchChatSession,
+    renameChatSession,
     deleteChatSession,
   };
 }

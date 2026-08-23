@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Body,
@@ -31,6 +32,12 @@ export class ChatController {
   @Get('sessions/:id')
   async getSessionById(@Param('id') id: string) {
     const data = await this.chatService.getSessionById(id);
+    return { success: true, data };
+  }
+
+  @Patch('sessions/:id')
+  async updateSession(@Param('id') id: string, @Body('title') title: string) {
+    const data = await this.chatService.updateSessionTitle(id, title);
     return { success: true, data };
   }
 
