@@ -98,6 +98,7 @@ export class ChatService {
       sendSse('user_message', userMsg);
 
       // Auto-update session title if it's the first message
+      let titlePromise: Promise<void> | null = null;
       const messages =
         await this.chatRepo.getMessagesBySessionId(targetSessionId);
       if (messages.length <= 2) {
@@ -109,8 +110,12 @@ export class ChatService {
           title: initialTitle,
         });
 
-        // Trigger AI Semantic Titling in background (non-blocking)
-        void this.generateSemanticTitleAsync(targetSessionId, prompt, sendSse);
+        // Trigger AI Semantic Titling concurrently
+        titlePromise = this.generateSemanticTitleAsync(
+          targetSessionId,
+          prompt,
+          sendSse,
+        );
       }
 
       // 3. Prepare compacted sliding conversation history for Gemini (Token Budget Optimization)
@@ -182,6 +187,14 @@ export class ChatService {
         prompt,
         result.textContent,
       );
+
+      // Wait for AI Semantic Titling to finish writing to SSE stream before closing
+      if (titlePromise) {
+        await Promise.race([
+          titlePromise,
+          new Promise((resolve) => setTimeout(resolve, 3500)),
+        ]).catch(() => {});
+      }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       const errorStack = err instanceof Error ? err.stack : undefined;

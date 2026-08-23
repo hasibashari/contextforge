@@ -506,25 +506,34 @@ export function useChatEngine(
         });
       };
 
+      let currentTargetSessionId = activeSessionId;
+
       try {
         await chatApi.sendMessageStream(
           activeSessionId,
           prompt.trim(),
           {
             onSessionCreated: ({ id, title, previousId }) => {
+              currentTargetSessionId = id;
               setActiveSessionId(id);
               setChatSessions((prev) =>
                 prev.map((s) =>
                   s.id === previousId || s.id === activeSessionId
-                    ? { ...s, id, title: s.title || title }
+                    ? { ...s, id, title: title || s.title }
                     : s,
                 ),
               );
             },
-            onSessionTitleUpdated: ({ title }) => {
+            onSessionTitleUpdated: ({ sessionId, title }) => {
+              const matchId = sessionId || currentTargetSessionId || activeSessionId;
               setChatSessions((prev) =>
                 prev.map((s) =>
-                  s.id === activeSessionId ? { ...s, title } : s,
+                  s.id === matchId ||
+                  (sessionId && s.id === sessionId) ||
+                  s.id === currentTargetSessionId ||
+                  s.id === activeSessionId
+                    ? { ...s, title }
+                    : s,
                 ),
               );
             },
