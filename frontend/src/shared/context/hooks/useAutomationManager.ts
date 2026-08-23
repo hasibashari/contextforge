@@ -39,6 +39,20 @@ export function useAutomationManager(
     }
   }, [])
 
+  const refreshAutomations = useCallback(async () => {
+    try {
+      const data = await automationApi.getAll()
+      setAutomations(data)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.warn('Failed to refresh automations:', msg)
+    }
+  }, [])
+
+  const addAutomationToState = useCallback((workflow: AutomationWorkflow) => {
+    setAutomations((prev) => [workflow, ...prev.filter((a) => a.id !== workflow.id)])
+  }, [])
+
   const activeAutomationsCount = useMemo(() => {
     return automations.filter((a) => a.isActive).length
   }, [automations])
@@ -213,5 +227,7 @@ export function useAutomationManager(
     deleteAutomation,
     toggleAutomationActive,
     runAutomationNow,
+    addAutomationToState,
+    refreshAutomations,
   }
 }

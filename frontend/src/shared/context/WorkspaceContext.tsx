@@ -65,7 +65,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast,
     undefined,
     setAsideOpen,
-    automationManager.createAutomation
+    automationManager.addAutomationToState
   )
 
   return (

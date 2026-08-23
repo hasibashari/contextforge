@@ -17,7 +17,7 @@ export function useChatEngine(
   showToast: (msg: string) => void,
   setActivities?: React.Dispatch<React.SetStateAction<ActivityLogEntry[]>>,
   setIsAsideOpen?: (open: boolean) => void,
-  createAutomation?: (data: Omit<AutomationWorkflow, 'id' | 'totalRuns' | 'createdAt'>) => Promise<AutomationWorkflow> | AutomationWorkflow,
+  addAutomationToState?: (automation: AutomationWorkflow) => void,
 ) {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
@@ -471,7 +471,12 @@ export function useChatEngine(
         const durationMs = Date.now() - streamStartTime;
         const fallback = generateGeneralReasoningOutput(prompt);
         if (fallback.createdAutomation) {
-          createAutomation?.(fallback.createdAutomation);
+          addAutomationToState?.({
+            ...fallback.createdAutomation,
+            id: `auto-${Date.now()}`,
+            totalRuns: 0,
+            createdAt: new Date().toISOString(),
+          });
         }
         setChatSessions((prev) =>
           prev.map((session) =>
@@ -616,7 +621,7 @@ export function useChatEngine(
               showToast(`📦 Catatan Berhasil Dibuat: ${createdArtifact.title}`);
             },
             onAutomationCreated: (createdAuto) => {
-              createAutomation?.(createdAuto);
+              addAutomationToState?.(createdAuto);
               showToast(`⏰ Automation Scheduled: "${createdAuto.name}"`);
             },
             onAssistantMessage: (backendMsg) => {
@@ -679,7 +684,7 @@ export function useChatEngine(
     },
     [
       activeSessionId,
-      createAutomation,
+      addAutomationToState,
       isGeneratingResponse,
       selectedAgentMode,
       setActivities,

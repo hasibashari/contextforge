@@ -18,19 +18,19 @@ export const KnowledgeSourceCard: React.FC<KnowledgeSourceCardProps> = ({
       return `/${source.subfolderScope}`
     }
     if (source.type === 'obsidian_vault') {
-      return 'Obsidian Vault'
+      return 'Obsidian Vault · Semantic Vector RAG (Read-Only)'
     }
     if (source.type === 'local_folder') {
-      return 'Paired Local Folder'
+      return 'Paired Local Folder · Vector Grounding'
     }
     if (source.type === 'document_upload') {
-      return 'Uploaded Documents'
+      return 'Uploaded Documents · Semantic Embeddings'
     }
     if (source.type === 'github_repo') {
-      return 'GitHub Repository'
+      return 'GitHub Repository · Codebase Grounding'
     }
     if (source.type === 'database_schema') {
-      return 'PostgreSQL Schema'
+      return 'PostgreSQL Schema · DDL Context'
     }
     return source.location
   }
@@ -60,7 +60,12 @@ export const KnowledgeSourceCard: React.FC<KnowledgeSourceCardProps> = ({
       description={source.description}
       badge={getBadgeLabel()}
       badgeVariant={getBadgeVariant()}
-      metaLine={`${source.filesCount} Files · ${source.chunksCount} Chunks · ${source.lastSynced}`}
+      metaLine={
+        <div className="flex items-center justify-between w-full">
+          <span>{source.filesCount} Files · {source.chunksCount} Chunks</span>
+          <span className="text-primary font-medium">1536-dim RAG (Read-Only)</span>
+        </div>
+      }
       actionIcon={
         isSyncing ? (
           <Loader2 size={16} className="animate-spin text-primary" />

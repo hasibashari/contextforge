@@ -48,7 +48,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
                 ) : (
                   <span className="flex items-center gap-1">
                     <Terminal size={11} className="text-[#7c3aed]" />
-                    <span>stdio (Local)</span>
+                    <span>stdio (Local Action Bridge)</span>
                   </span>
                 )}
                 <span>·</span>
@@ -85,7 +85,10 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
       <div className="pt-4 mt-4 border-t border-hairline/60 flex items-center justify-between gap-2">
         <div className="text-[11px] font-mono text-muted flex items-center gap-2">
           <span className="font-semibold text-ink">
-            {integration.tools.length} Tools
+            {integration.tools.length} Action Tools
+          </span>
+          <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-sans font-medium">
+            Read & Write Engine
           </span>
           {isConnected && integration.latencyMs > 0 && (
             <>

@@ -41,7 +41,7 @@ export default function DashboardSidebar({
     { path: '/dashboard', label: 'Workspace Chat', icon: MessageSquare },
     {
       path: '/agents',
-      label: 'Agents & Personas',
+      label: 'Agents & Skills',
       icon: Bot,
       badge: `${agents.length}`,
       badgeColor: 'bg-surface-strong text-body',
@@ -55,7 +55,7 @@ export default function DashboardSidebar({
     },
     {
       path: '/integrations',
-      label: 'MCP Servers & Skills',
+      label: 'MCP Protocol Servers',
       icon: Cpu,
       badge: `${integrations.length}`,
       badgeColor: 'bg-primary/10 text-primary font-semibold',

@@ -12,7 +12,11 @@ import {
   AlertCircle,
   Loader2,
   ShieldAlert,
-  FileText,
+  BookOpen,
+  Layers,
+  Globe,
+  GitBranch,
+  Plug,
 } from 'lucide-react'
 import type { AutomationWorkflow } from '@/shared/types/workspace'
 
@@ -25,6 +29,97 @@ interface AutomationCardProps {
   onDelete: (id: string) => void
 }
 
+interface ServiceTag {
+  id: string
+  label: string
+  icon: React.ReactNode
+  colorClass: string
+}
+
+function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
+  const tags: ServiceTag[] = []
+  const serverId = (workflow.mcpServerId || '').toLowerCase()
+  const tools = (workflow.mcpTools || []).map((t) => t.toLowerCase())
+  const name = workflow.name.toLowerCase()
+  const desc = workflow.description.toLowerCase()
+
+  // 1. Obsidian Vault
+  if (
+    serverId.includes('obsidian') ||
+    tools.some((t) => t.includes('obsidian')) ||
+    name.includes('obsidian') ||
+    desc.includes('obsidian')
+  ) {
+    tags.push({
+      id: 'obsidian',
+      label: 'Obsidian Vault',
+      icon: <BookOpen size={11} />,
+      colorClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+    })
+  }
+
+  // 2. Notion Workspace
+  if (
+    serverId.includes('notion') ||
+    tools.some((t) => t.includes('notion')) ||
+    name.includes('notion') ||
+    desc.includes('notion')
+  ) {
+    tags.push({
+      id: 'notion',
+      label: 'Notion MCP',
+      icon: <Layers size={11} />,
+      colorClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    })
+  }
+
+  // 3. Web Grounding / Internet Search
+  if (
+    tools.some((t) => t.includes('web_search') || t.includes('search')) ||
+    name.includes('berita') ||
+    name.includes('news') ||
+    desc.includes('web') ||
+    desc.includes('internet')
+  ) {
+    tags.push({
+      id: 'web-search',
+      label: 'Web Grounding',
+      icon: <Globe size={11} />,
+      colorClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    })
+  }
+
+  // 4. GitHub / Git
+  if (
+    serverId.includes('github') ||
+    tools.some((t) => t.includes('git')) ||
+    name.includes('github') ||
+    desc.includes('github')
+  ) {
+    tags.push({
+      id: 'github',
+      label: 'GitHub MCP',
+      icon: <GitBranch size={11} />,
+      colorClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20',
+    })
+  }
+
+  // 5. Generic Custom MCP Connector
+  if (
+    tags.length === 0 &&
+    (workflow.mcpServerId || (workflow.mcpTools && workflow.mcpTools.length > 0))
+  ) {
+    tags.push({
+      id: 'custom-mcp',
+      label: workflow.mcpServerId ? 'MCP Server' : 'MCP Tools',
+      icon: <Plug size={11} />,
+      colorClass: 'bg-surface-strong text-muted border-hairline',
+    })
+  }
+
+  return tags
+}
+
 export function AutomationCard({
   workflow,
   isRunning,
@@ -34,11 +129,7 @@ export function AutomationCard({
   onDelete,
 }: AutomationCardProps) {
   const [showMenu, setShowMenu] = useState(false)
-
-  const isObsidian =
-    workflow.mcpServerId?.includes('obsidian') ||
-    workflow.mcpTools.some((t) => t.includes('obsidian')) ||
-    workflow.name.toLowerCase().includes('obsidian')
+  const serviceTags = getServiceTags(workflow)
 
   const formatLastRun = (timestamp?: string) => {
     if (!timestamp) return 'Never executed'
@@ -56,7 +147,7 @@ export function AutomationCard({
           : 'border-hairline/60 opacity-75 bg-canvas-soft'
       }`}
     >
-      {/* Top Header: Trigger Badge, Title, Menu & Toggle */}
+      {/* Top Header: Trigger Badge, Service Tags, Guardrails, Menu & Toggle */}
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
@@ -78,13 +169,16 @@ export function AutomationCard({
               </span>
             )}
 
-            {/* Obsidian Protocol Tag */}
-            {isObsidian && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                <FileText size={11} />
-                <span>Obsidian MCP</span>
+            {/* Dynamic Ecosystem / Service Tags */}
+            {serviceTags.map((tag) => (
+              <span
+                key={tag.id}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${tag.colorClass}`}
+              >
+                {tag.icon}
+                <span>{tag.label}</span>
               </span>
-            )}
+            ))}
 
             {/* Guardrail Badge */}
             {workflow.guardrailStrictHITL && (

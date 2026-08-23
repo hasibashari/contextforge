@@ -44,8 +44,8 @@ export class AutomationToolHandler {
         ? ['notion_get_tasks', 'notion_read_page', 'notion_search']
         : [
             'obsidian_create_daily_note',
-            'obsidian_vault_writer',
-            'obsidian_vault_reader',
+            'obsidian_write_note',
+            'obsidian_read_note',
           ]);
     const description =
       args.description ||
