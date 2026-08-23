@@ -54,7 +54,7 @@ export class AutomationToolHandler {
       args.prompt_template ||
       `Tinjau seluruh data dan tugas terkait dari konektor MCP (${mcpServerId}). Buatkan ringkasan prioritas tinggi untuk hari ini ({{today}}).`;
 
-    const agentId = 'agent-conversational';
+    const agentId = 'agent-personal-assistant';
     const agentName = 'Personal Assistant Agent';
 
     emit({

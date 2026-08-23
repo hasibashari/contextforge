@@ -142,7 +142,7 @@ export class AutomationService {
             }
           }
         },
-        workflow.agent_id || 'agent-conversational',
+        workflow.agent_id || 'agent-personal-assistant',
       );
 
       outputSummary =

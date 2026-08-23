@@ -1,9 +1,9 @@
 # Entity Relationship Diagram (ERD) & Database Specification: ContextForge
 
-> **Document Version:** 2.0.0  
+> **Document Version:** 2.1.0  
 > **Database Engine:** PostgreSQL 16+ / Google Cloud SQL  
 > **Extensions:** `uuid-ossp` (UUID v4), `pgcrypto` (Kredensial Vault Enkripsi), `vector` (`pgvector` untuk Semantic RAG)  
-> **Data Access Pattern:** Native SQL via Node `pg` Pool (Zero ORM overhead)
+> **Data Access Pattern:** Native SQL via Node `pg` Pool (Zero ORM overhead, Multi-Environment Resilient)
 
 ---
 
@@ -35,37 +35,42 @@ erDiagram
     USERS ||--o{ ACTIVITY_LOGS : "records"
     USERS ||--o{ WORKSPACE_CONNECTIONS : "configures"
 
-    %% 5. Ecosystem Domain (2. MCP, 3. Skill, 4. Connection, 5. Agent)
+    %% 5. Autonomous Workflows & Triggers Domain
+    AUTOMATIONS ||--o{ AUTOMATION_RUNS : "executes"
+    WORKSPACE_AGENTS ||--o{ AUTOMATIONS : "powers"
+    WORKSPACE_INTEGRATIONS ||--o{ AUTOMATIONS : "provides tools"
+
+    %% 6. Ecosystem Domain (2. MCP, 3. Skill, 4. Connection, 5. Agent)
     WORKSPACE_AGENTS ||--o{ TASKS : "executes"
     WORKSPACE_INTEGRATIONS ||--o{ TOOL_CALLS : "provides tool"
     WORKSPACE_CONNECTIONS ||--o{ WORKSPACE_INTEGRATIONS : "authenticates"
     WORKSPACE_CONNECTIONS ||--o{ WORKSPACE_AGENTS : "powers reasoning"
 
     CHAT_SESSIONS {
-        uuid id PK
+        varchar id PK
         uuid user_id FK
         varchar title
-        uuid active_artifact_id FK
+        varchar active_artifact_id FK
         timestamp created_at
         timestamp updated_at
     }
 
     CHAT_MESSAGES {
-        uuid id PK
-        uuid session_id FK
+        varchar id PK
+        varchar session_id FK
         varchar role
         text content
         jsonb intent
         jsonb side_agent
         jsonb action_card
-        uuid artifact_id FK
+        varchar artifact_id FK
         text_array source_domains
         timestamp created_at
     }
 
     ARTIFACTS {
-        uuid id PK
-        uuid session_id FK
+        varchar id PK
+        varchar session_id FK
         varchar type
         varchar title
         text content
@@ -80,8 +85,8 @@ erDiagram
     }
 
     SIDE_AGENT_EXECUTIONS {
-        uuid id PK
-        uuid message_id FK
+        varchar id PK
+        varchar message_id FK
         varchar agent_id
         varchar agent_name
         varchar agent_role
@@ -96,12 +101,12 @@ erDiagram
         text summary
         text_array files_modified
         text diff_preview
-        uuid artifact_id FK
+        varchar artifact_id FK
         timestamp created_at
     }
 
     TASKS {
-        uuid id PK
+        varchar id PK
         varchar title
         text objective
         varchar repo
@@ -117,8 +122,8 @@ erDiagram
     }
 
     EXECUTION_STEPS {
-        uuid id PK
-        uuid task_id FK
+        varchar id PK
+        varchar task_id FK
         varchar stage
         varchar title
         varchar status
@@ -128,8 +133,8 @@ erDiagram
     }
 
     TOOL_CALLS {
-        uuid id PK
-        uuid step_id FK
+        varchar id PK
+        varchar step_id FK
         varchar tool_name
         varchar category
         text description
@@ -141,7 +146,7 @@ erDiagram
     }
 
     CALENDAR_EVENTS {
-        uuid id PK
+        varchar id PK
         uuid user_id FK
         varchar title
         date event_date
@@ -155,17 +160,17 @@ erDiagram
     }
 
     USER_MEMORIES {
-        uuid id PK
+        varchar id PK
         uuid user_id FK
         varchar category
         varchar key
         text value
-        vector embedding
+        jsonb embedding
         timestamp updated_at
     }
 
     KNOWLEDGE_SOURCES {
-        uuid id PK
+        varchar id PK
         uuid user_id FK
         varchar type
         varchar name
@@ -178,16 +183,58 @@ erDiagram
         varchar icon_type
         varchar color
         timestamp last_synced
+        timestamp created_at
+        timestamp updated_at
     }
 
     KNOWLEDGE_CHUNKS {
-        uuid id PK
-        uuid source_id FK
+        varchar id PK
+        varchar source_id FK
         text file_path
         integer chunk_index
         text chunk_content
-        vector embedding
+        jsonb embedding
         jsonb metadata
+        timestamp created_at
+    }
+
+    AUTOMATIONS {
+        varchar id PK
+        varchar name
+        text description
+        varchar agent_id FK
+        varchar agent_name
+        varchar mcp_server_id FK
+        text_array mcp_tools
+        varchar trigger_type
+        varchar schedule_cron
+        varchar schedule_label
+        varchar event_source
+        text prompt_template
+        boolean guardrail_strict_hitl
+        boolean is_active
+        timestamp last_run_at
+        varchar last_run_status
+        integer total_runs
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    AUTOMATION_RUNS {
+        varchar id PK
+        varchar workflow_id FK
+        varchar workflow_name
+        varchar agent_id
+        varchar agent_name
+        varchar trigger_source
+        varchar status
+        timestamp started_at
+        timestamp completed_at
+        integer duration_ms
+        jsonb tokens_used
+        jsonb steps
+        text output_summary
+        text output_artifact_url
         timestamp created_at
     }
 
@@ -251,6 +298,8 @@ erDiagram
         text endpoint
         varchar version
         varchar transport
+        varchar auth_type
+        jsonb auth_config
         text description
         jsonb tools
         integer last_ping_ms
@@ -261,9 +310,9 @@ erDiagram
     }
 
     ACTIVITY_LOGS {
-        uuid id PK
+        varchar id PK
         uuid user_id FK
-        uuid task_id FK
+        varchar task_id FK
         varchar task_title
         varchar agent_id
         varchar agent_name
@@ -286,10 +335,10 @@ Menyimpan riwayat sesi obrolan antara user dan AI.
 
 | Kolom | Tipe Data | Constraint | Keterangan |
 | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | `PRIMARY KEY`, Default `uuid_generate_v4()` | ID unik sesi chat |
-| `user_id` | `UUID` | `NULLABLE` | Kepemilikan sesi |
+| `id` | `VARCHAR(100)` | `PRIMARY KEY`, Default `gen_random_uuid()::text` | ID unik sesi chat |
+| `user_id` | `UUID` | `NULLABLE` | Kepemilikan sesi user |
 | `title` | `VARCHAR(255)` | `NOT NULL` | Judul sesi (auto-generated dari prompt pertama) |
-| `active_artifact_id` | `UUID` | `NULLABLE`, `FK -> artifacts(id)` | ID artifact yang sedang dibuka di Aside Panel |
+| `active_artifact_id` | `VARCHAR(100)` | `NULLABLE`, `FK -> artifacts(id)` | ID artifact yang sedang aktif dibuka di Aside Panel |
 | `created_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu pembuatan |
 | `updated_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu update terakhir |
 
@@ -298,14 +347,14 @@ Menyimpan pesan individual, payload fungsi tool, intent, dan status side agent.
 
 | Kolom | Tipe Data | Constraint | Keterangan |
 | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | `PRIMARY KEY`, Default `uuid_generate_v4()` | ID unik pesan |
-| `session_id` | `UUID` | `NOT NULL`, `FK -> chat_sessions(id) ON DELETE CASCADE` | Relasi ke sesi chat |
+| `id` | `VARCHAR(100)` | `PRIMARY KEY`, Default `gen_random_uuid()::text` | ID unik pesan |
+| `session_id` | `VARCHAR(100)` | `NOT NULL`, `FK -> chat_sessions(id) ON DELETE CASCADE` | Relasi ke sesi chat |
 | `role` | `VARCHAR(20)` | `CHECK (role IN ('user', 'assistant', 'system'))` | Pengirim pesan |
 | `content` | `TEXT` | `NOT NULL` | Isi pesan teks (Markdown) |
 | `intent` | `JSONB` | `NULLABLE` | Metadata intent AI & badge ringkasan |
 | `side_agent` | `JSONB` | `NULLABLE` | Snapshot status eksekusi worker |
 | `action_card` | `JSONB` | `NULLABLE` | Kartu aksi interaktif (Obsidian, PR, Calendar) |
-| `artifact_id` | `UUID` | `NULLABLE`, `FK -> artifacts(id) ON DELETE SET NULL` | Relasi dokumen deliverable |
+| `artifact_id` | `VARCHAR(100)` | `NULLABLE`, `FK -> artifacts(id) ON DELETE SET NULL` | Relasi dokumen deliverable |
 | `source_domains` | `TEXT[]` | `NULLABLE` | Domain referensi pencarian web/RAG |
 | `created_at` | `TIMESTAMPTZ` | Default `NOW()` | Timestamp pengiriman |
 
@@ -314,8 +363,8 @@ Menyimpan dokumen Markdown, patch diff, event agenda, dan aset visual yang diren
 
 | Kolom | Tipe Data | Constraint | Keterangan |
 | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | `PRIMARY KEY`, Default `uuid_generate_v4()` | ID unik artifact |
-| `session_id` | `UUID` | `NULLABLE`, `FK -> chat_sessions(id) ON DELETE SET NULL` | Sesi tempat artifact dibuat |
+| `id` | `VARCHAR(100)` | `PRIMARY KEY`, Default `gen_random_uuid()::text` | ID unik artifact |
+| `session_id` | `VARCHAR(100)` | `NULLABLE`, `FK -> chat_sessions(id) ON DELETE SET NULL` | Sesi tempat artifact dibuat |
 | `type` | `VARCHAR(50)` | `CHECK (type IN ('markdown_doc', 'code_patch', 'reminder_event', 'search_synthesis', 'image_asset'))` | Kategori dokumen |
 | `title` | `VARCHAR(255)` | `NOT NULL` | Judul dokumen/file |
 | `content` | `TEXT` | `NOT NULL` | Isi teks dokumen mentah |
@@ -337,8 +386,8 @@ Melacak eksekusi pekerja mandiri terisolasi (*ephemeral worker*).
 
 | Kolom | Tipe Data | Constraint | Keterangan |
 | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | `PRIMARY KEY`, Default `uuid_generate_v4()` | ID unik log eksekusi worker |
-| `message_id` | `UUID` | `NULLABLE`, `FK -> chat_messages(id)` | Pesan pemicu |
+| `id` | `VARCHAR(100)` | `PRIMARY KEY`, Default `gen_random_uuid()::text` | ID unik log eksekusi worker |
+| `message_id` | `VARCHAR(100)` | `NULLABLE`, `FK -> chat_messages(id)` | Pesan pemicu |
 | `agent_id` | `VARCHAR(100)` | `NOT NULL` | Identifier agen pekerja |
 | `agent_name` | `VARCHAR(150)` | `NOT NULL` | Nama agen pekerja |
 | `agent_role` | `VARCHAR(150)` | `NOT NULL` | Peran agen |
@@ -353,11 +402,14 @@ Melacak eksekusi pekerja mandiri terisolasi (*ephemeral worker*).
 | `summary` | `TEXT` | `NOT NULL` | Ringkasan hasil |
 | `files_modified` | `TEXT[]` | `NULLABLE` | Daftar path file yang dimodifikasi |
 | `diff_preview` | `TEXT` | `NULLABLE` | Pratinjau diff |
-| `artifact_id` | `UUID` | `NULLABLE`, `FK -> artifacts(id)` | Relasi artifact hasil |
+| `artifact_id` | `VARCHAR(100)` | `NULLABLE`, `FK -> artifacts(id)` | Relasi artifact hasil |
 | `created_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu eksekusi |
 
 #### B. Tabel `tasks`, `execution_steps`, & `tool_calls`
-Menyimpan struktur orkestrasi tugas multi-langkah dan catatan pemanggilan tool terperinci.
+
+* **`tasks`**: Menyimpan siklus hidup tugas orkestrasi agen multi-langkah (`planning`, `context_retrieval`, `tool_execution`, `validation`, `deliverable`).
+* **`execution_steps`**: Langkah demi langkah eksekusi rencana tugas bersangkutan.
+* **`tool_calls`**: Catatan telemetri pemanggilan tool eksternal (durasi ms, payload input/output).
 
 ---
 
@@ -368,7 +420,7 @@ Menyimpan registrasi multi-sumber pengetahuan (*Obsidian Vault, GitHub Repositor
 
 | Kolom | Tipe Data | Constraint | Keterangan |
 | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | `PRIMARY KEY`, Default `uuid_generate_v4()` | ID sumber pengetahuan |
+| `id` | `VARCHAR(100)` | `PRIMARY KEY`, Default `gen_random_uuid()::text` | ID sumber pengetahuan |
 | `user_id` | `UUID` | `NULLABLE` | Pemilik sumber |
 | `type` | `VARCHAR(50)` | `NOT NULL` | Tipe (`obsidian_vault`, `document_upload`, `local_folder`, `github_repo`, dll.) |
 | `name` | `VARCHAR(255)` | `NOT NULL` | Nama sumber |
@@ -381,24 +433,76 @@ Menyimpan registrasi multi-sumber pengetahuan (*Obsidian Vault, GitHub Repositor
 | `icon_type` | `VARCHAR(50)` | Default `'file'` | Tipe ikon visual |
 | `color` | `VARCHAR(50)` | Default `'text-primary'` | Warna aksen UI |
 | `last_synced` | `TIMESTAMPTZ` | Default `NOW()` | Waktu sinkronisasi terakhir |
+| `created_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu registrasi |
+| `updated_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu modifikasi |
 
 #### B. Tabel `knowledge_chunks`
 Menyimpan pecahan teks dan vektor embedding 768 dimensi (*Google text-embedding-004*).
 
 | Kolom | Tipe Data | Constraint | Keterangan |
 | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | `PRIMARY KEY`, Default `uuid_generate_v4()` | ID unik chunk |
-| `source_id` | `UUID` | `NOT NULL`, `FK -> knowledge_sources(id) ON DELETE CASCADE` | Sumber induk |
+| `id` | `VARCHAR(100)` | `PRIMARY KEY`, Default `gen_random_uuid()::text` | ID unik chunk |
+| `source_id` | `VARCHAR(100)` | `NOT NULL`, `FK -> knowledge_sources(id) ON DELETE CASCADE` | Sumber induk |
 | `file_path` | `TEXT` | `NOT NULL` | Path file asal |
 | `chunk_index` | `INTEGER` | `NOT NULL` | Urutan indeks chunk |
 | `chunk_content` | `TEXT` | `NOT NULL` | Konten teks mentah chunk |
-| `embedding` | `VECTOR(768)` | `NOT NULL` | Vektor embedding semantik |
+| `embedding` | `JSONB` / `VECTOR(768)` | `NULLABLE` | Vektor embedding semantik |
 | `metadata` | `JSONB` | `NULLABLE` | Metadata posisi token & heading |
 | `created_at` | `TIMESTAMPTZ` | Default `NOW()` | Timestamp indeks |
 
 ---
 
-### 2.4 Domain Connections & Kredensial Eksternal (4. Connection)
+### 2.4 Domain Autonomous Workflows & Automation Trigger
+
+#### A. Tabel `automations`
+Menyimpan jadwal dan trigger alur kerja otomatis mandiri (*Scheduled CRON, Webhook Event, Manual Trigger*).
+
+| Kolom | Tipe Data | Constraint | Keterangan |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(100)` | `PRIMARY KEY` | ID workflow otomatis |
+| `name` | `VARCHAR(255)` | `NOT NULL` | Nama automasi |
+| `description` | `TEXT` | `NOT NULL` | Deskripsi automasi |
+| `agent_id` | `VARCHAR(100)` | `NOT NULL` | Agen penanggung jawab eksekusi |
+| `agent_name` | `VARCHAR(150)` | `NULLABLE` | Nama agen |
+| `mcp_server_id` | `VARCHAR(100)` | `NULLABLE` | ID server MCP yang dilibatkan |
+| `mcp_tools` | `TEXT[]` | Default `'{}'` | Daftar tools MCP yang diizinkan |
+| `trigger_type` | `VARCHAR(50)` | `CHECK (trigger_type IN ('schedule', 'event', 'manual'))` | Jenis pemicu alur kerja |
+| `schedule_cron` | `VARCHAR(100)` | `NULLABLE` | Ekspresi CRON (misal: `0 8 * * 1-5`) |
+| `schedule_label`| `VARCHAR(150)` | `NULLABLE` | Label human-readable jadwal |
+| `event_source` | `VARCHAR(100)` | `NULLABLE` | Sumber event eksternal (misal: `github:push`) |
+| `prompt_template`| `TEXT` | `NOT NULL` | Prompt instruksi eksekusi berulang |
+| `guardrail_strict_hitl`| `BOOLEAN` | Default `false` | Human-In-The-Loop Approval requirement |
+| `is_active` | `BOOLEAN` | Default `true` | Status aktifasi automasi |
+| `last_run_at` | `TIMESTAMPTZ` | `NULLABLE` | Waktu eksekusi terakhir |
+| `last_run_status` | `VARCHAR(30)` | Default `'idle'` | Status run terakhir |
+| `total_runs` | `INTEGER` | Default `0` | Total kali dieksekusi |
+| `created_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu dibuat |
+| `updated_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu diubah |
+
+#### B. Tabel `automation_runs`
+Menyimpan riwayat eksekusi setiap putaran automasi.
+
+| Kolom | Tipe Data | Constraint | Keterangan |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(100)` | `PRIMARY KEY` | ID unik riwayat run |
+| `workflow_id` | `VARCHAR(100)` | `FK -> automations(id) ON DELETE CASCADE` | ID automasi induk |
+| `workflow_name` | `VARCHAR(255)` | `NOT NULL` | Nama automasi saat run |
+| `agent_id` | `VARCHAR(100)` | `NOT NULL` | ID agen pelaksana |
+| `agent_name` | `VARCHAR(150)` | `NOT NULL` | Nama agen pelaksana |
+| `trigger_source` | `VARCHAR(150)` | `NOT NULL` | Pemicu eksekusi saat itu |
+| `status` | `VARCHAR(30)` | `CHECK (status IN ('idle', 'running', 'success', 'failed'))` | Status hasil run |
+| `started_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu mulai |
+| `completed_at` | `TIMESTAMPTZ` | `NULLABLE` | Waktu selesai |
+| `duration_ms` | `INTEGER` | Default `0` | Durasi eksekusi (ms) |
+| `tokens_used` | `JSONB` | Default `'{}'` | Konsumsi token |
+| `steps` | `JSONB` | Default `'[]'` | Rincian langkah eksekusi |
+| `output_summary`| `TEXT` | `NOT NULL` | Ringkasan hasil |
+| `output_artifact_url` | `TEXT` | `NULLABLE` | Tautan artifact yang dihasilkan |
+| `created_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu pencatatan |
+
+---
+
+### 2.5 Domain Connections & Kredensial Eksternal (4. Connection)
 
 #### A. Tabel `workspace_connections`
 Mengelola kredensial terenkripsi untuk Provider LLM, OAuth Service eksternal, Database, dan Remote MCP server.
@@ -420,7 +524,7 @@ Mengelola kredensial terenkripsi untuk Provider LLM, OAuth Service eksternal, Da
 
 ---
 
-### 2.5 Domain Ecosystem (2. MCP, 3. Skill, 5. Agent)
+### 2.6 Domain Ecosystem (2. MCP, 3. Skill, 5. Agent)
 
 #### A. Tabel `workspace_agents`
 Menyimpan konfigurasi persona, model reasoning, hak akses, dan daftar tool/skill yang ditugaskan.
@@ -430,7 +534,7 @@ Menyimpan konfigurasi persona, model reasoning, hak akses, dan daftar tool/skill
 | `id` | `VARCHAR(100)` | `PRIMARY KEY` | ID unik agen (contoh: `agent-orchestrator-core`) |
 | `name` | `VARCHAR(150)` | `NOT NULL` | Nama agen |
 | `role` | `VARCHAR(150)` | `NOT NULL` | Peran agen |
-| `agent_type` | `VARCHAR(50)` | `CHECK (agent_type IN ('orchestrator', 'execution_worker', 'planner'))` | Tipe peran arsitektur |
+| `agent_type` | `VARCHAR(50)` | `CHECK (agent_type IN ('orchestrator', 'researcher'))` | Tipe peran arsitektur |
 | `permissions` | `VARCHAR(50)` | `CHECK (permissions IN ('read_only', 'sandbox_write', 'full_system'))` | Batas hak akses keamanan |
 | `description` | `TEXT` | `NOT NULL` | Deskripsi fungsionalitas |
 | `avatar_color` | `VARCHAR(50)` | Default `'bg-primary'` | Warna aksen UI |
@@ -454,7 +558,7 @@ Menyimpan katalog Standard Operating Procedure (SOP) dan petunjuk langkah demi l
 | `id` | `VARCHAR(100)` | `PRIMARY KEY` | ID unik SOP (contoh: `skill-obsidian-vault-synthesis`) |
 | `name` | `VARCHAR(150)` | `NOT NULL` | Nama SOP |
 | `description` | `TEXT` | `NOT NULL` | Deskripsi singkat |
-| `category` | `VARCHAR(50)` | `CHECK (category IN ('engineering', 'security', 'knowledge', 'productivity'))` | Kategori domain |
+| `category` | `VARCHAR(50)` | `CHECK (category IN ('architecture', 'engineering', 'security', 'knowledge', 'productivity', 'database', 'qa_testing'))` | Kategori domain |
 | `icon` | `VARCHAR(50)` | Default `'sparkles'` | Ikon visual |
 | `sop_summary` | `TEXT` | `NOT NULL` | Ringkasan prosedur |
 | `instructions` | `TEXT` | `NOT NULL` | Instruksi langkah demi langkah SOP |
@@ -464,19 +568,20 @@ Menyimpan katalog Standard Operating Procedure (SOP) dan petunjuk langkah demi l
 | `created_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu dibuat |
 | `updated_at` | `TIMESTAMPTZ` | Default `NOW()` | Waktu diubah |
 
-#### C. Tabel `workspace_integrations` (2. MCP)
+#### C. Tabel `workspace_integrations` (2. MCP Server)
 Menyimpan registrasi server MCP Connector dan daftar tool yang diekspos ke AI.
 
 | Kolom | Tipe Data | Constraint | Keterangan |
 | :--- | :--- | :--- | :--- |
 | `id` | `VARCHAR(100)` | `PRIMARY KEY` | ID unik MCP Server (contoh: `int-obsidian-vault-mcp`) |
-| `connection_id` | `VARCHAR(100)` | `NULLABLE`, `FK -> workspace_connections(id)` | Relasi kredensial koneksi |
 | `name` | `VARCHAR(150)` | `NOT NULL` | Nama server MCP |
-| `category` | `VARCHAR(50)` | `CHECK (category IN ('engineering', 'security', 'knowledge', 'productivity'))` | Kategori |
+| `category` | `VARCHAR(50)` | Default `'mcp_server'` | Kategori integrasi |
 | `status` | `VARCHAR(30)` | `CHECK (status IN ('connected', 'disconnected', 'error'))` | Status konektivitas |
-| `endpoint` | `TEXT` | `NOT NULL` | Endpoint STDIO command atau URL SSE |
+| `endpoint` | `TEXT` | `NOT NULL` | Endpoint STDIO command atau URL HTTP/SSE |
 | `version` | `VARCHAR(50)` | Default `'v1.0.0'` | Versi server |
-| `transport` | `VARCHAR(20)` | `CHECK (transport IN ('stdio', 'sse', 'rest'))` | Protokol transport |
+| `transport` | `VARCHAR(30)` | `CHECK (transport IN ('stdio', 'streamable_http', 'sse', 'rest'))` | Protokol transport |
+| `auth_type` | `VARCHAR(30)` | `CHECK (auth_type IN ('none', 'bearer', 'oauth', 'api_key'))` | Tipe otentikasi server |
+| `auth_config` | `JSONB` | Default `'{}'` | Konfigurasi otentikasi |
 | `description` | `TEXT` | `NOT NULL` | Deskripsi server |
 | `tools` | `JSONB` | Default `'[]'` | Skema tools yang disediakan (`McpTool[]`) |
 | `last_ping_ms` | `INTEGER` | Default `12` | Latensi ping terakhir |
@@ -491,14 +596,16 @@ Menyimpan registrasi server MCP Connector dan daftar tool yang diekspos ke AI.
 
 ```sql
 -- =====================================================================
--- ContextForge: Native PostgreSQL Schema Definition (v2.0.0)
+-- ContextForge: Native PostgreSQL Schema Definition (v2.1.0)
+-- Multi-environment resilient schema (Local Dev & Google Cloud SQL)
 -- Based on 5 Pillars: Knowledge, MCP, Skills, Connections, Agents
 -- =====================================================================
 
--- 1. Ekstensi
+-- 1. Inisialisasi Ekstensi Wajib
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Inisialisasi pgvector jika tersedia di sistem
 DO $$ 
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'vector') THEN
@@ -506,19 +613,19 @@ BEGIN
     END IF;
 END $$;
 
--- 2. Domain Percakapan & Artifact
+-- 2. Entitas Sesi & Pesan Percakapan
 CREATE TABLE IF NOT EXISTS chat_sessions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
     title VARCHAR(255) NOT NULL,
-    active_artifact_id UUID,
+    active_artifact_id VARCHAR(100),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS artifacts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    session_id UUID REFERENCES chat_sessions(id) ON DELETE SET NULL,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    session_id VARCHAR(100) REFERENCES chat_sessions(id) ON DELETE SET NULL,
     type VARCHAR(50) NOT NULL CHECK (type IN ('markdown_doc', 'code_patch', 'reminder_event', 'search_synthesis', 'image_asset')),
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
@@ -532,27 +639,28 @@ CREATE TABLE IF NOT EXISTS artifacts (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Foreign Key sirkular aman: Update chat_sessions ref ke artifacts
 ALTER TABLE chat_sessions 
     DROP CONSTRAINT IF EXISTS fk_active_artifact,
     ADD CONSTRAINT fk_active_artifact FOREIGN KEY (active_artifact_id) REFERENCES artifacts(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS chat_messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    session_id VARCHAR(100) NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
     role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
     content TEXT NOT NULL,
     intent JSONB,
     side_agent JSONB,
     action_card JSONB,
-    artifact_id UUID REFERENCES artifacts(id) ON DELETE SET NULL,
+    artifact_id VARCHAR(100) REFERENCES artifacts(id) ON DELETE SET NULL,
     source_domains TEXT[],
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Domain Side Agent & Task Orchestration
+-- 3. Entitas Side Agent & Task Orchestration
 CREATE TABLE IF NOT EXISTS side_agent_executions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    message_id UUID REFERENCES chat_messages(id) ON DELETE SET NULL,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    message_id VARCHAR(100) REFERENCES chat_messages(id) ON DELETE SET NULL,
     agent_id VARCHAR(100) NOT NULL,
     agent_name VARCHAR(150) NOT NULL,
     agent_role VARCHAR(150) NOT NULL,
@@ -567,12 +675,12 @@ CREATE TABLE IF NOT EXISTS side_agent_executions (
     summary TEXT NOT NULL,
     files_modified TEXT[],
     diff_preview TEXT,
-    artifact_id UUID REFERENCES artifacts(id) ON DELETE SET NULL,
+    artifact_id VARCHAR(100) REFERENCES artifacts(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     title VARCHAR(255) NOT NULL,
     objective TEXT NOT NULL,
     repo VARCHAR(255) DEFAULT '',
@@ -588,8 +696,8 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 CREATE TABLE IF NOT EXISTS execution_steps (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    task_id VARCHAR(100) NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     stage VARCHAR(30) NOT NULL,
     title VARCHAR(255) NOT NULL,
     status VARCHAR(30) NOT NULL CHECK (status IN ('pending', 'in_progress', 'completed', 'failed')),
@@ -599,8 +707,8 @@ CREATE TABLE IF NOT EXISTS execution_steps (
 );
 
 CREATE TABLE IF NOT EXISTS tool_calls (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    step_id UUID NOT NULL REFERENCES execution_steps(id) ON DELETE CASCADE,
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    step_id VARCHAR(100) NOT NULL REFERENCES execution_steps(id) ON DELETE CASCADE,
     tool_name VARCHAR(100) NOT NULL,
     category VARCHAR(50) NOT NULL,
     description TEXT,
@@ -611,9 +719,9 @@ CREATE TABLE IF NOT EXISTS tool_calls (
     started_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Domain Personal Hub
+-- 4. Entitas Personal Hub (User Memories & Calendar)
 CREATE TABLE IF NOT EXISTS calendar_events (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
     title VARCHAR(255) NOT NULL,
     event_date DATE NOT NULL,
@@ -627,18 +735,18 @@ CREATE TABLE IF NOT EXISTS calendar_events (
 );
 
 CREATE TABLE IF NOT EXISTS user_memories (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
     category VARCHAR(50) NOT NULL CHECK (category IN ('profile', 'preference', 'project', 'workflow')),
     key VARCHAR(100) NOT NULL,
     value TEXT NOT NULL,
-    embedding VECTOR(768),
+    embedding JSONB,
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. Domain 1: Multi-Source Knowledge & Vector Embeddings
+-- 5. Entitas Multi-Source Knowledge (1. Knowledge)
 CREATE TABLE IF NOT EXISTS knowledge_sources (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
     type VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -650,42 +758,43 @@ CREATE TABLE IF NOT EXISTS knowledge_sources (
     status VARCHAR(30) NOT NULL DEFAULT 'synced' CHECK (status IN ('synced', 'syncing', 'error')),
     icon_type VARCHAR(50) DEFAULT 'file',
     color VARCHAR(50) DEFAULT 'text-primary',
-    last_synced TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS knowledge_chunks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    source_id UUID NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
-    file_path TEXT NOT NULL,
-    chunk_index INTEGER NOT NULL,
-    chunk_content TEXT NOT NULL,
-    embedding VECTOR(768) NOT NULL,
-    metadata JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 6. Domain 4: Connections & Credential Vault
-CREATE TABLE IF NOT EXISTS workspace_connections (
-    id VARCHAR(100) PRIMARY KEY,
-    user_id UUID,
-    name VARCHAR(150) NOT NULL,
-    connection_type VARCHAR(50) NOT NULL CHECK (connection_type IN ('llm_provider', 'mcp_server', 'database', 'oauth_service')),
-    provider VARCHAR(50) NOT NULL,
-    auth_type VARCHAR(50) NOT NULL CHECK (auth_type IN ('api_key', 'oauth2', 'connection_string', 'bearer_token', 'none')),
-    endpoint_url TEXT,
-    config_encrypted JSONB DEFAULT '{}',
-    status VARCHAR(30) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'invalid', 'testing', 'disabled')),
-    is_active BOOLEAN DEFAULT true,
+    last_synced TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. Domain 5: Workspace Agents
+CREATE TABLE IF NOT EXISTS knowledge_chunks (
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    source_id VARCHAR(100) NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
+    file_path TEXT NOT NULL,
+    chunk_index INTEGER NOT NULL,
+    chunk_content TEXT NOT NULL,
+    embedding JSONB,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. Entitas Activity Telemetry & Audit Logs
+CREATE TABLE IF NOT EXISTS activity_logs (
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    user_id UUID,
+    timestamp TIMESTAMPTZ DEFAULT NOW(),
+    task_id VARCHAR(100),
+    task_title VARCHAR(255),
+    agent_id VARCHAR(100) NOT NULL,
+    agent_name VARCHAR(150) NOT NULL,
+    action_type VARCHAR(100) NOT NULL,
+    summary TEXT NOT NULL,
+    details JSONB,
+    status VARCHAR(20) NOT NULL DEFAULT 'info' CHECK (status IN ('info', 'success', 'warning', 'error'))
+);
+
+-- 7. Entitas Workspace Agents (5. Agent)
 CREATE TABLE IF NOT EXISTS workspace_agents (
     id VARCHAR(100) PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     role VARCHAR(150) NOT NULL,
-    agent_type VARCHAR(50) NOT NULL CHECK (agent_type IN ('orchestrator', 'execution_worker', 'planner')),
+    agent_type VARCHAR(50) NOT NULL CHECK (agent_type IN ('orchestrator', 'researcher')),
     permissions VARCHAR(50) NOT NULL CHECK (permissions IN ('read_only', 'sandbox_write', 'full_system')),
     description TEXT NOT NULL,
     avatar_color VARCHAR(50) DEFAULT 'bg-primary',
@@ -702,12 +811,12 @@ CREATE TABLE IF NOT EXISTS workspace_agents (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. Domain 3: Workspace Skills (SOPs)
+-- 8. Entitas Workspace Skills (3. Skill)
 CREATE TABLE IF NOT EXISTS workspace_skills (
     id VARCHAR(100) PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     description TEXT NOT NULL,
-    category VARCHAR(50) NOT NULL CHECK (category IN ('engineering', 'security', 'knowledge', 'productivity')),
+    category VARCHAR(50) NOT NULL CHECK (category IN ('architecture', 'engineering', 'security', 'knowledge', 'productivity', 'database', 'qa_testing')),
     icon VARCHAR(50) DEFAULT 'sparkles',
     sop_summary TEXT NOT NULL,
     instructions TEXT NOT NULL,
@@ -718,16 +827,17 @@ CREATE TABLE IF NOT EXISTS workspace_skills (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 9. Domain 2: Workspace Integrations (MCP Servers)
+-- 9. Entitas Workspace Integrations (2. MCP Server)
 CREATE TABLE IF NOT EXISTS workspace_integrations (
     id VARCHAR(100) PRIMARY KEY,
-    connection_id VARCHAR(100) REFERENCES workspace_connections(id) ON DELETE SET NULL,
     name VARCHAR(150) NOT NULL,
-    category VARCHAR(50) NOT NULL CHECK (category IN ('engineering', 'security', 'knowledge', 'productivity')),
+    category VARCHAR(50) DEFAULT 'mcp_server',
     status VARCHAR(30) DEFAULT 'connected' CHECK (status IN ('connected', 'disconnected', 'error')),
     endpoint TEXT NOT NULL,
     version VARCHAR(50) DEFAULT 'v1.0.0',
-    transport VARCHAR(20) DEFAULT 'stdio' CHECK (transport IN ('stdio', 'sse', 'rest')),
+    transport VARCHAR(30) DEFAULT 'stdio' CHECK (transport IN ('stdio', 'streamable_http', 'sse', 'rest')),
+    auth_type VARCHAR(30) DEFAULT 'none' CHECK (auth_type IN ('none', 'bearer', 'oauth', 'api_key')),
+    auth_config JSONB DEFAULT '{}',
     description TEXT NOT NULL,
     tools JSONB DEFAULT '[]',
     last_ping_ms INTEGER DEFAULT 12,
@@ -737,23 +847,65 @@ CREATE TABLE IF NOT EXISTS workspace_integrations (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. Domain Activity Telemetry
-CREATE TABLE IF NOT EXISTS activity_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+-- 10. Entitas Workspace Connections (4. Connection)
+CREATE TABLE IF NOT EXISTS workspace_connections (
+    id VARCHAR(100) PRIMARY KEY,
     user_id UUID,
-    timestamp TIMESTAMPTZ DEFAULT NOW(),
-    task_id UUID,
-    task_title VARCHAR(255),
+    name VARCHAR(150) NOT NULL,
+    connection_type VARCHAR(50) NOT NULL CHECK (connection_type IN ('llm_provider', 'mcp_server', 'database', 'oauth_service')),
+    provider VARCHAR(50) NOT NULL,
+    auth_type VARCHAR(50) NOT NULL CHECK (auth_type IN ('api_key', 'oauth2', 'connection_string', 'bearer_token', 'none')),
+    endpoint_url TEXT,
+    config_encrypted JSONB DEFAULT '{}',
+    status VARCHAR(30) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'invalid', 'testing', 'disabled')),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 11. Entitas Autonomous Workflows & Trigger Scheduler
+CREATE TABLE IF NOT EXISTS automations (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    agent_id VARCHAR(100) NOT NULL,
+    agent_name VARCHAR(150),
+    mcp_server_id VARCHAR(100),
+    mcp_tools TEXT[] DEFAULT '{}',
+    trigger_type VARCHAR(50) NOT NULL CHECK (trigger_type IN ('schedule', 'event', 'manual')),
+    schedule_cron VARCHAR(100),
+    schedule_label VARCHAR(150),
+    event_source VARCHAR(100),
+    prompt_template TEXT NOT NULL,
+    guardrail_strict_hitl BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    last_run_at TIMESTAMPTZ,
+    last_run_status VARCHAR(30) DEFAULT 'idle' CHECK (last_run_status IN ('idle', 'running', 'success', 'failed')),
+    total_runs INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS automation_runs (
+    id VARCHAR(100) PRIMARY KEY,
+    workflow_id VARCHAR(100) REFERENCES automations(id) ON DELETE CASCADE,
+    workflow_name VARCHAR(255) NOT NULL,
     agent_id VARCHAR(100) NOT NULL,
     agent_name VARCHAR(150) NOT NULL,
-    action_type VARCHAR(100) NOT NULL,
-    summary TEXT NOT NULL,
-    details JSONB,
-    status VARCHAR(20) NOT NULL DEFAULT 'info' CHECK (status IN ('info', 'success', 'warning', 'error'))
+    trigger_source VARCHAR(150) NOT NULL,
+    status VARCHAR(30) NOT NULL CHECK (status IN ('idle', 'running', 'success', 'failed')),
+    started_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    duration_ms INTEGER DEFAULT 0,
+    tokens_used JSONB DEFAULT '{}',
+    steps JSONB DEFAULT '[]',
+    output_summary TEXT NOT NULL,
+    output_artifact_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- =====================================================================
--- 11. Performance & Vector Indexing
+-- 12. Performance & Vector Indexing
 -- =====================================================================
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at ASC);
@@ -763,14 +915,8 @@ CREATE INDEX IF NOT EXISTS idx_tool_calls_step ON tool_calls(step_id);
 CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events(event_date, status);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_time ON activity_logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source ON knowledge_chunks(source_id);
-CREATE INDEX IF NOT EXISTS idx_workspace_connections_provider ON workspace_connections(provider, is_active);
 CREATE INDEX IF NOT EXISTS idx_workspace_skills_category ON workspace_skills(category, enabled);
 CREATE INDEX IF NOT EXISTS idx_workspace_integrations_status ON workspace_integrations(status);
-
--- Indeks Vector Cosine Similarity (HNSW) untuk Fast Semantic RAG
-CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding 
-    ON knowledge_chunks USING hnsw (embedding vector_cosine_ops);
-
-CREATE INDEX IF NOT EXISTS idx_user_memories_embedding 
-    ON user_memories USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS idx_automations_active ON automations(is_active, trigger_type);
+CREATE INDEX IF NOT EXISTS idx_automation_runs_workflow ON automation_runs(workflow_id, started_at DESC);
 ```

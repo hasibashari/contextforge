@@ -29,8 +29,8 @@ Core Competencies & Behavior:
 4. Tone: Rigorous, analytical, clear, and objective.`;
       break;
 
-    case 'agent-conversational':
     case 'agent-personal-assistant':
+    case 'agent-conversational':
     default:
       basePrompt = `You are ContextForge Personal Assistant Agent, the primary personal assistant and central reasoning brain of the ContextForge AI Workspace.
 

@@ -109,7 +109,7 @@ function AutomationFormContent({
   const [directCron, setDirectCron] = useState<string>(initialCron)
 
   const [agentId, setAgentId] = useState(
-    initialWorkflow?.agentId || agents[0]?.id || 'agent-conversational'
+    initialWorkflow?.agentId || agents[0]?.id || 'agent-personal-assistant'
   )
   const [mcpServerId, setMcpServerId] = useState(
     initialWorkflow?.mcpServerId || 'int-obsidian-vault-mcp'
@@ -233,7 +233,7 @@ function AutomationFormContent({
       triggerType,
       scheduleCron: finalSchedule.cron,
       scheduleLabel: finalSchedule.label,
-      agentId: agentId || agents[0]?.id || 'agent-conversational',
+      agentId: agentId || agents[0]?.id || 'agent-personal-assistant',
       agentName: selectedAgent?.name || 'ContextForge Agent',
       mcpServerId: mcpServerId || undefined,
       mcpTools: selectedTools,

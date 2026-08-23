@@ -28,7 +28,9 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
   if (!agent) return null
 
   const isCoreOrchestrator =
-    agent.agentType === 'orchestrator' || agent.id === 'agent-conversational'
+    agent.agentType === 'orchestrator' ||
+    agent.id === 'agent-personal-assistant' ||
+    agent.id === 'agent-conversational'
 
   const handleStartEdit = () => {
     if (isCoreOrchestrator) return

@@ -1,17 +1,17 @@
 # Technical Design Document (TDD): ContextForge Backend
 
-> **Document Version:** 2.0.0  
+> **Document Version:** 2.1.0  
 > **Status:** Approved Architectural Blueprint  
 > **Author:** Principal Backend Architect  
 > **Target Framework:** NestJS 11+ · TypeScript 5.7+ · Google GenAI / ADK · Gemini 3.x Flash  
 > **Target Database:** PostgreSQL 16+ with `pgvector` (Local Docker ➔ Google Cloud SQL)  
-> **Data Access Pattern:** Native SQL via `pg.Pool` (Zero ORM Overhead)
+> **Data Access Pattern:** Native SQL via `pg.Pool` (Zero ORM Overhead, Multi-Environment Resilient)
 
 ---
 
 ## 1. Ringkasan Eksekutif & 5 Pilar Abstraksi Sistem
 
-**ContextForge** adalah *AI-First Conversational Agentic Workspace* & *Developer Control Plane* modern yang dirancang untuk mengorkestrasi agen kecerdasan buatan, mengintegrasikan multi-sumber pengetahuan (Knowledge Ingestion), mengeksekusi *Side Agents* terisolasi, dan menyediakan antarmuka kerja berdesain editorial yang presisi dan elegan.
+**ContextForge** adalah *AI-First Conversational Agentic Workspace* & *Developer Control Plane* modern yang dirancang untuk mengorkestrasi agen kecerdasan buatan, mengintegrasikan multi-sumber pengetahuan (Knowledge Ingestion), mengeksekusi *Side Agents* terisolasi, mengoperasikan automasi alur kerja mandiri (*Autonomous Workflows*), dan menyediakan antarmuka kerja berdesain editorial yang presisi dan elegan.
 
 Arsitektur ContextForge dibangun secara ketat di atas **5 Pilar Abstraksi Inti**:
 
@@ -39,7 +39,7 @@ Arsitektur ContextForge dibangun secara ketat di atas **5 Pilar Abstraksi Inti**
 ### Keputusan Arsitektur: Eliminasi Abstraksi "Plugin" (Anti-Bloat & YAGNI)
 Pada versi awal arsitektur, terdapat layer *Plugin* yang membungkus kumpulan *connector* dan *skill*. Setelah evaluasi teknis dan pertimbangan UX:
 * **Redundan:** Plugin di level ini hanya bertindak sebagai *static bundle* tanpa ekstensi runtime nyata.
-* **Beban Kognitif:** Membingungkan pengguna dengan 3 pilihan yang tumpang-tindih (*"Aktifkan Connector, Aktifkan Skill, atau Install Plugin?"*).
+* **Beban Kognitif:** Membingungkan pengguna dengan pilihan yang tumpang-tindih (*"Aktifkan Connector, Aktifkan Skill, atau Install Plugin?"*).
 * **Solusi Bersih:** Layer *Plugin* dihapus sepenuhnya. Sistem menerapkan **komposisi modular murni**: Pengguna cukup mengelola **MCP Tools** dan **Skills SOP** secara transparan.
 
 ### Reposisi Arsitektur Obsidian Vault:
@@ -58,7 +58,7 @@ flowchart TB
     subgraph Client_Layer [Frontend Layer - React 19 + Vite]
         UI_Chat[Conversational Canvas\nMulti-Modal Input / Timeline]
         UI_Aside[Context Aside Panel\nArtifacts / Schedule / Memory]
-        UI_Control[Control Plane Views\nAgents / Knowledge / MCP Tools / Connections]
+        UI_Control[Control Plane Views\nAgents / Knowledge / MCP Tools / Automations]
     end
 
     subgraph Transport_Layer [NestJS Transport & Security Layer]
@@ -68,6 +68,11 @@ flowchart TB
         SSE_Stream[SSE Event Stream Controller]
         REST_Ctrl[REST API Controllers]
         EventBus[NestJS EventEmitter2 Engine]
+    end
+
+    subgraph Automation_Layer [Autonomous Workflow & Scheduler Layer]
+        CronScheduler[Automation Scheduler Service\nCRON / Webhook Triggers]
+        AutoRunner[Autonomous Runner Engine\nGuardrail & HITL Gatekeeper]
     end
 
     subgraph Agentic_Core_Layer [Google ADK & Gemini Reasoning Engine]
@@ -88,7 +93,7 @@ flowchart TB
         Tool_Git[GitHub API & AST Parser]
         Tool_Obsidian[Obsidian Vault Bridge Tool\nRead / Write / Search]
         Tool_Calendar[Google Calendar API Mutator]
-        Tool_MCP_Remote[Remote MCP Client: STDIO / SSE]
+        Tool_MCP_Remote[Remote MCP Client: STDIO / SSE / Streamable HTTP]
     end
 
     subgraph Connection_Layer [4. Connections & Credential Vault]
@@ -109,6 +114,9 @@ flowchart TB
     UI_Control <-->|HTTP RESTful CRUD| Transport_Layer
 
     Transport_Layer --> Agentic_Core_Layer
+    Transport_Layer --> Automation_Layer
+    Automation_Layer --> Agentic_Core_Layer
+    
     Agentic_Core_Layer --> SkillSelector
     SkillSelector --> Tooling_MCP_Layer
     
@@ -132,10 +140,11 @@ flowchart TB
 | **Backend Framework** | **NestJS 11+** | Menyediakan arsitektur modular enterprise (IoC, Dependency Injection, Guards, Interceptors) dengan dukungan TypeScript penuh. |
 | **Reasoning Engine** | **Gemini 3.x Flash** | Latensi inferensi ultra-rendah (*Time-To-First-Token* sangat cepat), native function calling presisi tinggi, context window besar, dan efisien biaya. |
 | **Agentic Framework** | **Google ADK / Native `@google/genai`** | Menghilangkan *abstraction bloat* dari library pihak ketiga. Kendali 100% atas alur tool calling, compaction riwayat percakapan, dan event streaming. |
-| **Database Relasional & Vector** | **PostgreSQL 16 + `pgvector`** | *Single Data Store*: Menyatukan data relasional transaksional (chat, tasks, artifacts, connections) dan vector embeddings RAG dalam satu database ACID. |
+| **Database Relasional & Vector** | **PostgreSQL 16 + `pgvector`** | *Single Data Store*: Menyatukan data relasional transaksional (chat, tasks, artifacts, automations) dan vector embeddings RAG dalam satu database ACID. |
 | **Data Access Layer** | **Native SQL (`pg.Pool`)** | Zero ORM overhead. Fleksibilitas maksimal untuk query vector distance (`<=>`), JSONB functions, dan hybrid search tanpa batasan library ORM. |
 | **Embedding Model** | **Google `text-embedding-004`** | Output vektor 768 dimensi dengan akurasi semantik tinggi dan komputasi cosine distance yang sangat cepat pada indeks HNSW. |
 | **Realtime Communication** | **Server-Sent Events (SSE)** | Ringan, berbasis HTTP native, auto-reconnection bawaan browser, dan sangat optimal untuk aliran token LLM dan status progress satu arah. |
+| **Automation Engine** | **NestJS Dynamic Interval & CRON Scheduler** | Eksekusi automasi latar belakang mandiri tanpa ketergantungan broker pesan eksternal berat (anti-bloat). |
 
 ---
 
@@ -268,7 +277,7 @@ Semua endpoint standar mengembalikan payload berstruktur seragam:
   "success": true,
   "data": { ... },
   "message": "Operation successful",
-  "meta": { "timestamp": "2026-08-20T19:10:00.000Z" }
+  "meta": { "timestamp": "2026-08-23T12:30:00.000Z" }
 }
 ```
 
@@ -318,6 +327,17 @@ Semua endpoint standar mengembalikan payload berstruktur seragam:
 ### 7.7 Activity Telemetry (`/api/activity`)
 - `GET /api/activity/logs` ➔ Mengambil log telemetri terfilter (dengan pagination).
 - `GET /api/activity/export` ➔ Mengunduh data audit trail dalam format `contextforge_activity_audit.json`.
+
+### 7.8 Autonomous Workflows & Automations (`/api/automations`)
+- `GET /api/automations` ➔ Mengambil seluruh daftar konfigurasi alur kerja automasi.
+- `POST /api/automations` ➔ Mendaftarkan automasi baru (CRON / Event Trigger).
+- `GET /api/automations/:id` ➔ Mengambil detail workflow automasi.
+- `PATCH /api/automations/:id` ➔ Memperbarui konfigurasi automasi (prompt, jadwal, HITL mode).
+- `DELETE /api/automations/:id` ➔ Menghapus workflow automasi dan seluruh riwayat run-nya.
+- `POST /api/automations/:id/trigger` ➔ Memicu eksekusi instan manual (*On-Demand Run*).
+- `PATCH /api/automations/:id/toggle` ➔ Mengaktifkan/menonaktifkan jadwal automasi.
+- `GET /api/automations/runs` ➔ Mengambil riwayat run dan telemetri eksekusi automasi.
+- `GET /api/automations/stats` ➔ Mengambil ringkasan metrik statistik operasional automasi.
 
 ---
 
@@ -393,8 +413,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 ```text
 backend/
 ├── docs/
-│   ├── ERD.md                            # Entity Relationship Diagram & SQL DDL
-│   └── TDD.md                            # Technical Design Document (File ini)
+│   ├── ERD.md                            # Entity Relationship Diagram & SQL DDL (v2.1.0)
+│   └── TDD.md                            # Technical Design Document (File ini v2.1.0)
 │
 ├── src/
 │   ├── main.ts                           # Entrypoint aplikasi (Bootstrap, CORS, Global Pipes)
@@ -441,6 +461,12 @@ backend/
 │   │   │   ├── ecosystem.controller.ts
 │   │   │   ├── ecosystem.service.ts
 │   │   │   └── ecosystem.repository.ts
+│   │   ├── automation/                   # Autonomous Workflows & CRON Trigger Engine
+│   │   │   ├── automation.controller.ts
+│   │   │   ├── automation.service.ts
+│   │   │   ├── automation.repository.ts
+│   │   │   ├── automation-scheduler.service.ts
+│   │   │   └── dto/
 │   │   └── activity/                     # Telemetry Streamer & Audit Exporter
 │   │       ├── activity.controller.ts
 │   │       ├── activity.service.ts
@@ -487,7 +513,7 @@ backend/
 ## 10. Keamanan, Guardrails & Human-in-the-Loop (HITL)
 
 1. **Strict HITL Mode Enforcement:**
-   - Ketika mode *Strict HITL* aktif di pengaturan (`settings`), setiap eksekusi Side Agent dengan tingkat risiko `high_risk` (seperti penghapusan file, eksekusi perintah shell berbahaya, atau push git) akan dipause dengan status `waiting_approval`.
+   - Ketika mode *Strict HITL* aktif di pengaturan (`settings`) atau konfigurasi automasi (`guardrail_strict_hitl = true`), setiap eksekusi Side Agent dengan tingkat risiko `high_risk` (seperti penghapusan file, eksekusi perintah shell berbahaya, atau push git) akan dipause dengan status `waiting_approval`.
    - Backend memancarkan notifikasi persetujuan ke frontend dan menunggu verifikasi eksplisit sebelum melanjutkan proses.
 2. **AST (Abstract Syntax Tree) Verification:**
    - Sebelum kode sumber diterapkan ke repository atau dijadikan file diff, tool `code_ast_checker` melakukan parsing AST untuk memastikan tidak ada kesalahan sintaksis atau ekspresi berbahaya.
@@ -521,10 +547,11 @@ backend/
 │  ├── 3.3 Ephemeral Workers (Obsidian MCP Bridge, Code Runner, Calendar)     │
 │  └── 3.4 Telemetry Streamer & Audit Log JSON Exporter                       │
 │                                                                             │
-│  [FASE 4: Verifikasi, Testing & Integrasi Frontend]                         │
-│  ├── 4.1 Unit Testing untuk Tool Registry, Skills & Agentic Loop            │
-│  ├── 4.2 E2E Integration Testing dengan Frontend React 19                   │
-│  └── 4.3 Kesiapan Deploy ke Google Cloud (Cloud Run + Cloud SQL)            │
+│  [FASE 4: Autonomous Workflows, Testing & Integrasi Frontend]               │
+│  ├── 4.1 Implementasi Automation Scheduler (CRON & Event Triggers)          │
+│  ├── 4.2 Unit Testing untuk Tool Registry, Skills & Agentic Loop            │
+│  ├── 4.3 E2E Integration Testing dengan Frontend React 19                   │
+│  └── 4.4 Kesiapan Deploy ke Google Cloud (Cloud Run + Cloud SQL)            │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -533,4 +560,4 @@ backend/
 
 ## 12. Persetujuan & Langkah Lanjutan
 
-Dokumen **Technical Design Document (TDD) v2.0.0** ini menetapkan seluruh standar, arsitektur, dan pola implementasi teknis untuk ContextForge berbasis **5 Pilar Abstraksi**. Seluruh pengembangan kode backend berikutnya akan merujuk secara ketat pada spesifikasi ini.
+Dokumen **Technical Design Document (TDD) v2.1.0** ini menetapkan seluruh standar, arsitektur, dan pola implementasi teknis untuk ContextForge berbasis **5 Pilar Abstraksi** dan **Autonomous Workflow Engine**. Seluruh pengembangan kode backend berikutnya akan merujuk secara ketat pada spesifikasi ini.

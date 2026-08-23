@@ -1,6 +1,6 @@
 [
   {
-    "id": "agent-conversational",
+    "id": "agent-personal-assistant",
     "name": "Personal Assistant Agent",
     "role": "Primary Personal Assistant & Master Orchestrator",
     "agentType": "orchestrator",

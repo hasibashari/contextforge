@@ -28,11 +28,14 @@ export class CreateAutomationDto {
   isActive?: boolean;
 
   static toEntity(dto: CreateAutomationDto): Partial<AutomationWorkflowRow> {
-    const rawAgentId = dto.agent_id || dto.agentId || 'agent-conversational';
+    const rawAgentId =
+      dto.agent_id || dto.agentId || 'agent-personal-assistant';
     // Standardize legacy agent IDs
     const normalizedAgentId =
-      rawAgentId === 'agent-action-worker' || rawAgentId === 'agent-action'
-        ? 'agent-conversational'
+      rawAgentId === 'agent-action-worker' ||
+      rawAgentId === 'agent-action' ||
+      rawAgentId === 'agent-conversational'
+        ? 'agent-personal-assistant'
         : rawAgentId === 'agent-researcher'
           ? 'agent-research'
           : rawAgentId;
@@ -107,8 +110,10 @@ export class UpdateAutomationDto {
     const agentId = dto.agent_id ?? dto.agentId;
     if (agentId !== undefined) {
       updates.agent_id =
-        agentId === 'agent-action-worker' || agentId === 'agent-action'
-          ? 'agent-conversational'
+        agentId === 'agent-action-worker' ||
+        agentId === 'agent-action' ||
+        agentId === 'agent-conversational'
+          ? 'agent-personal-assistant'
           : agentId === 'agent-researcher'
             ? 'agent-research'
             : agentId;
