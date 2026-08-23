@@ -127,6 +127,15 @@ export class WebSearchToolHandler {
         `Live web search grounding unavailable, falling back to direct synthesis: ${String(searchErr)}`,
       );
 
+      // Notify UI that live search is unavailable
+      emit({
+        event: 'timeline_stage',
+        data: {
+          stage: 'reading',
+          label: `Web Search: Live search unavailable — using training knowledge...`,
+        },
+      });
+
       try {
         const fallbackRes = await this.ai.models.generateContent({
           model: modelName,
@@ -135,7 +144,11 @@ export class WebSearchToolHandler {
               role: 'user',
               parts: [
                 {
-                  text: `Berikan rangkuman komprehensif, terstruktur, dan akurat berdasarkan pengetahuan teknis untuk query: "${queryStr}". Sertakan fakta kunci dan analisis.`,
+                  text: `Catatan penting: Kamu TIDAK memiliki akses ke internet secara live saat ini. Jawab query berikut berdasarkan pengetahuan pelatihan kamu hingga batas tanggal yang kamu ketahui. Jika informasi mungkin sudah tidak aktual, sebutkan itu secara eksplisit dalam jawaban.
+
+Query: "${queryStr}"
+
+Berikan jawaban yang jujur, terstruktur, dan akurat. Sebutkan jika data yang kamu berikan mungkin tidak up-to-date.`,
                 },
               ],
             },
@@ -149,20 +162,22 @@ export class WebSearchToolHandler {
           event: 'tool_call_result',
           data: {
             toolName: 'web_search',
-            summary: `Direct technical synthesis completed for "${queryStr}"`,
-            sources: ['Google Knowledge Base'],
+            summary: `Knowledge synthesis (no live search) for "${queryStr}"`,
+            sources: ['AI Training Knowledge — may not reflect latest data'],
+            isGrounded: false,
           },
         });
 
         return {
           textContent: fallbackText,
-          summary: `Direct technical synthesis completed.`,
+          summary: `Knowledge synthesis completed (live search unavailable).`,
           rawResult: {
             query: queryStr,
             synthesis: fallbackText,
-            sources: ['Google Knowledge Base'],
+            sources: ['AI Training Knowledge'],
+            isGrounded: false,
           },
-          sourceDomains: ['Google Knowledge Base'],
+          sourceDomains: undefined,
         };
       } catch {
         const fallbackSynthesis = `Analisis pengetahuan untuk query: "${queryStr}".`;
