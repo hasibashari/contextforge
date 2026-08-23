@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { GoogleGenAI } from '@google/genai';
 import { GEMINI_CLIENT } from '../../agentic-core/gemini-client.provider';
 import {
@@ -29,6 +30,7 @@ export class ChatService {
     private readonly orchestrator: CoreOrchestratorService,
     private readonly ecosystemService: EcosystemService,
     private readonly personalHubService: PersonalHubService,
+    private readonly config: ConfigService,
     @Inject(GEMINI_CLIENT) private readonly ai: GoogleGenAI,
   ) {}
 
@@ -264,7 +266,10 @@ export class ChatService {
   ): Promise<void> {
     try {
       const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: this.config.get<string>(
+          'gemini.defaultModel',
+          'gemini-3.5-flash',
+        ),
         contents: [
           {
             role: 'user',
