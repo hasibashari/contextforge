@@ -13,7 +13,6 @@ export class AppController {
       endpoints: {
         chatSessions: '/api/chat/sessions',
         artifacts: '/api/artifacts',
-        personalHubCalendar: '/api/personal-hub/calendar',
         personalHubMemories: '/api/personal-hub/memories',
         knowledgeSources: '/api/knowledge/sources',
         ecosystemAgents: '/api/ecosystem/agents',

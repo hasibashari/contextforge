@@ -295,13 +295,12 @@ Semua endpoint standar mengembalikan payload berstruktur seragam:
 - `PUT /api/artifacts/:id` ➔ Memperbarui konten dokumen (saat user mengedit di Aside Panel).
 - `DELETE /api/artifacts/:id` ➔ Menghapus artifact.
 
-### 7.3 Personal Hub: Calendar & Memories (`/api/personal-hub`)
-- `GET /api/personal-hub/calendar` ➔ Mengambil daftar kegiatan agenda kalender.
-- `POST /api/personal-hub/calendar` ➔ Membuat kegiatan kalender baru.
-- `PATCH /api/personal-hub/calendar/:id/status` ➔ Memperbarui status event (`upcoming` / `in_progress` / `completed`).
+### 7.3 Personal Hub: Long-Term Memories (`/api/personal-hub`)
 - `GET /api/personal-hub/memories` ➔ Mengambil memori jangka panjang pengguna.
-- `POST /api/personal-hub/memories` ➔ Menambah memori baru (otomatis di-embed ke vektor).
-- `DELETE /api/personal-hub/memories/:id` ➔ Menghapus item memori.
+- `GET /api/personal-hub/memory-summary` ➔ Mengambil rangkuman ringkas memori (Markdown).
+- `POST /api/personal-hub/memories` ➔ Menambah item preferensi/memori baru.
+- `DELETE /api/personal-hub/memories` ➔ Menghapus semua memori.
+- `DELETE /api/personal-hub/memories/:id` ➔ Menghapus item memori spesifik.
 
 ### 7.4 Multi-Source Knowledge (`/api/knowledge`)
 - `GET /api/knowledge/sources` ➔ Mengambil daftar sumber pengetahuan terhubung.

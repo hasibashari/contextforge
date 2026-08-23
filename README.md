@@ -44,7 +44,7 @@ ContextForge is a fullstack application that combines an agentic AI core with a 
 - 📚 **Knowledge Base** — Semantic search using vector embeddings (`pgvector`) for RAG pipelines
 - 🔗 **Ecosystem Integrations** — OAuth 2.0 connections (e.g., Notion) and workspace agent management
 - ⚡ **Workflow Automation** — Trigger-based automations powered by workspace integrations
-- 🧠 **Personal Hub** — User memories, calendar events, and activity logs
+- 🧠 **Personal Hub** — User long-term memories and adaptive preferences
 - 🗂️ **Artifacts** — Persistent generated outputs (code, documents, diffs) linked to chat sessions
 
 ---
@@ -92,7 +92,7 @@ contextforge/
 │   │   │   ├── chat/       # Chat sessions & messages
 │   │   │   ├── ecosystem/  # Workspace agents, integrations, OAuth (Notion)
 │   │   │   ├── knowledge/  # Knowledge sources & vector chunks
-│   │   │   └── personal-hub/ # Users, memories, calendar events
+│   │   │   └── personal-hub/ # User memories and adaptive context
 │   │   ├── common/         # Database module, security, utilities
 │   │   ├── config/         # App, database, and Gemini configuration
 │   │   └── mcp/            # MCP (Model Context Protocol) integration
@@ -306,7 +306,7 @@ The backend exposes a RESTful API under `/api`. Key module prefixes:
 | `/api/ecosystem`                       | Ecosystem    | Workspace agents, integrations, and OAuth flows |
 | `/api/ecosystem/oauth/notion/callback` | Notion OAuth | Notion OAuth 2.0 callback endpoint              |
 | `/api/automation`                      | Automation   | Define and trigger automated workflows          |
-| `/api/personal-hub`                    | Personal Hub | Users, memories, and calendar events            |
+| `/api/personal-hub`                    | Personal Hub | User long-term memories and preferences         |
 | `/api/activity`                        | Activity     | Activity log retrieval                          |
 
 Full API documentation and database schema are available in [`docs/ERD.md`](./docs/ERD.md) and [`docs/TDD.md`](./docs/TDD.md).

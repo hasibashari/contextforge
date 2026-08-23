@@ -232,18 +232,6 @@ export interface Integration {
 // Conversational Outcome & Artifact Types
 // -------------------------------------------------------------
 
-export interface CalendarEvent {
-  id: string
-  title: string
-  time: string
-  date: string
-  duration: string
-  location?: string
-  status: 'upcoming' | 'in_progress' | 'completed'
-  category: 'meeting' | 'task' | 'review' | 'personal'
-  attendees?: string[]
-}
-
 export interface UserMemoryItem {
   id: string
   category: 'profile' | 'preference' | 'project' | 'workflow'
