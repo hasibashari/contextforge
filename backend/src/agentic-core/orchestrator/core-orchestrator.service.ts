@@ -13,7 +13,7 @@ import { UniversalMcpToolHandler } from '../handlers/universal-mcp-tool.handler'
 import { WebSearchToolHandler } from '../handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from '../handlers/knowledge-tool.handler';
 import { AutomationToolHandler } from '../handlers/automation-tool.handler';
-import { ObsidianVaultService } from '../services/obsidian-vault.service';
+import { ObsidianVaultService } from '../../mcp/internal/obsidian/obsidian-vault.service';
 
 export type { StreamEvent, OrchestrationResult };
 

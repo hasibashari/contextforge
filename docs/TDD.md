@@ -472,27 +472,40 @@ backend/
 │   │       ├── activity.service.ts
 │   │       └── activity.repository.ts
 │   │
-│   ├── agentic-core/                     # 🧠 Google ADK & Gemini Reasoning Engine
-│   │   ├── agentic-core.module.ts
-│   │   ├── gemini-client.provider.ts     # Inisialisasi Google GenAI SDK Client
-│   │   ├── orchestrator/                 # Core Orchestrator Loop & Reasoning
-│   │   │   └── core-orchestrator.service.ts
-│   │   ├── handlers/                     # 🛠️ MCP Tool Handlers
-│   │   │   ├── obsidian-tool.handler.ts  # Obsidian Vault Writer/Reader Tool
-│   │   │   ├── calendar-tool.handler.ts  # Calendar Mutator Tool
-│   │   │   ├── code-tool.handler.ts      # Code Sandbox & AST Tool
-│   │   │   ├── knowledge-tool.handler.ts # pgvector Hybrid Retrieval Tool
-│   │   │   ├── visual-tool.handler.ts    # Visual Asset Generator Tool
-│   │   │   └── web-search-tool.handler.ts# Live Web Search Tool
-│   │   ├── embeddings/                   # Embedding Service (text-embedding-004)
-│   │   │   └── embedding.service.ts
-│   │   └── prompts/                      # System Prompts & Skill SOP Templates
-│   │       ├── orchestrator.prompt.ts
-│   │       └── workers.prompt.ts
+│   ├── mcp/                              # 🔌 Model Context Protocol (MCP) Modular Layer
+│   │   ├── mcp.module.ts                 # NestJS MCP Module Agregator
+│   │   ├── mcp-gateway.service.ts        # Universal Router & Tool Dispatcher
+│   │   ├── interfaces/                   # IMcpServer, McpToolDefinition, McpTransport
+│   │   │   ├── mcp-server.interface.ts
+│   │   │   ├── mcp-tool.interface.ts
+│   │   │   └── mcp-transport.types.ts
+│   │   ├── internal/                     # 🏠 1. Local / In-Process Native MCPs
+│   │   │   └── obsidian/                 # Native Obsidian Vault Bridge
+│   │   │       ├── obsidian-mcp.server.ts
+│   │   │       └── obsidian-vault.service.ts
+│   │   └── remote/                       # 🌐 2. Remote Network MCP Connectors
+│   │       ├── clients/                  # SSE & Streamable HTTP Transports
+│   │       │   ├── mcp-client.interface.ts
+│   │       │   ├── mcp-http.client.ts
+│   │       │   └── mcp-sse.client.ts
+│   │       └── connectors/               # Remote Adapters (Notion, Dynamic Endpoints)
+│   │           ├── notion/notion-mcp.connector.ts
+│   │           └── generic-remote.connector.ts
 │   │
-│   └── tools/                            # MCP Tools Standard Definition
-│       ├── tool-registry.module.ts
-│       └── builtin-tools.ts
+│   └── agentic-core/                     # 🧠 Google ADK & Gemini Reasoning Engine
+│       ├── agentic-core.module.ts
+│       ├── gemini-client.provider.ts     # Inisialisasi Google GenAI SDK Client
+│       ├── orchestrator/                 # Core Orchestrator Loop & Reasoning
+│       │   └── core-orchestrator.service.ts
+│       ├── handlers/                     # 🛠️ Specialized Tool Handlers
+│       │   ├── universal-mcp-tool.handler.ts # Gateway bridge to src/mcp
+│       │   ├── knowledge-tool.handler.ts # pgvector Hybrid Retrieval Tool
+│       │   ├── automation-tool.handler.ts# Workflow trigger tool
+│       │   └── web-search-tool.handler.ts# Live Web Search Tool
+│       ├── embeddings/                   # Embedding Service (text-embedding-004)
+│       │   └── embedding.service.ts
+│       └── prompts/                      # System Prompts & Skill SOP Templates
+│           └── orchestrator.prompt.ts
 │
 ├── database/                             # Migrations & Seeders
 │   ├── schema.sql                        # Skrip inisialisasi DDL PostgreSQL

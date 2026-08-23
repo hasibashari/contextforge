@@ -65,6 +65,7 @@ export interface WorkspaceIntegrationRow {
   tools: any[];
   last_ping_ms: number;
   latency_ms: number;
+  health_message?: string;
   is_custom: boolean;
   created_at: string;
   updated_at: string;

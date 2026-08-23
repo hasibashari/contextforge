@@ -205,6 +205,8 @@ export interface Integration {
   tools: McpTool[]
   lastPingMs: number
   latencyMs: number
+  healthMessage?: string
+  health_message?: string
   transport?: 'stdio' | 'streamable_http' | 'sse' | 'rest'
   authType?: 'none' | 'bearer' | 'oauth' | 'api_key'
   authConfig?: {

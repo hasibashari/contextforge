@@ -79,6 +79,26 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
             <span>Workspace: {integration.authConfig.workspaceName}</span>
           </div>
         )}
+
+        {/* Live Diagnostics Message if Disconnected or Alerting */}
+        {(integration.health_message || integration.healthMessage) && (
+          <div
+            className={`text-[11px] font-mono px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${
+              isConnected
+                ? 'bg-semantic-success/5 border-semantic-success/20 text-semantic-success'
+                : 'bg-semantic-error/10 border-semantic-error/20 text-semantic-error'
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isConnected ? 'bg-semantic-success' : 'bg-semantic-error'
+              }`}
+            />
+            <span className="truncate">
+              {integration.health_message || integration.healthMessage}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Bottom Meta & Action */}

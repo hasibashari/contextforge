@@ -4,8 +4,8 @@ import { WorkspaceProvider } from './shared/context'
 import { WorkspaceLayout } from './shared/layouts'
 
 
-// Lazy-loaded page components for optimal code-splitting
-const HomePage = lazy(() => import('./pages/HomePage'))
+// Lazy-loaded feature views for optimal code-splitting
+const HomeView = lazy(() => import('./features/home/views/HomeView'))
 const DashboardView = lazy(() => import('./features/dashboard/views/DashboardView'))
 const AgentsDirectoryView = lazy(() => import('./features/agents/views/AgentsDirectoryView'))
 const KnowledgeSourcesView = lazy(() => import('./features/knowledge/views/KnowledgeSourcesView'))
@@ -31,7 +31,7 @@ function App() {
         <Suspense fallback={<PageFallback />}>
           <Routes>
             {/* Landing Page */}
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<HomeView />} />
 
             {/* AI Agent Workspace Application */}
             <Route element={<WorkspaceLayout />}>

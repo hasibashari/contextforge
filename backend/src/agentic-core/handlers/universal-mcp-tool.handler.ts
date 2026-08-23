@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { McpGatewayService } from '../services/mcp-gateway.service';
+import { McpGatewayService } from '../../mcp/mcp-gateway.service';
 import { AgentRecorderService } from '../services/agent-recorder.service';
 import { ArtifactRow } from '../../modules/artifacts/artifacts.repository';
 import { TOOL_CATALOG } from '../tools/builtin-tools';

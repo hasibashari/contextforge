@@ -1,8 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { DatabaseService } from '../../common/database/database.service';
-import { UniversalPathResolver } from '../../common/utils/universal-path-resolver.util';
+import { DatabaseService } from '../../../common/database/database.service';
+import { UniversalPathResolver } from '../../../common/utils/universal-path-resolver.util';
 
 export interface VaultWriteResult {
   absolutePath: string;
@@ -134,6 +134,45 @@ export class ObsidianVaultService implements OnModuleInit {
   }
 
   /**
+   * Real-time path accessibility check on local filesystem
+   */
+  async verifyPathAccess(): Promise<{
+    isAccessible: boolean;
+    path: string;
+    reason?: string;
+  }> {
+    if (!this.vaultRoot) {
+      await this.refreshVaultRootFromDb();
+    }
+
+    if (!this.vaultRoot || this.vaultRoot === 'dynamic-client-vault') {
+      return {
+        isAccessible: false,
+        path: '',
+        reason: 'Obsidian vault path is not configured or connected yet.',
+      };
+    }
+
+    try {
+      await fs.access(this.vaultRoot, fs.constants.R_OK | fs.constants.W_OK);
+      this.isPhysicallyAccessible = true;
+      return {
+        isAccessible: true,
+        path: this.vaultRoot,
+        reason: `Vault directory accessible at ${this.vaultRoot}`,
+      };
+    } catch (err: unknown) {
+      this.isPhysicallyAccessible = false;
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        isAccessible: false,
+        path: this.vaultRoot,
+        reason: `Folder unreachable or lacking write permissions: ${msg}`,
+      };
+    }
+  }
+
+  /**
    * Safely formats and writes a Markdown note with YAML frontmatter
    * Supports direct physical disk write (Local/WSL) and Obsidian URI protocol (Cloud/Remote).
    */
@@ -173,7 +212,7 @@ export class ObsidianVaultService implements OnModuleInit {
         `date: ${isoDate}`,
         `tags: [${tagsList}]`,
         `status: active`,
-        `created_by: ContextForge Action Agent`,
+        `created_by: ContextForge Personal Assistant`,
         '---',
         '',
       ].join('\n');

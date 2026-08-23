@@ -119,6 +119,16 @@ export class AutomationService {
             });
           } else if (evt.event === 'tool_call_result') {
             const toolName = (evt.data?.toolName as string) || 'MCP Tool';
+            const isToolSuccess = evt.data?.success !== false;
+            const toolData = evt.data?.data as
+              Record<string, unknown> | undefined;
+            const toolErrorMsg =
+              typeof toolData?.error === 'string'
+                ? toolData.error
+                : toolData?.error
+                  ? JSON.stringify(toolData.error)
+                  : undefined;
+
             const existingStep = steps.find(
               (s) =>
                 s.stage === 'tool_execution' &&
@@ -126,11 +136,17 @@ export class AutomationService {
                 s.status === 'running',
             );
             if (existingStep) {
-              existingStep.status = 'completed';
+              const finalStepStatus =
+                isToolSuccess && !toolErrorMsg ? 'completed' : 'failed';
+              existingStep.status = finalStepStatus;
               (existingStep.logs as string[]).push(
                 (evt.data?.summary as string) ||
-                  `Tool ${toolName} execution completed.`,
+                  `Tool ${toolName} execution ${finalStepStatus}.`,
               );
+              if (toolErrorMsg) {
+                (existingStep.logs as string[]).push(`Error: ${toolErrorMsg}`);
+                runStatus = 'failed';
+              }
               existingStep.durationMs = evt.data?.durationMs || 450;
             }
           } else if (evt.event === 'thought_step') {

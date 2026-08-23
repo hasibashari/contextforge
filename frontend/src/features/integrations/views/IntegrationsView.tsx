@@ -75,11 +75,35 @@ export default function IntegrationsView() {
         title="Model Context Protocol (MCP) Servers"
         description="Connect external Model Context Protocol (MCP) servers (Obsidian, Notion, GitHub) to empower autonomous agents with active tool execution and file mutation."
         actions={
-          <div className="flex items-center gap-2 bg-canvas-soft border border-hairline rounded-xl px-3.5 py-2 text-ink shadow-2xs whitespace-nowrap">
-            <span className="w-2 h-2 rounded-full bg-semantic-success animate-pulse shrink-0" />
-            <span className="text-body font-medium text-xs sm:text-sm">
-              <strong className="text-ink font-semibold">{connectedCount}</strong> of {integrations.length} Servers Active
-            </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                refreshIntegrations()
+                showToast('⚡ Live MCP Health Probe refreshed', 'info')
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-ink bg-surface-card hover:bg-surface-strong border border-hairline rounded-xl shadow-2xs transition-colors cursor-pointer"
+              title="Run live probe on all MCP servers"
+            >
+              <RotateCcw size={13} className="text-muted" />
+              <span>Probe Status</span>
+            </button>
+
+            <div className="flex items-center gap-2 bg-canvas-soft border border-hairline rounded-xl px-3.5 py-2 text-ink shadow-2xs whitespace-nowrap">
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  connectedCount > 0
+                    ? 'bg-semantic-success animate-pulse'
+                    : 'bg-semantic-error'
+                }`}
+              />
+              <span className="text-body font-medium text-xs sm:text-sm">
+                <strong className="text-ink font-semibold">
+                  {connectedCount}
+                </strong>{' '}
+                of {integrations.length} Servers Active
+              </span>
+            </div>
           </div>
         }
       />

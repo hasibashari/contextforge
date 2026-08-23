@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { McpGatewayService } from '../../mcp/mcp-gateway.service';
 import {
   EcosystemRepository,
   WorkspaceAgentRow,
@@ -24,7 +25,10 @@ export interface McpDiscoveredTool {
 export class EcosystemService {
   private readonly logger = new Logger(EcosystemService.name);
 
-  constructor(private readonly repo: EcosystemRepository) {}
+  constructor(
+    private readonly repo: EcosystemRepository,
+    private readonly mcpGateway: McpGatewayService,
+  ) {}
 
   // ==========================================
   // AGENTS
@@ -104,7 +108,33 @@ export class EcosystemService {
   // ==========================================
 
   async getIntegrations(): Promise<WorkspaceIntegrationRow[]> {
-    return this.repo.getIntegrations();
+    const rows = await this.repo.getIntegrations();
+
+    // Run parallel live health probe on all integrations
+    return await Promise.all(
+      rows.map(async (row) => {
+        try {
+          const probe = await this.mcpGateway.pingServer(row.id);
+          const effectiveStatus: WorkspaceIntegrationRow['status'] =
+            probe.status === 'connected' ? 'connected' : 'disconnected';
+
+          return {
+            ...row,
+            status: effectiveStatus,
+            health_message: probe.message,
+            latency_ms: probe.latencyMs,
+            last_ping_ms: probe.latencyMs,
+          };
+        } catch {
+          return {
+            ...row,
+            status: 'disconnected' as const,
+            health_message: 'MCP connection probe failed or timed out',
+            latency_ms: 0,
+          };
+        }
+      }),
+    );
   }
 
   async createIntegration(data: {
@@ -592,46 +622,20 @@ export class EcosystemService {
       throw new NotFoundException(`MCP Connector with ID "${id}" not found`);
     }
 
-    let latencyMs = 12;
-    let messageDetail = `MCP Server "${integration.name}" responded successfully`;
-
-    const isNotion =
-      integration.id === 'int-notion-mcp' ||
-      integration.name.toLowerCase().includes('notion');
-
-    if (isNotion && integration.auth_config?.token) {
-      const startTime = Date.now();
-      try {
-        const res = await fetch('https://api.notion.com/v1/users/me', {
-          headers: {
-            Authorization: `Bearer ${integration.auth_config.token}`,
-            'Notion-Version': '2022-06-28',
-          },
-        });
-        const elapsed = Date.now() - startTime;
-        latencyMs = Math.max(8, elapsed);
-        if (res.ok) {
-          const user = (await res.json()) as { name?: string };
-          messageDetail = `Notion Workspace (${integration.auth_config.workspaceName || user.name || 'Active'}) verified live`;
-        }
-      } catch (err: unknown) {
-        this.logger.warn(`Notion ping failed: ${String(err)}`);
-      }
-    } else {
-      latencyMs = Math.floor(Math.random() * 12) + 6;
-    }
+    const probe = await this.mcpGateway.pingServer(id);
+    const isConnected = probe.status === 'connected';
 
     await this.repo.updateIntegration(id, {
-      last_ping_ms: latencyMs,
-      latency_ms: latencyMs,
-      status: 'connected',
+      last_ping_ms: probe.latencyMs,
+      latency_ms: probe.latencyMs,
+      status: isConnected ? 'connected' : 'disconnected',
     });
 
     return {
       id,
-      status: 'connected',
-      latencyMs,
-      message: `${messageDetail} (${latencyMs}ms)`,
+      status: isConnected ? 'connected' : 'error',
+      latencyMs: probe.latencyMs,
+      message: `${probe.message} (${probe.latencyMs}ms)`,
     };
   }
 
