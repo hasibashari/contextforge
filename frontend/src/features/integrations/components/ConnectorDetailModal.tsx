@@ -76,7 +76,10 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
 
   const [selectedFolder, setSelectedFolder] = useState(
     currentIntegration.targetBinding?.folderScope ||
+      currentIntegration.authConfig?.vaultName ||
+      currentIntegration.authConfig?.vaultPath ||
       obsidianBridgeService.getPairedDirectoryHandle()?.name ||
+      obsidianBridgeService.getPairedVaultName() ||
       '',
   )
 
@@ -334,7 +337,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                 <Folder size={16} className="text-[#7c3aed]" />
                 <div className="min-w-0">
                   <div className="font-semibold text-ink text-xs truncate">
-                    Connected Folder: 📁 {currentIntegration.targetBinding?.folderScope || obsidianBridgeService.getPairedDirectoryHandle()?.name || 'Selected Folder'}
+                    Connected Folder: 📁 {currentIntegration.targetBinding?.folderScope || currentIntegration.authConfig?.vaultName || currentIntegration.authConfig?.vaultPath || obsidianBridgeService.getPairedDirectoryHandle()?.name || obsidianBridgeService.getPairedVaultName() || 'Obsidian Vault'}
                   </div>
                   <div className="text-[11px] text-muted font-mono">
                     Notes are automatically saved directly into this folder
@@ -348,7 +351,10 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
                 leftIcon={<ExternalLink size={12} />}
                 onClick={() => {
                   const targetFolder =
-                    currentIntegration.targetBinding?.folderScope || ''
+                    currentIntegration.targetBinding?.folderScope ||
+                    currentIntegration.authConfig?.vaultName ||
+                    obsidianBridgeService.getPairedVaultName() ||
+                    ''
                   obsidianBridgeService.openInObsidianApp(targetFolder, '')
                 }}
                 className="shrink-0 self-start sm:self-auto"

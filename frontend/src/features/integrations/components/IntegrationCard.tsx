@@ -73,10 +73,17 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
           {integration.description}
         </p>
 
-        {/* Connected Workspace Badge */}
+        {/* Connected Workspace Badge (Notion) */}
         {isConnected && integration.authConfig?.workspaceName && (
           <div className="inline-flex items-center gap-1.5 text-[10px] text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md font-mono font-medium">
             <span>Workspace: {integration.authConfig.workspaceName}</span>
+          </div>
+        )}
+
+        {/* Connected Folder Badge (Obsidian) */}
+        {isConnected && (integration.authConfig?.vaultName || integration.targetBinding?.folderScope) && (
+          <div className="inline-flex items-center gap-1.5 text-[10px] text-[#7c3aed] bg-[#7c3aed]/10 border border-[#7c3aed]/20 px-2 py-0.5 rounded-md font-mono font-medium">
+            <span>Folder: 📁 {integration.authConfig?.vaultName || integration.targetBinding?.folderScope}</span>
           </div>
         )}
 

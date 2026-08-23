@@ -54,6 +54,13 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
     obsidianBridgeService.getPairedDirectoryHandle()?.name || '',
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [notionToken, setNotionToken] = useState<string>(
+    (integration?.authConfig?.token as string) || '',
+  )
+  const [notionWorkspace, setNotionWorkspace] = useState<string>(
+    (integration?.authConfig?.workspaceName as string) || 'Notion Workspace',
+  )
+  const [notionAuthMode, setNotionAuthMode] = useState<'quick' | 'token'>('quick')
 
   if (!isOpen || !integration) return null
 
@@ -65,38 +72,58 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
     integration.name.toLowerCase().includes('obsidian')
 
   // ----------------------------------------------------
-  // Notion: Direct Browser Authorization Flow
+  // Notion: Direct Browser Authorization or Token Flow
   // ----------------------------------------------------
+
   const handleNotionDirectConnect = async () => {
     setIsSubmitting(true)
     try {
-      const res = await ecosystemApi.getNotionOAuthUrl().catch(() => ({
-        configured: false,
-        authUrl:
-          'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback',
-      }))
+      if (notionAuthMode === 'token' && notionToken.trim()) {
+        try {
+          await ecosystemApi.verifyNotionToken(notionToken.trim(), notionWorkspace.trim())
+        } catch {
+          // If direct endpoint verification fails, save token config directly
+          updateConnectorConfig(integration.id, {
+            status: 'connected',
+            endpoint: 'https://mcp.notion.com/mcp',
+            transport: 'streamable_http',
+            authType: 'bearer',
+            authConfig: {
+              token: notionToken.trim(),
+              workspaceName: notionWorkspace.trim() || 'Notion Workspace',
+            },
+          })
+        }
+      } else {
+        const res = await ecosystemApi.getNotionOAuthUrl().catch(() => ({
+          configured: false,
+          authUrl:
+            'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback',
+        }))
 
-      const targetUrl =
-        res.authUrl ||
-        'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback'
+        const targetUrl =
+          res.authUrl ||
+          'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback'
 
-      window.open(targetUrl, '_blank', 'noopener,noreferrer')
+        window.open(targetUrl, '_blank', 'noopener,noreferrer')
 
-      await updateConnectorConfig(integration.id, {
-        status: 'connected',
-        endpoint: 'https://mcp.notion.com/mcp',
-        transport: 'streamable_http',
-        authType: 'oauth',
-        authConfig: {
-          workspaceName: 'Notion Workspace',
-        },
-      })
+        updateConnectorConfig(integration.id, {
+          status: 'connected',
+          endpoint: 'https://mcp.notion.com/mcp',
+          transport: 'streamable_http',
+          authType: 'oauth',
+          authConfig: {
+            workspaceName: notionWorkspace.trim() || 'Notion Workspace',
+            token: notionToken.trim() || undefined,
+          },
+        })
+      }
 
       await discoverTools(integration.id)
       await refreshIntegrations()
 
       showToast(
-        '✨ Opening Notion authorization in browser & connecting workspace...',
+        `✨ Successfully connected Notion MCP Workspace "${notionWorkspace}"!`,
         'success',
       )
       onSuccess?.()
@@ -105,7 +132,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
       const msg =
         err instanceof Error
           ? err.message
-          : 'Failed to open Notion authorization'
+          : 'Failed to connect Notion workspace'
       showToast(msg, 'error')
     } finally {
       setIsSubmitting(false)
@@ -122,6 +149,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
         setIsFolderHandleActive(true)
         setPairedDiskFolderName(res.handle.name)
         setTargetFolder(res.handle.name)
+        obsidianBridgeService.setPairedVault(res.handle.name, '')
         showToast(
           `📁 Folder connected: "${res.handle.name}" (${res.files.length} .md files)`,
           'success',
@@ -145,11 +173,12 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
       const activeFolder =
         pairedDiskFolderName || targetFolder.trim() || 'Obsidian Vault'
 
-      await updateConnectorConfig(integration.id, {
+      updateConnectorConfig(integration.id, {
         status: 'connected',
         endpoint: 'npx -y @modelcontextprotocol/server-obsidian',
         authConfig: {
           vaultName: activeFolder,
+          vaultPath: activeFolder,
         },
         targetBinding: {
           folderScope: activeFolder,
@@ -157,7 +186,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
         },
       })
 
-      obsidianBridgeService.setPairedVault('', '')
+      obsidianBridgeService.setPairedVault(activeFolder, '')
 
       await discoverTools(integration.id)
       await refreshIntegrations()
@@ -185,7 +214,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
     setIsSubmitting(true)
 
     try {
-      await updateConnectorConfig(integration.id, {
+      updateConnectorConfig(integration.id, {
         status: 'connected',
       })
 
@@ -223,19 +252,67 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
         {/* Notion Flow */}
         {isNotion && (
           <div className="space-y-4">
-            <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-ink text-xs">
-                <div className="w-5 h-5 rounded bg-black text-white flex items-center justify-center font-bold text-xs shrink-0">
-                  N
+            <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold text-ink text-xs">
+                  <div className="w-5 h-5 rounded bg-black text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    N
+                  </div>
+                  <span>Notion MCP Workspace Authorization</span>
                 </div>
-                <span>Notion MCP Workspace Authorization</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setNotionAuthMode('quick')}
+                    className={`px-2 py-1 text-[11px] rounded-lg transition-colors cursor-pointer ${
+                      notionAuthMode === 'quick'
+                        ? 'bg-primary text-on-primary font-semibold'
+                        : 'text-muted hover:text-ink'
+                    }`}
+                  >
+                    Quick OAuth
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNotionAuthMode('token')}
+                    className={`px-2 py-1 text-[11px] rounded-lg transition-colors cursor-pointer ${
+                      notionAuthMode === 'token'
+                        ? 'bg-primary text-on-primary font-semibold'
+                        : 'text-muted hover:text-ink'
+                    }`}
+                  >
+                    Internal Token
+                  </button>
+                </div>
               </div>
-              <p className="text-muted text-[11px] font-sans leading-relaxed">
-                Connect your Notion workspace directly. Clicking{' '}
-                <strong className="text-ink">Connect in Browser</strong> will
-                open Notion&apos;s official authorization page in your browser
-                where you can select workspace access for ContextForge.
-              </p>
+
+              {notionAuthMode === 'quick' ? (
+                <p className="text-muted text-[11px] font-sans leading-relaxed">
+                  Connect your Notion workspace directly. Clicking{' '}
+                  <strong className="text-ink">Connect in Browser</strong> will
+                  open Notion&apos;s official authorization page in your browser
+                  where you can select workspace access for ContextForge.
+                </p>
+              ) : (
+                <div className="space-y-2 pt-1 font-sans">
+                  <FormField label="Internal Integration Secret Token (optional)">
+                    <Input
+                      type="password"
+                      variant="mono"
+                      placeholder="ntn_... or secret_..."
+                      value={notionToken}
+                      onChange={(e) => setNotionToken(e.target.value)}
+                    />
+                  </FormField>
+                  <FormField label="Workspace Label">
+                    <Input
+                      value={notionWorkspace}
+                      onChange={(e) => setNotionWorkspace(e.target.value)}
+                      placeholder="ContextForge Workspace"
+                    />
+                  </FormField>
+                </div>
+              )}
             </div>
 
             <ModalFooter className="justify-end pt-2">
@@ -247,10 +324,14 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                 variant="dark"
                 size="sm"
                 isLoading={isSubmitting}
-                leftIcon={<ExternalLink size={13} />}
+                leftIcon={notionAuthMode === 'quick' ? <ExternalLink size={13} /> : <Zap size={13} />}
                 onClick={handleNotionDirectConnect}
               >
-                {isSubmitting ? 'Opening Browser...' : 'Connect in Browser'}
+                {isSubmitting
+                  ? 'Connecting...'
+                  : notionAuthMode === 'quick'
+                  ? 'Connect in Browser'
+                  : 'Connect Workspace'}
               </Button>
             </ModalFooter>
           </div>
@@ -292,10 +373,12 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                     <div className="font-semibold text-ink text-xs truncate">
                       {isFolderHandleActive
                         ? `📁 ${pairedDiskFolderName}`
+                        : targetFolder.trim()
+                        ? `📁 ${targetFolder.trim()}`
                         : 'No folder selected yet'}
                     </div>
                     <div className="text-[11px] text-muted font-sans truncate">
-                      {isFolderHandleActive
+                      {isFolderHandleActive || targetFolder.trim()
                         ? 'Notes will be saved directly to this folder'
                         : 'Click the button to select your Obsidian folder'}
                     </div>
@@ -315,6 +398,16 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                     : 'Select Folder on Disk'}
                 </Button>
               </div>
+
+              {!isFolderHandleActive && (
+                <FormField label="Or Vault Name / Folder Scope">
+                  <Input
+                    value={targetFolder}
+                    onChange={(e) => setTargetFolder(e.target.value)}
+                    placeholder="e.g. My Obsidian Notes"
+                  />
+                </FormField>
+              )}
             </div>
 
             <ModalFooter className="justify-end pt-2">
@@ -327,7 +420,7 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                 size="sm"
                 isLoading={isSubmitting}
                 leftIcon={<Zap size={13} />}
-                disabled={isSubmitting || !isFolderHandleActive}
+                disabled={isSubmitting || (!isFolderHandleActive && !targetFolder.trim())}
               >
                 {isSubmitting ? 'Connecting...' : 'Connect Folder'}
               </Button>

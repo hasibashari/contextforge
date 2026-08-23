@@ -165,7 +165,14 @@ export function useEcosystemManager(
       );
 
       try {
-        await ecosystemApi.updateIntegration(integrationId, { status: newStatus });
+        const updated = await ecosystemApi.updateIntegration(integrationId, {
+          status: newStatus,
+        });
+        if (updated) {
+          setIntegrations((prev) =>
+            prev.map((i) => (i.id === integrationId ? { ...i, ...updated, status: newStatus } : i)),
+          );
+        }
       } catch (err: unknown) {
         console.error('Failed to update connector status on backend:', err);
       }
@@ -201,7 +208,12 @@ export function useEcosystemManager(
       showToast('Connector configuration saved successfully', 'success');
 
       try {
-        await ecosystemApi.updateIntegration(connectorId, updates);
+        const saved = await ecosystemApi.updateIntegration(connectorId, updates);
+        if (saved) {
+          setIntegrations((prev) =>
+            prev.map((i) => (i.id === connectorId ? { ...i, ...saved, ...updates } : i)),
+          );
+        }
       } catch (err: unknown) {
         console.error('Failed to save connector config on backend:', err);
       }

@@ -211,8 +211,10 @@ export interface Integration {
   authType?: 'none' | 'bearer' | 'oauth' | 'api_key'
   authConfig?: {
     token?: string
+    apiKey?: string
     workspaceName?: string
     vaultName?: string
+    vaultPath?: string
     vaultId?: string
     headers?: Record<string, string>
     env?: Record<string, string>

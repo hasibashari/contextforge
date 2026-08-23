@@ -71,14 +71,24 @@ interface BackendIntegration {
   authType?: 'none' | 'bearer' | 'oauth' | 'api_key';
   auth_config?: {
     token?: string;
+    apiKey?: string;
+    workspaceName?: string;
+    vaultName?: string;
+    vaultPath?: string;
     headers?: Record<string, string>;
     env?: Record<string, string>;
   };
   authConfig?: {
     token?: string;
+    apiKey?: string;
+    workspaceName?: string;
+    vaultName?: string;
+    vaultPath?: string;
     headers?: Record<string, string>;
     env?: Record<string, string>;
   };
+  target_binding?: { folderScope?: string; defaultOutputPath?: string };
+  targetBinding?: { folderScope?: string; defaultOutputPath?: string };
   is_custom?: boolean;
   isCustom?: boolean;
 }
@@ -133,6 +143,14 @@ function mapSkillFromBackend(row: BackendSkill): Skill {
 }
 
 function mapIntegrationFromBackend(row: BackendIntegration): Integration {
+  const authConfig = row.auth_config || row.authConfig || {};
+  const folderScope =
+    (row as { target_binding?: { folderScope?: string } }).target_binding?.folderScope ||
+    (row as { targetBinding?: { folderScope?: string } }).targetBinding?.folderScope ||
+    authConfig.vaultName ||
+    authConfig.vaultPath ||
+    '';
+
   return {
     id: row.id,
     connectionId: row.connection_id || row.connectionId,
@@ -147,7 +165,8 @@ function mapIntegrationFromBackend(row: BackendIntegration): Integration {
     latencyMs: row.latency_ms ?? row.latencyMs ?? 12,
     transport: row.transport || 'stdio',
     authType: row.auth_type || row.authType || 'none',
-    authConfig: row.auth_config || row.authConfig || {},
+    authConfig,
+    targetBinding: folderScope ? { folderScope, defaultOutputPath: '' } : undefined,
     isCustom: Boolean(row.is_custom || row.isCustom),
   };
 }

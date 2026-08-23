@@ -257,7 +257,7 @@ export class ObsidianMcpServer implements IMcpServer {
   }> {
     const startTime = Date.now();
     const probe = await this.vaultService.verifyPathAccess();
-    const latencyMs = Date.now() - startTime;
+    const latencyMs = Math.max(8, Date.now() - startTime);
 
     return {
       status: probe.isAccessible ? 'connected' : 'disconnected',

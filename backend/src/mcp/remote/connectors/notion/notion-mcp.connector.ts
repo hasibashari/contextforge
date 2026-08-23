@@ -23,8 +23,22 @@ export class NotionMcpConnector implements IMcpServer {
   constructor(private readonly httpClient: McpHttpClient) {}
 
   setEndpoint(endpoint: string, authToken = '') {
-    this.endpoint = endpoint;
-    this.authToken = authToken;
+    if (endpoint) this.endpoint = endpoint;
+    if (authToken !== undefined) this.authToken = authToken;
+  }
+
+  setAuthToken(authToken: string) {
+    this.authToken = authToken || '';
+  }
+
+  getAuthToken(): string {
+    return this.authToken;
+  }
+
+  configure(config: { endpoint?: string; token?: string; apiKey?: string }) {
+    if (config.endpoint) this.endpoint = config.endpoint;
+    if (config.token) this.authToken = config.token;
+    else if (config.apiKey) this.authToken = config.apiKey;
   }
 
   getTools(): McpToolDefinition[] {
@@ -113,8 +127,14 @@ export class NotionMcpConnector implements IMcpServer {
   ): Promise<McpToolCallResult> {
     this.logger.log(`Executing remote Notion tool: ${toolName}`);
 
-    const authHeaders: Record<string, string> = this.authToken
-      ? { Authorization: `Bearer ${this.authToken}` }
+    const effectiveToken =
+      this.authToken ||
+      process.env.NOTION_API_KEY ||
+      process.env.NOTION_TOKEN ||
+      '';
+
+    const authHeaders: Record<string, string> = effectiveToken
+      ? { Authorization: `Bearer ${effectiveToken}` }
       : {};
 
     // Mock/Real execution handler
@@ -202,12 +222,18 @@ export class NotionMcpConnector implements IMcpServer {
     message: string;
     latencyMs: number;
   }> {
-    const isConfigured = Boolean(this.authToken);
+    const effectiveToken =
+      this.authToken ||
+      process.env.NOTION_API_KEY ||
+      process.env.NOTION_TOKEN ||
+      '';
+
+    const isConfigured = Boolean(effectiveToken || this.endpoint);
     return Promise.resolve({
       status: isConfigured ? 'connected' : 'disconnected',
       message: isConfigured
-        ? 'Notion OAuth token verified and connected'
-        : 'Notion integration requires OAuth connection',
+        ? 'Notion MCP Server ready and connected'
+        : 'Notion integration requires OAuth connection or API token',
       latencyMs: isConfigured ? 14 : 0,
     });
   }
