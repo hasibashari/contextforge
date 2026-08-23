@@ -24,6 +24,9 @@ export class PersonalHubService {
   async getMemorySummaryMarkdown(): Promise<string> {
     const memories = await this.repo.getUserMemories();
     if (!memories || memories.length === 0) {
+      const emptyPlaceholder =
+        '# Memory Summary\n\n_No memories recorded yet. The AI assistant will automatically learn and record your preferences, workflow habits, and project context as you converse._\n';
+      await this.syncDiskFile(emptyPlaceholder);
       return '';
     }
 
@@ -56,7 +59,9 @@ export class PersonalHubService {
 
   async clearAllMemories(): Promise<{ success: boolean }> {
     await this.repo.clearAll();
-    await this.syncDiskFile('');
+    const emptyPlaceholder =
+      '# Memory Summary\n\n_No memories recorded yet. The AI assistant will automatically learn and record your preferences, workflow habits, and project context as you converse._\n';
+    await this.syncDiskFile(emptyPlaceholder);
     return { success: true };
   }
 
