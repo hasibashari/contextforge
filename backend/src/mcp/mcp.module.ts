@@ -5,7 +5,6 @@ import { ObsidianMcpServer } from './internal/obsidian/obsidian-mcp.server';
 import { McpHttpClient } from './remote/clients/mcp-http.client';
 import { McpSseClient } from './remote/clients/mcp-sse.client';
 import { NotionMcpConnector } from './remote/connectors/notion/notion-mcp.connector';
-import { GenericRemoteConnector } from './remote/connectors/generic-remote.connector';
 import { McpGatewayService } from './mcp-gateway.service';
 
 @Module({
@@ -16,7 +15,6 @@ import { McpGatewayService } from './mcp-gateway.service';
     McpHttpClient,
     McpSseClient,
     NotionMcpConnector,
-    GenericRemoteConnector,
     McpGatewayService,
   ],
   exports: [

@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common';
+import type { GoogleGenAI } from '@google/genai';
+import { GEMINI_CLIENT } from '../../agentic-core/gemini-client.provider';
 import {
   ChatRepository,
   ChatSessionRow,
@@ -21,6 +23,7 @@ export class ChatService {
     private readonly orchestrator: CoreOrchestratorService,
     private readonly ecosystemService: EcosystemService,
     private readonly personalHubService: PersonalHubService,
+    @Inject(GEMINI_CLIENT) private readonly ai: GoogleGenAI,
   ) {}
 
   async getAllSessions(): Promise<ChatSessionRow[]> {
@@ -98,13 +101,16 @@ export class ChatService {
       const messages =
         await this.chatRepo.getMessagesBySessionId(targetSessionId);
       if (messages.length <= 2) {
-        const autoTitle =
+        const initialTitle =
           prompt.length > 35 ? prompt.slice(0, 35) + '...' : prompt;
-        await this.chatRepo.updateSessionTitle(targetSessionId, autoTitle);
+        await this.chatRepo.updateSessionTitle(targetSessionId, initialTitle);
         sendSse('session_title_updated', {
           sessionId: targetSessionId,
-          title: autoTitle,
+          title: initialTitle,
         });
+
+        // Trigger AI Semantic Titling in background (non-blocking)
+        void this.generateSemanticTitleAsync(targetSessionId, prompt, sendSse);
       }
 
       // 3. Prepare compacted sliding conversation history for Gemini (Token Budget Optimization)
@@ -204,5 +210,69 @@ export class ChatService {
       res,
       'agent-personal-assistant',
     );
+  }
+
+  /**
+   * Background AI Semantic Titling (ChatGPT/Claude pattern)
+   */
+  private async generateSemanticTitleAsync(
+    targetSessionId: string,
+    prompt: string,
+    sendSse: (event: string, data: unknown) => void,
+  ): Promise<void> {
+    try {
+      const response = await this.ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: `You are an expert concise title generator for a multi-agent AI assistant.
+Summarize the user inquiry or topic in 3 to 5 words.
+Rules:
+- Match the language of the prompt (Indonesian or English).
+- Return ONLY the title text.
+- Do NOT use markdown, quotes, emojis, or trailing punctuation.
+- Maximum 40 characters.
+
+User Prompt: "${prompt.slice(0, 500)}"
+Title:`,
+              },
+            ],
+          },
+        ],
+        config: {
+          temperature: 0.2,
+          maxOutputTokens: 30,
+        },
+      });
+
+      const rawTitle = response.text?.trim() || '';
+      const cleanTitle = rawTitle
+        .replace(/^["'`]|["'`]$/g, '')
+        .replace(/^[#*-]\s*/, '')
+        .trim();
+
+      if (cleanTitle && cleanTitle.length > 2) {
+        const finalTitle =
+          cleanTitle.length > 45 ? cleanTitle.slice(0, 45) + '...' : cleanTitle;
+
+        await this.chatRepo.updateSessionTitle(targetSessionId, finalTitle);
+        sendSse('session_title_updated', {
+          sessionId: targetSessionId,
+          title: finalTitle,
+        });
+
+        this.logger.log(
+          `✨ [AI Semantic Titling] Generated title for session ${targetSessionId}: "${finalTitle}"`,
+        );
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `AI semantic title generation background fallback: ${msg}`,
+      );
+    }
   }
 }

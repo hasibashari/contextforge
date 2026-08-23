@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { IMcpServer } from '../../interfaces/mcp-server.interface';
 import { McpTransportType } from '../../interfaces/mcp-transport.types';
 import {
@@ -18,7 +18,6 @@ export interface GenericRemoteConfig {
   authConfig?: Record<string, string>;
 }
 
-@Injectable()
 export class GenericRemoteConnector implements IMcpServer {
   private readonly logger = new Logger(GenericRemoteConnector.name);
 
