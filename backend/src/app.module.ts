@@ -5,6 +5,7 @@ import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { geminiConfig } from './config/gemini.config';
 import { DatabaseModule } from './common/database/database.module';
+import { SecurityModule } from './common/security/security.module';
 import { AgenticCoreModule } from './agentic-core/agentic-core.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { ArtifactsModule } from './modules/artifacts/artifacts.module';
@@ -23,6 +24,7 @@ import { AppController } from './app.controller';
       envFilePath: ['.env'],
     }),
     EventEmitterModule.forRoot(),
+    SecurityModule,
     DatabaseModule,
     AgenticCoreModule,
     ChatModule,

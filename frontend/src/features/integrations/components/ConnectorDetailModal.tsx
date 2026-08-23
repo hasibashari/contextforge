@@ -71,7 +71,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
     description: integration.description,
     endpoint: integration.endpoint,
     transport: integration.transport || 'stdio',
-    apiKey: 'sec_live_mcp_9a4f21e08cb4418a',
+    apiKey: (integration.authConfig?.apiKey as string) || (integration.authConfig?.token as string) || '',
   })
 
   const [selectedFolder, setSelectedFolder] = useState(
@@ -135,7 +135,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
               description: integration.description,
               endpoint: integration.endpoint,
               transport: integration.transport || 'stdio',
-              apiKey: 'sec_live_mcp_9a4f21e08cb4418a',
+              apiKey: (integration.authConfig?.apiKey as string) || (integration.authConfig?.token as string) || '',
             })
             setIsEditing(false)
           }}

@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { McpGatewayService } from '../../mcp/mcp-gateway.service';
+import { EncryptionService } from '../../common/security/encryption.service';
 import {
   EcosystemRepository,
   WorkspaceAgentRow,
@@ -28,7 +29,66 @@ export class EcosystemService {
   constructor(
     private readonly repo: EcosystemRepository,
     private readonly mcpGateway: McpGatewayService,
+    private readonly encryption: EncryptionService,
   ) {}
+
+  // ==========================================
+  // PRIVATE HELPERS: Auth Config Secure I/O
+  // ==========================================
+
+  /** Encrypt all sensitive fields inside an auth_config object before persisting to DB */
+  private encryptAuthConfig(
+    authConfig: Record<string, unknown> | undefined,
+  ): Record<string, unknown> | undefined {
+    if (!authConfig || typeof authConfig !== 'object') return authConfig;
+    const sensitiveKeys = ['token', 'apiKey', 'password', 'secret', 'key'];
+    const result = { ...authConfig };
+    for (const key of Object.keys(result)) {
+      const val = result[key];
+      if (
+        sensitiveKeys.some((s) =>
+          key.toLowerCase().includes(s.toLowerCase()),
+        ) &&
+        typeof val === 'string' &&
+        val
+      ) {
+        result[key] = this.encryption.encrypt(val);
+      }
+    }
+    return result;
+  }
+
+  private decryptAuthConfig(
+    authConfig: Record<string, unknown> | undefined,
+  ): Record<string, unknown> | undefined {
+    if (!authConfig || typeof authConfig !== 'object') return authConfig;
+    const sensitiveKeys = ['token', 'apiKey', 'password', 'secret', 'key'];
+    const result = { ...authConfig };
+    for (const key of Object.keys(result)) {
+      const val = result[key];
+      if (
+        sensitiveKeys.some((s) =>
+          key.toLowerCase().includes(s.toLowerCase()),
+        ) &&
+        typeof val === 'string' &&
+        val
+      ) {
+        result[key] = this.encryption.decrypt(val);
+      }
+    }
+    return result;
+  }
+
+  /** Mask sensitive fields in auth_config before sending to frontend */
+  private maskAuthConfigForClient(
+    row: WorkspaceIntegrationRow,
+  ): WorkspaceIntegrationRow {
+    if (!row.auth_config) return row;
+    return {
+      ...row,
+      auth_config: this.encryption.maskAuthConfig(row.auth_config),
+    };
+  }
 
   // ==========================================
   // AGENTS
@@ -111,7 +171,7 @@ export class EcosystemService {
     const rows = await this.repo.getIntegrations();
 
     // Run parallel live health probe on all integrations
-    return await Promise.all(
+    const probed = await Promise.all(
       rows.map(async (row) => {
         try {
           const probe = await this.mcpGateway.pingServer(row.id);
@@ -144,6 +204,9 @@ export class EcosystemService {
         }
       }),
     );
+
+    // Mask sensitive credentials before sending to client
+    return probed.map((row) => this.maskAuthConfigForClient(row));
   }
 
   async createIntegration(data: {
@@ -160,23 +223,35 @@ export class EcosystemService {
     };
     tools?: any[];
   }): Promise<WorkspaceIntegrationRow> {
-    const created = await this.repo.createIntegration(data);
+    const secureData = {
+      ...data,
+      authConfig: data.authConfig
+        ? this.encryptAuthConfig(data.authConfig)
+        : undefined,
+    };
+    const created = await this.repo.createIntegration(secureData);
     await this.mcpGateway.refreshRemoteServersFromDb();
-    return created;
+    return this.maskAuthConfigForClient(created);
   }
 
   async updateIntegration(
     id: string,
     updates: Partial<WorkspaceIntegrationRow>,
   ): Promise<WorkspaceIntegrationRow> {
-    const updated = await this.repo.updateIntegration(id, updates);
+    const secureUpdates: Partial<WorkspaceIntegrationRow> = {
+      ...updates,
+      auth_config: updates.auth_config
+        ? this.encryptAuthConfig(updates.auth_config)
+        : updates.auth_config,
+    };
+    const updated = await this.repo.updateIntegration(id, secureUpdates);
     if (!updated) {
       throw new NotFoundException(
         `Integration connector with ID "${id}" not found`,
       );
     }
     await this.mcpGateway.refreshRemoteServersFromDb();
-    return updated;
+    return this.maskAuthConfigForClient(updated);
   }
 
   // ==========================================
@@ -274,13 +349,13 @@ export class EcosystemService {
         status: 'connected',
         auth_type: 'oauth',
         endpoint: 'https://mcp.notion.com/mcp',
-        auth_config: {
+        auth_config: this.encryptAuthConfig({
           token: data.access_token,
           workspaceName,
           workspaceId: data.workspace_id,
           workspaceIcon: data.workspace_icon,
           botId: data.bot_id,
-        },
+        }),
       });
 
       await this.discoverTools('int-notion-mcp');
@@ -346,10 +421,10 @@ export class EcosystemService {
         status: 'connected',
         auth_type: 'bearer',
         endpoint: 'https://mcp.notion.com/mcp',
-        auth_config: {
+        auth_config: this.encryptAuthConfig({
           token: token.trim(),
           workspaceName: resolvedWorkspaceName,
-        },
+        }),
       });
 
       await this.discoverTools('int-notion-mcp');

@@ -54,10 +54,13 @@ export interface WorkspaceIntegrationRow {
   auth_type?: 'none' | 'bearer' | 'oauth' | 'api_key';
   auth_config?: {
     token?: string;
+    apiKey?: string;
     workspaceName?: string;
     workspaceId?: string;
     workspaceIcon?: string;
     botId?: string;
+    vaultName?: string;
+    vaultPath?: string;
     headers?: Record<string, string>;
     env?: Record<string, string>;
   };
