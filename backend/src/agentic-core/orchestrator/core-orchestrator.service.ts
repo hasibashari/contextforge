@@ -396,6 +396,7 @@ export class CoreOrchestratorService {
 
       // Universal MCP Tool Invocation (Notion & Obsidian)
       case 'query_notion_workspace':
+      case 'notion_list_workspace_resources':
       case 'notion_get_tasks':
       case 'notion_search':
       case 'notion_read_page':

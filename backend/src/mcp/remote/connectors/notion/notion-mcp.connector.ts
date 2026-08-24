@@ -6,6 +6,7 @@ import {
   McpToolCallResult,
 } from '../../../interfaces/mcp-tool.interface';
 import { McpHttpClient } from '../../clients/mcp-http.client';
+import { NotionApiClient } from './notion-api.client';
 
 @Injectable()
 export class NotionMcpConnector implements IMcpServer {
@@ -18,9 +19,12 @@ export class NotionMcpConnector implements IMcpServer {
   readonly isInternal = false;
 
   private endpoint = 'https://mcp.notion.com/mcp';
-  private authToken: string = '';
+  private authToken = '';
 
-  constructor(private readonly httpClient: McpHttpClient) {}
+  constructor(
+    private readonly httpClient: McpHttpClient,
+    private readonly apiClient: NotionApiClient,
+  ) {}
 
   setEndpoint(endpoint: string, authToken = '') {
     if (endpoint) this.endpoint = endpoint;
@@ -44,13 +48,34 @@ export class NotionMcpConnector implements IMcpServer {
   getTools(): McpToolDefinition[] {
     return [
       {
-        id: 't-notion-1',
-        name: 'notion_search',
-        description: 'Search pages and database titles across Notion workspace',
+        id: 't-notion-0',
+        name: 'notion_list_workspace_resources',
+        description:
+          'Discovers and inventories all accessible Notion pages, child pages, and databases across the connected workspace with full pagination traversal.',
         parametersSchema: {
           type: 'object',
           properties: {
-            query: { type: 'string', description: 'Search term or keywords' },
+            filterType: {
+              type: 'string',
+              description:
+                'Optional filter: "all", "page", or "database" (defaults to "all")',
+            },
+          },
+        },
+        readOnly: true,
+      },
+      {
+        id: 't-notion-1',
+        name: 'notion_search',
+        description:
+          'Searches pages, documentation, and database records across Notion workspace by keyword or topic.',
+        parametersSchema: {
+          type: 'object',
+          properties: {
+            query: {
+              type: 'string',
+              description: 'Search keyword or title to find in Notion',
+            },
           },
           required: ['query'],
         },
@@ -60,11 +85,19 @@ export class NotionMcpConnector implements IMcpServer {
         id: 't-notion-2',
         name: 'notion_get_tasks',
         description:
-          'Query active tasks, status Kanban boards, and deadlines from Notion Task Database',
+          'Queries tasks, action items, to-do lists, and Kanban board statuses from Notion databases.',
         parametersSchema: {
           type: 'object',
           properties: {
-            filter: { type: 'string' },
+            status: {
+              type: 'string',
+              description:
+                'Optional task status filter: "all", "in_progress", "todo", "done"',
+            },
+            query: {
+              type: 'string',
+              description: 'Optional filter query for task titles',
+            },
           },
         },
         readOnly: true,
@@ -73,11 +106,14 @@ export class NotionMcpConnector implements IMcpServer {
         id: 't-notion-3',
         name: 'notion_read_page',
         description:
-          'Read blocks, markdown content, and page properties from Notion',
+          'Reads structured markdown content, properties, and block hierarchy from a Notion page by its UUID.',
         parametersSchema: {
           type: 'object',
           properties: {
-            pageId: { type: 'string' },
+            pageId: {
+              type: 'string',
+              description: 'The 32-character Notion Page ID or UUID',
+            },
           },
           required: ['pageId'],
         },
@@ -87,13 +123,20 @@ export class NotionMcpConnector implements IMcpServer {
         id: 't-notion-4',
         name: 'notion_create_page',
         description:
-          'Create new child pages and structured document entries in Notion',
+          'Creates a new child page or database entry in Notion with markdown content.',
         parametersSchema: {
           type: 'object',
           properties: {
-            parentId: { type: 'string' },
-            title: { type: 'string' },
-            content: { type: 'string' },
+            title: { type: 'string', description: 'Title of the new page' },
+            content: {
+              type: 'string',
+              description: 'Markdown text content of the page',
+            },
+            parentId: {
+              type: 'string',
+              description:
+                'Optional parent Notion page or database ID. If omitted, creates at workspace root if allowed.',
+            },
           },
           required: ['title'],
         },
@@ -103,12 +146,20 @@ export class NotionMcpConnector implements IMcpServer {
         id: 't-notion-5',
         name: 'notion_query_database',
         description:
-          'Filter and sort structured records inside Notion databases',
+          'Filters and sorts structured records inside a specific Notion database.',
         parametersSchema: {
           type: 'object',
           properties: {
-            databaseId: { type: 'string' },
+            databaseId: {
+              type: 'string',
+              description: 'The 32-character Notion Database ID or UUID',
+            },
+            filter: {
+              type: 'object',
+              description: 'Optional Notion database filter JSON object',
+            },
           },
+          required: ['databaseId'],
         },
         readOnly: true,
       },
@@ -125,7 +176,7 @@ export class NotionMcpConnector implements IMcpServer {
     toolName: string,
     params: Record<string, unknown>,
   ): Promise<McpToolCallResult> {
-    this.logger.log(`Executing remote Notion tool: ${toolName}`);
+    this.logger.log(`Executing Notion MCP tool: ${toolName}`);
 
     const effectiveToken =
       this.authToken ||
@@ -133,87 +184,178 @@ export class NotionMcpConnector implements IMcpServer {
       process.env.NOTION_TOKEN ||
       '';
 
-    const authHeaders: Record<string, string> = effectiveToken
-      ? { Authorization: `Bearer ${effectiveToken}` }
-      : {};
+    // 1. Transparent Disconnected State Handling
+    if (!effectiveToken) {
+      this.logger.warn(
+        `Notion tool "${toolName}" called without an active NOTION_API_KEY or connection token.`,
+      );
+      return {
+        success: false,
+        server: this.name,
+        toolName,
+        data: {
+          connected: false,
+          status: 'unauthenticated',
+          message:
+            'Notion integration is currently disconnected. No active API key or OAuth token is configured.',
+          help: 'To access live Notion workspace pages and databases, please connect your token in Settings -> Integrations or add NOTION_API_KEY to backend/.env.',
+        },
+        summary:
+          'Integrasi Notion saat ini belum terhubung. Silakan masukkan Token Integrasi Notion Anda di menu Integrations atau di file .env untuk mengakses workspace Anda.',
+      };
+    }
 
-    // Mock/Real execution handler
-    switch (toolName) {
-      case 'notion_get_tasks': {
-        const tasks = [
-          {
-            id: 'task-101',
-            title: 'Design Obsidian & Notion Dual-Vault Sync Architecture',
-            status: 'In Progress',
-            priority: 'High',
-            dueDate: new Date().toISOString().slice(0, 10),
-            assignee: 'Personal Assistant Agent',
-          },
-          {
-            id: 'task-102',
-            title: 'Review System SOPs for Knowledge Extraction',
-            status: 'Todo',
-            priority: 'Medium',
-            dueDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
-            assignee: 'User',
-          },
-        ];
+    // 2. Connected Mode: Delegate to NotionApiClient
+    const authHeaders = {
+      Authorization: `Bearer ${effectiveToken.trim()}`,
+      'Notion-Version': '2022-06-28',
+      'Content-Type': 'application/json',
+    };
 
-        return {
-          success: true,
-          server: this.name,
-          toolName,
-          data: { tasks, total: tasks.length },
-          summary: `Retrieved ${tasks.length} active tasks from Notion Task Board.`,
-        };
-      }
+    try {
+      switch (toolName) {
+        case 'notion_list_workspace_resources': {
+          const filterType = (
+            (params.filterType as string) || 'all'
+          ).toLowerCase();
+          const filterParam =
+            filterType === 'page' || filterType === 'database'
+              ? filterType
+              : undefined;
 
-      case 'notion_search': {
-        const query = (params.query as string) || '';
-        return {
-          success: true,
-          server: this.name,
-          toolName,
-          data: {
+          const res = await this.apiClient.listWorkspaceResources(
+            authHeaders,
+            filterParam,
+          );
+
+          return {
+            success: true,
+            server: this.name,
+            toolName,
+            data: {
+              connected: true,
+              totalDiscovered: res.totalCount,
+              pagesCount: res.pages.length,
+              databasesCount: res.databases.length,
+              databaseEntriesCount: res.databaseEntries.length,
+              pages: res.pages,
+              databases: res.databases,
+              databaseEntries: res.databaseEntries.slice(0, 20),
+              scopeNote:
+                'Resource yang ditampilkan adalah yang dibagikan ke integrasi Notion saat ini.',
+            },
+            summary: `Berhasil menemukan ${res.totalCount} resource Notion (${res.pages.length} Halaman Dokumen, ${res.databases.length} Database, ${res.databaseEntries.length} Entri Data).`,
+          };
+        }
+
+        case 'notion_search': {
+          const query = ((params.query as string) || '').trim();
+          const results = await this.apiClient.search(authHeaders, query);
+
+          return {
+            success: true,
+            server: this.name,
+            toolName,
+            data: {
+              query,
+              totalMatches: results.length,
+              results,
+            },
+            summary: `Ditemukan ${results.length} dokumen/halaman yang cocok dengan "${query}" di Notion.`,
+          };
+        }
+
+        case 'notion_get_tasks': {
+          const statusFilter = (
+            (params.status as string) || 'all'
+          ).toLowerCase();
+          const query = ((params.query as string) || '').toLowerCase().trim();
+
+          const tasks = await this.apiClient.getTasks(
+            authHeaders,
+            statusFilter,
             query,
-            results: [
-              {
-                id: 'page-001',
-                title: `Workspace Plan: ${query}`,
-                url: `https://notion.so/workspace/${encodeURIComponent(query)}`,
-                snippet: `Strategic roadmap and knowledge notes relating to "${query}".`,
-              },
-            ],
-          },
-          summary: `Found 1 matching page in Notion for query "${query}".`,
-        };
-      }
+          );
 
-      case 'notion_create_page': {
-        const title = (params.title as string) || 'New Notion Document';
-        const pageId = `notion-page-${Date.now()}`;
-        return {
-          success: true,
-          server: this.name,
-          toolName,
-          data: {
-            pageId,
+          return {
+            success: true,
+            server: this.name,
+            toolName,
+            data: {
+              filter: statusFilter,
+              totalTasks: tasks.length,
+              tasks,
+            },
+            summary: `Berhasil mengambil ${tasks.length} tugas dari database Notion.`,
+          };
+        }
+
+        case 'notion_read_page': {
+          const pageId = (
+            (params.pageId as string) || (params.id as string)
+          )?.trim();
+          if (!pageId) {
+            return {
+              success: false,
+              server: this.name,
+              toolName,
+              data: { error: 'pageId is required' },
+              summary: 'Parameter pageId wajib diisi.',
+            };
+          }
+
+          const pageData = await this.apiClient.readPage(authHeaders, pageId);
+
+          return {
+            success: true,
+            server: this.name,
+            toolName,
+            data: pageData,
+            summary: `Berhasil membaca halaman "${pageData.title}" dari Notion (${pageData.content.length} karakter).`,
+          };
+        }
+
+        case 'notion_create_page': {
+          const title = (params.title as string) || 'Untitled Document';
+          const content = (params.content as string) || '';
+          const parentId = (params.parentId as string)?.trim();
+
+          const created = await this.apiClient.createPage(
+            authHeaders,
             title,
-            url: `https://notion.so/workspace/${pageId}`,
-            created: true,
-          },
-          summary: `Created Notion page "${title}" successfully.`,
-        };
-      }
+            content,
+            parentId,
+          );
 
-      default: {
-        return await this.httpClient.callRemoteTool(
-          this.endpoint,
-          toolName,
-          params,
-          authHeaders,
-        );
+          return {
+            success: true,
+            server: this.name,
+            toolName,
+            data: created,
+            summary: `Berhasil membuat halaman baru di Notion: "${title}" (${created.url}).`,
+          };
+        }
+
+        default:
+          return await this.httpClient.callRemoteTool(
+            this.endpoint,
+            toolName,
+            params,
+            authHeaders,
+          );
       }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Error executing Notion API tool "${toolName}": ${errorMsg}`,
+      );
+      return {
+        success: false,
+        server: this.name,
+        toolName,
+        data: { error: errorMsg },
+        summary: `Terjadi kendala saat memanggil API Notion: ${errorMsg}`,
+      };
     }
   }
 
@@ -228,13 +370,6 @@ export class NotionMcpConnector implements IMcpServer {
       process.env.NOTION_TOKEN ||
       '';
 
-    const isConfigured = Boolean(effectiveToken || this.endpoint);
-    return Promise.resolve({
-      status: isConfigured ? 'connected' : 'disconnected',
-      message: isConfigured
-        ? 'Notion MCP Server ready and connected'
-        : 'Notion integration requires OAuth connection or API token',
-      latencyMs: isConfigured ? 14 : 0,
-    });
+    return this.apiClient.ping(effectiveToken);
   }
 }

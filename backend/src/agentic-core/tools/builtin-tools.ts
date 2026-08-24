@@ -122,13 +122,21 @@ export const TOOL_CATALOG: Record<string, ToolMetadata> = {
     description:
       'Extracts bi-directional link graphs and wikilink references for a note.',
   },
+  notion_list_workspace_resources: {
+    name: 'notion_list_workspace_resources',
+    category: 'mcp_notion',
+    readOnly: true,
+    serverName: 'Notion MCP Server',
+    description:
+      'Discovers and inventories all accessible Notion pages, child pages, and databases across the connected workspace. Use this when the user asks for a complete list, overview, or inventory of Notion resources.',
+  },
   notion_get_tasks: {
     name: 'notion_get_tasks',
     category: 'mcp_notion',
     readOnly: true,
     serverName: 'Notion MCP Server',
     description:
-      'Queries tasks, project items, and status boards from connected Notion workspace.',
+      'Queries active tasks, action items, to-do lists, and Kanban board statuses from connected Notion workspace. Use this directly when asked about tasks, deadlines, or project boards.',
   },
   notion_search: {
     name: 'notion_search',
@@ -136,7 +144,23 @@ export const TOOL_CATALOG: Record<string, ToolMetadata> = {
     readOnly: true,
     serverName: 'Notion MCP Server',
     description:
-      'Performs semantic search across connected Notion database pages and blocks.',
+      'Searches document pages, meeting notes, and knowledge wikis in Notion. For tasks and to-dos, use notion_get_tasks directly.',
+  },
+  notion_read_page: {
+    name: 'notion_read_page',
+    category: 'mcp_notion',
+    readOnly: true,
+    serverName: 'Notion MCP Server',
+    description:
+      'Reads structured markdown content, properties, and block hierarchy from a Notion page by its UUID.',
+  },
+  notion_create_page: {
+    name: 'notion_create_page',
+    category: 'mcp_notion',
+    readOnly: false,
+    serverName: 'Notion MCP Server',
+    description:
+      'Creates a new child page or database entry in Notion with markdown content.',
   },
   search_knowledge_vault: {
     name: 'search_knowledge_vault',
@@ -368,9 +392,22 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
     },
   },
   {
+    name: 'notion_list_workspace_resources',
+    description:
+      'MCP Notion Protocol: Discovers and inventories all accessible Notion pages, child pages, and databases across the connected workspace with full pagination traversal. Use this when the user asks for a complete list, overview, or inventory of what is stored in Notion.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        filterType: strProp(
+          'Optional resource type filter: "all", "page", or "database" (defaults to "all")',
+        ),
+      },
+    },
+  },
+  {
     name: 'notion_get_tasks',
     description:
-      'MCP Notion Protocol: Queries tasks, action items, and project board statuses from connected Notion workspace.',
+      'MCP Notion Protocol: Queries active tasks, action items, to-do lists, and Kanban board statuses from connected Notion workspace. Use directly when the user asks about tasks, backlog, or project board items.',
     parameters: {
       type: 'OBJECT' as unknown as Type,
       properties: {
@@ -384,7 +421,7 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: 'notion_search',
     description:
-      'MCP Notion Protocol: Searches across connected Notion database pages and blocks.',
+      'MCP Notion Protocol: Searches across connected Notion document pages, wikis, and meeting notes by specific keyword or topic.',
     parameters: {
       type: 'OBJECT' as unknown as Type,
       properties: {
@@ -393,6 +430,32 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
         ),
       },
       required: ['query'],
+    },
+  },
+  {
+    name: 'notion_read_page',
+    description:
+      'MCP Notion Protocol: Reads structured markdown content, properties, and block hierarchy from a Notion page by its UUID or Page ID.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        pageId: strProp('The 32-character Notion Page ID or UUID'),
+      },
+      required: ['pageId'],
+    },
+  },
+  {
+    name: 'notion_create_page',
+    description:
+      'MCP Notion Protocol: Creates a new child page or document in Notion with title and markdown content.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        title: strProp('Title of the new Notion page'),
+        content: strProp('Markdown text content of the page'),
+        parentId: strProp('Optional parent Notion page ID'),
+      },
+      required: ['title'],
     },
   },
   {
