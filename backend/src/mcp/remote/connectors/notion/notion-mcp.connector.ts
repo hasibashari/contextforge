@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { Injectable, Logger } from '@nestjs/common';
 import { IMcpServer } from '../../../interfaces/mcp-server.interface';
 import { McpTransportType } from '../../../interfaces/mcp-transport.types';
@@ -172,17 +174,43 @@ export class NotionMcpConnector implements IMcpServer {
     );
   }
 
+  private getEffectiveToken(): string {
+    if (this.authToken && this.authToken.trim()) {
+      return this.authToken.trim();
+    }
+    if (process.env.NOTION_API_KEY && process.env.NOTION_API_KEY.trim()) {
+      return process.env.NOTION_API_KEY.trim();
+    }
+    if (process.env.NOTION_TOKEN && process.env.NOTION_TOKEN.trim()) {
+      return process.env.NOTION_TOKEN.trim();
+    }
+
+    // Dynamic fallback: Read from backend/.env if runtime process.env was cached
+    try {
+      const envPath = path.resolve(process.cwd(), '.env');
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, 'utf8');
+        const match = content.match(/NOTION_API_KEY=["']?([^"'\r\n]+)["']?/);
+        if (match && match[1]) {
+          const loadedToken = match[1].trim();
+          process.env.NOTION_API_KEY = loadedToken;
+          return loadedToken;
+        }
+      }
+    } catch {
+      // ignore file read error
+    }
+
+    return '';
+  }
+
   async executeTool(
     toolName: string,
     params: Record<string, unknown>,
   ): Promise<McpToolCallResult> {
     this.logger.log(`Executing Notion MCP tool: ${toolName}`);
 
-    const effectiveToken =
-      this.authToken ||
-      process.env.NOTION_API_KEY ||
-      process.env.NOTION_TOKEN ||
-      '';
+    const effectiveToken = this.getEffectiveToken();
 
     // 1. Transparent Disconnected State Handling
     if (!effectiveToken) {
@@ -364,12 +392,7 @@ export class NotionMcpConnector implements IMcpServer {
     message: string;
     latencyMs: number;
   }> {
-    const effectiveToken =
-      this.authToken ||
-      process.env.NOTION_API_KEY ||
-      process.env.NOTION_TOKEN ||
-      '';
-
+    const effectiveToken = this.getEffectiveToken();
     return this.apiClient.ping(effectiveToken);
   }
 }
