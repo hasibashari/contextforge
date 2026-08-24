@@ -9,6 +9,7 @@ import {
 } from '../../../mcp.types';
 import { McpHttpClient } from '../../clients/mcp-http.client';
 import { NotionApiClient } from './notion-api.client';
+import { NOTION_MCP_TOOLS } from './notion-tools.definition';
 
 @Injectable()
 export class NotionMcpConnector implements IMcpServer {
@@ -48,124 +49,7 @@ export class NotionMcpConnector implements IMcpServer {
   }
 
   getTools(): McpToolDefinition[] {
-    return [
-      {
-        id: 't-notion-0',
-        name: 'notion_list_workspace_resources',
-        description:
-          'Discovers and inventories all accessible Notion pages, child pages, and databases across the connected workspace with full pagination traversal.',
-        parametersSchema: {
-          type: 'object',
-          properties: {
-            filterType: {
-              type: 'string',
-              description:
-                'Optional filter: "all", "page", or "database" (defaults to "all")',
-            },
-          },
-        },
-        readOnly: true,
-      },
-      {
-        id: 't-notion-1',
-        name: 'notion_search',
-        description:
-          'Searches pages, documentation, and database records across Notion workspace by keyword or topic.',
-        parametersSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Search keyword or title to find in Notion',
-            },
-          },
-          required: ['query'],
-        },
-        readOnly: true,
-      },
-      {
-        id: 't-notion-2',
-        name: 'notion_get_tasks',
-        description:
-          'Queries tasks, action items, to-do lists, and Kanban board statuses from Notion databases.',
-        parametersSchema: {
-          type: 'object',
-          properties: {
-            status: {
-              type: 'string',
-              description:
-                'Optional task status filter: "all", "in_progress", "todo", "done"',
-            },
-            query: {
-              type: 'string',
-              description: 'Optional filter query for task titles',
-            },
-          },
-        },
-        readOnly: true,
-      },
-      {
-        id: 't-notion-3',
-        name: 'notion_read_page',
-        description:
-          'Reads structured markdown content, properties, and block hierarchy from a Notion page by its UUID.',
-        parametersSchema: {
-          type: 'object',
-          properties: {
-            pageId: {
-              type: 'string',
-              description: 'The 32-character Notion Page ID or UUID',
-            },
-          },
-          required: ['pageId'],
-        },
-        readOnly: true,
-      },
-      {
-        id: 't-notion-4',
-        name: 'notion_create_page',
-        description:
-          'Creates a new child page or database entry in Notion with markdown content.',
-        parametersSchema: {
-          type: 'object',
-          properties: {
-            title: { type: 'string', description: 'Title of the new page' },
-            content: {
-              type: 'string',
-              description: 'Markdown text content of the page',
-            },
-            parentId: {
-              type: 'string',
-              description:
-                'Optional parent Notion page or database ID. If omitted, creates at workspace root if allowed.',
-            },
-          },
-          required: ['title'],
-        },
-        readOnly: false,
-      },
-      {
-        id: 't-notion-5',
-        name: 'notion_query_database',
-        description:
-          'Filters and sorts structured records inside a specific Notion database.',
-        parametersSchema: {
-          type: 'object',
-          properties: {
-            databaseId: {
-              type: 'string',
-              description: 'The 32-character Notion Database ID or UUID',
-            },
-            filter: {
-              type: 'object',
-              description: 'Optional Notion database filter JSON object',
-            },
-          },
-          required: ['databaseId'],
-        },
-        readOnly: true,
-      },
-    ];
+    return NOTION_MCP_TOOLS;
   }
 
   hasTool(toolName: string): boolean {
