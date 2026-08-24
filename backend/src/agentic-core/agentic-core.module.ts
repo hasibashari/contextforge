@@ -4,6 +4,7 @@ import { CoreOrchestratorService } from './orchestrator/core-orchestrator.servic
 import { EmbeddingService } from './embeddings/embedding.service';
 import { KnowledgeChunkerService } from './embeddings/knowledge-chunker.service';
 import { AgentRecorderService } from './services/agent-recorder.service';
+import { WebSearchService } from './services/web-search.service';
 import { UniversalMcpToolHandler } from './handlers/universal-mcp-tool.handler';
 import { WebSearchToolHandler } from './handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from './handlers/knowledge-tool.handler';
@@ -20,6 +21,7 @@ import { McpModule } from '../mcp/mcp.module';
     EmbeddingService,
     KnowledgeChunkerService,
     AgentRecorderService,
+    WebSearchService,
     UniversalMcpToolHandler,
     WebSearchToolHandler,
     KnowledgeToolHandler,
@@ -31,6 +33,7 @@ import { McpModule } from '../mcp/mcp.module';
     EmbeddingService,
     KnowledgeChunkerService,
     AgentRecorderService,
+    WebSearchService,
     UniversalMcpToolHandler,
     WebSearchToolHandler,
     KnowledgeToolHandler,

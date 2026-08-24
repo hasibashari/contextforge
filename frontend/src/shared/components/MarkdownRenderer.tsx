@@ -9,6 +9,8 @@ import {
   Lightbulb,
   AlertTriangle,
   AlertCircle,
+  Globe,
+  ExternalLink,
 } from 'lucide-react'
 
 interface MarkdownRendererProps {
@@ -17,15 +19,124 @@ interface MarkdownRendererProps {
   onWikilinkClick?: (noteName: string) => void
 }
 
-// Pre-process Obsidian wikilinks: [[Note Title]] or [[Note Title|Custom Alias]]
-function preprocessObsidianWikilinks(text: string): string {
+// Pre-process markdown: Convert Obsidian wikilinks and remove raw footnote notations ([^1], [^2], [^1]: ...)
+function preprocessMarkdown(text: string): string {
   if (!text) return ''
-  return text.replace(/\[\[(.*?)\]\]/g, (_, match: string) => {
+
+  // 1. Convert Obsidian wikilinks: [[Note Title]] or [[Note Title|Custom Alias]]
+  let processed = text.replace(/\[\[(.*?)\]\]/g, (_, match: string) => {
     const parts = match.split('|')
     const noteName = parts[0].trim()
     const alias = parts[1]?.trim() || noteName
     return `[📚 ${alias}](#obsidian-note:${encodeURIComponent(noteName)})`
   })
+
+  // 2. Strip footnote definition lines at bottom (e.g. "[^1]: http..." or "[^1]: Note")
+  processed = processed.replace(/^\[\^[\w-]+\]:.*$/gm, '')
+
+  // 3. Strip inline footnote reference markers (e.g. "[^1]", "[^note]")
+  processed = processed.replace(/\[\^[\w-]+\]/g, '')
+
+  // 4. Strip accidental bottom reference header, hr dividers, and trailing link lists (e.g. "References\n* [Link]...")
+  processed = processed.replace(
+    /(?:\n|^)(?:---\s*\n+)?#*\s*(?:References|Referensi|Sumber Informasi|Sources|Daftar Pustaka)[\s\S]*$/i,
+    '',
+  )
+
+  // 5. Clean up spaces before punctuation marks (e.g. "kalimat ." -> "kalimat.", "kata , " -> "kata, ")
+  processed = processed.replace(/[ \t]+([.,;:!?])/g, '$1')
+
+  // 6. Clean up duplicate spaces
+  processed = processed.replace(/[ \t]{2,}/g, ' ')
+
+  return processed.trim()
+}
+
+/**
+ * Perplexity-style Inline Source Pill Component
+ * Displays a sleek, clickable badge with website favicon and publisher/domain name
+ */
+const InlineSourcePill: React.FC<{ href: string; label: string }> = ({
+  href,
+  label,
+}) => {
+  const [faviconFailed, setFaviconFailed] = useState(false)
+
+  let hostname: string
+  let displayLabel = label.trim()
+
+  try {
+    const urlObj = new URL(href)
+    let parsedHost = urlObj.hostname.replace(/^www\./, '')
+
+    // Extract publisher from compound titles like "Mongabay.co.id - Title" or "Title - Kompas.id"
+    if (displayLabel.includes(' - ')) {
+      const parts = displayLabel.split(' - ')
+      if (parts[0].includes('.') || parts[0].length < 20) {
+        displayLabel = parts[0].trim()
+      } else {
+        displayLabel = parts[parts.length - 1].trim()
+      }
+    }
+
+    // If URL is a Google News redirect, resolve publisher domain from label if present
+    if (parsedHost.includes('google.com') && displayLabel.includes('.')) {
+      const domainMatch = displayLabel.match(
+        /([a-z0-9-]+\.[a-z]{2,}(?:\.[a-z]{2})?)/i,
+      )
+      if (domainMatch) {
+        parsedHost = domainMatch[1].toLowerCase()
+      }
+    }
+
+    // If the label is just a URL or number or empty, replace with clean domain brand
+    if (
+      !displayLabel ||
+      /^\d+$/.test(displayLabel) ||
+      /^https?:\/\//i.test(displayLabel)
+    ) {
+      displayLabel = parsedHost.split('.')[0]
+      displayLabel =
+        displayLabel.charAt(0).toUpperCase() + displayLabel.slice(1)
+    }
+
+    hostname = parsedHost
+  } catch {
+    hostname = href
+  }
+
+  const faviconUrl = hostname
+    ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=32`
+    : ''
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`Buka sumber: ${displayLabel} (${href})`}
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 mx-0.5 my-0.5 rounded-full bg-canvas-soft hover:bg-canvas border border-hairline hover:border-hairline-strong text-[11px] font-medium text-ink transition-all shadow-2xs hover:shadow-xs cursor-pointer align-middle no-underline select-none group"
+    >
+      {!faviconFailed && faviconUrl ? (
+        <img
+          src={faviconUrl}
+          alt=""
+          className="w-3.5 h-3.5 rounded-full object-contain shrink-0"
+          onError={() => setFaviconFailed(true)}
+          loading="lazy"
+        />
+      ) : (
+        <Globe size={11} className="text-[#3b82f6] shrink-0" />
+      )}
+      <span className="max-w-32 sm:max-w-40 truncate text-[11px] font-semibold text-ink group-hover:text-primary transition-colors">
+        {displayLabel}
+      </span>
+      <ExternalLink
+        size={9}
+        className="text-muted group-hover:text-primary opacity-50 group-hover:opacity-100 shrink-0 transition-opacity"
+      />
+    </a>
+  )
 }
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
@@ -33,10 +144,12 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   className = '',
   onWikilinkClick,
 }) => {
-  const processedContent = preprocessObsidianWikilinks(content)
+  const processedContent = preprocessMarkdown(content)
 
   return (
-    <div className={`markdown-body space-y-2 text-ink text-xs sm:text-sm leading-relaxed ${className}`}>
+    <div
+      className={`markdown-body space-y-2 text-ink text-xs sm:text-sm leading-relaxed ${className}`}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -145,9 +258,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             </thead>
           ),
           tbody: ({ children }) => (
-            <tbody className="divide-y divide-hairline">
-              {children}
-            </tbody>
+            <tbody className="divide-y divide-hairline">{children}</tbody>
           ),
           tr: ({ children }) => (
             <tr className="hover:bg-canvas-soft/50 transition-colors">
@@ -155,23 +266,34 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             </tr>
           ),
           th: ({ children }) => (
-            <th className="px-3 py-2 font-semibold">
-              {children}
-            </th>
+            <th className="px-3 py-2 font-semibold">{children}</th>
           ),
           td: ({ children }) => (
-            <td className="px-3 py-2 text-body">
-              {children}
-            </td>
+            <td className="px-3 py-2 text-body">{children}</td>
           ),
-          hr: () => (
-            <hr className="my-3 border-hairline" />
-          ),
-          a: ({ href, children }) => {
-            const isWikilink = href?.startsWith('#obsidian-note:')
-            if (isWikilink) {
+          hr: () => <hr className="my-3 border-hairline" />,
+          section: ({ className: sectionClass, children, ...props }) => {
+            // Completely suppress GFM footnotes section
+            if (sectionClass?.includes('footnotes')) {
+              return null
+            }
+            return (
+              <section className={sectionClass} {...props}>
+                {children}
+              </section>
+            )
+          },
+          sup: () => {
+            // Suppress footnote superscripts
+            return null
+          },
+          a: ({ href, children, ...props }) => {
+            const hrefStr = href || ''
+
+            // 1. Obsidian Wikilink
+            if (hrefStr.startsWith('#obsidian-note:')) {
               const noteName = decodeURIComponent(
-                (href || '').replace('#obsidian-note:', ''),
+                hrefStr.replace('#obsidian-note:', ''),
               )
               return (
                 <span
@@ -189,16 +311,50 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
               )
             }
 
-            return (
-              <a
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary underline underline-offset-2 hover:text-primary-active transition-colors font-medium"
-              >
-                {children}
-              </a>
-            )
+            // 2. Hide Footnote internal jump links and [↩] backreferences
+            if (
+              hrefStr.startsWith('#fn') ||
+              hrefStr.startsWith('#user-content-fn') ||
+              String(children).includes('↩')
+            ) {
+              return null
+            }
+
+            // 3. In-page anchor link
+            if (hrefStr.startsWith('#')) {
+              return (
+                <a
+                  href={hrefStr}
+                  className="text-primary font-mono text-[11px] font-bold px-1 py-0.2 rounded hover:bg-primary/10 transition-colors cursor-pointer no-underline inline-block"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    const targetId = hrefStr.replace(/^#/, '')
+                    const targetEl =
+                      document.getElementById(targetId) ||
+                      document.getElementById(decodeURIComponent(targetId)) ||
+                      document.querySelector(`[id="${targetId}"]`)
+                    if (targetEl) {
+                      targetEl.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                      })
+                    }
+                  }}
+                  {...props}
+                >
+                  {children}
+                </a>
+              )
+            }
+
+            // 4. Perplexity-style Inline Source Pill for External Web Links
+            const labelText = typeof children === 'string'
+              ? children
+              : Array.isArray(children)
+                ? children.map(c => typeof c === 'string' ? c : '').join('')
+                : String(children || '')
+
+            return <InlineSourcePill href={hrefStr} label={labelText} />
           },
           code: ({ className: codeClassName, children, ...props }) => {
             const match = /language-(\w+)/.exec(codeClassName || '')
@@ -244,7 +400,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   )
 }
 
-function CodeBlockWithCopy({ codeText, language }: { codeText: string; language: string }) {
+function CodeBlockWithCopy({
+  codeText,
+  language,
+}: {
+  codeText: string
+  language: string
+}) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
@@ -269,7 +431,9 @@ function CodeBlockWithCopy({ codeText, language }: { codeText: string; language:
           {copied ? (
             <>
               <Check size={12} className="text-semantic-success" />
-              <span className="text-semantic-success font-semibold text-[10px]">Copied!</span>
+              <span className="text-semantic-success font-semibold text-[10px]">
+                Copied!
+              </span>
             </>
           ) : (
             <>

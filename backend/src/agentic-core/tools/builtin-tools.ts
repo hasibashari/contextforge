@@ -130,7 +130,7 @@ export const NATIVE_AGENTIC_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
       type: 'OBJECT' as unknown as Type,
       properties: {
         target_agent_id: strProp(
-          'Target agent identifier: "agent-research" (for deep technical literature, source verification & web grounding), or "agent-personal-assistant"',
+          'Target agent identifier: "agent-research" or "agent-search" (for deep technical literature, multi-step query decomposition, source verification & web grounding), or "agent-personal-assistant"',
         ),
         sub_task: strProp(
           'Specific sub-task or question delegated to the target specialist',

@@ -206,7 +206,21 @@ export class ChatService {
         );
       }
 
-      sendSse('assistant_message', assistantMsg);
+      sendSse('assistant_message', {
+        id: assistantMsg.id,
+        sessionId: assistantMsg.session_id,
+        role: assistantMsg.role,
+        content: assistantMsg.content,
+        intent: result.intent,
+        sideAgent: result.sideAgent,
+        actionCard: result.actionCard,
+        artifactId: assistantMsg.artifact_id,
+        sourceDomains: result.sourceDomains || assistantMsg.source_domains,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      });
       sendSse('execution_done', {
         messageId: assistantMsg.id,
         sessionId: targetSessionId,
