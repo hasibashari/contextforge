@@ -1,10 +1,10 @@
 import { Logger } from '@nestjs/common';
-import { IMcpServer } from '../../interfaces/mcp-server.interface';
-import { McpTransportType } from '../../interfaces/mcp-transport.types';
 import {
+  IMcpServer,
+  McpTransportType,
   McpToolDefinition,
   McpToolCallResult,
-} from '../../interfaces/mcp-tool.interface';
+} from '../../mcp.types';
 import { McpHttpClient } from '../clients/mcp-http.client';
 import { McpSseClient } from '../clients/mcp-sse.client';
 

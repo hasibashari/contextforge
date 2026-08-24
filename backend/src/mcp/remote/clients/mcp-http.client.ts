@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { IMcpRemoteClient } from './mcp-client.interface';
-import { McpToolCallResult } from '../../interfaces/mcp-tool.interface';
+import { IMcpRemoteClient, McpToolCallResult } from '../../mcp.types';
 
 @Injectable()
 export class McpHttpClient implements IMcpRemoteClient {

@@ -318,74 +318,13 @@ export class NotionApiClient {
 
     if (!resolvedParent) {
       const inventory = await this.listWorkspaceResources(authHeaders);
-      const lowerTitle = (title || '').toLowerCase();
 
-      // 1. Check if user has a semantically matching page (e.g. Notes, Ideas, Knowledge)
-      const matchedPage = inventory.pages.find((p) => {
-        const pName = p.title.toLowerCase();
-        if (
-          lowerTitle.includes('task') ||
-          lowerTitle.includes('tugas') ||
-          lowerTitle.includes('todo')
-        ) {
-          return (
-            pName.includes('task') ||
-            pName.includes('tugas') ||
-            pName.includes('todo')
-          );
-        }
-        return (
-          pName.includes('note') ||
-          pName.includes('catatan') ||
-          pName.includes('idea') ||
-          pName.includes('knowledge') ||
-          pName.includes('research')
-        );
-      });
-
-      // 2. Check if user has a semantically matching database (e.g. Quick Notes, To-do list, Jurnal)
-      const matchedDb = inventory.databases.find((db) => {
-        const dbName = db.title.toLowerCase();
-        if (
-          lowerTitle.includes('task') ||
-          lowerTitle.includes('tugas') ||
-          lowerTitle.includes('todo')
-        ) {
-          return (
-            dbName.includes('todo') ||
-            dbName.includes('task') ||
-            dbName.includes('tugas')
-          );
-        }
-        if (
-          lowerTitle.includes('jurnal') ||
-          lowerTitle.includes('journal') ||
-          lowerTitle.includes('daily')
-        ) {
-          return (
-            dbName.includes('jurnal') ||
-            dbName.includes('journal') ||
-            dbName.includes('daily')
-          );
-        }
-        return (
-          dbName.includes('note') ||
-          dbName.includes('quick note') ||
-          dbName.includes('idea') ||
-          dbName.includes('catatan')
-        );
-      });
-
-      if (matchedPage) {
-        resolvedParent = { page_id: matchedPage.id };
-      } else if (matchedDb) {
-        resolvedParent = { database_id: matchedDb.id };
-      } else if (inventory.pages.length > 0) {
-        // Prefer top-level workspace page
-        const topLevel =
+      // Attach directly to the authorized workspace root page or database
+      if (inventory.pages.length > 0) {
+        const rootPage =
           inventory.pages.find((p) => p.parentType === 'workspace') ||
           inventory.pages[0];
-        resolvedParent = { page_id: topLevel.id };
+        resolvedParent = { page_id: rootPage.id };
       } else if (inventory.databases.length > 0) {
         resolvedParent = { database_id: inventory.databases[0].id };
       }
@@ -393,7 +332,7 @@ export class NotionApiClient {
 
     if (!resolvedParent) {
       throw new Error(
-        'No accessible parent page found in Notion to attach this document to.',
+        'No accessible page or database found in Notion. Please ensure at least one page or database is shared with the integration.',
       );
     }
 
@@ -632,22 +571,105 @@ export class NotionApiClient {
     return 'Active';
   }
 
-  private splitIntoRichText(
-    text: string,
-  ): Array<{ type: 'text'; text: { content: string } }> {
-    if (!text) return [];
-    const MAX_CHUNK = 1900;
-    if (text.length <= MAX_CHUNK) {
-      return [{ type: 'text', text: { content: text } }];
+  private parseMarkdownToRichText(
+    rawText: string,
+  ): Array<Record<string, unknown>> {
+    if (!rawText) return [];
+
+    // Match inline markdown tokens:
+    // 1: [label](url) -> label: 2, url: 3
+    // 4: ***bold italic*** -> text: 5
+    // 6: **bold** -> text: 7
+    // 8: *italic* -> text: 9
+    // 10: __bold__ -> text: 11
+    // 12: _italic_ -> text: 13
+    // 14: ~~strikethrough~~ -> text: 15
+    // 16: `inline code` -> code: 17
+    const inlineRegex =
+      /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(\*\*\*(.+?)\*\*\*)|(\*\*(.+?)\*\*)|(\*([^*\n]+)\*)|(__(.+?)__)|(_([^_\n]+)_)|(~~(.+?)~~)|(`([^`]+)`)/g;
+
+    const items: Array<Record<string, unknown>> = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    const pushChunk = (
+      content: string,
+      annotations: {
+        bold?: boolean;
+        italic?: boolean;
+        strikethrough?: boolean;
+        underline?: boolean;
+        code?: boolean;
+      } = {},
+      url?: string | null,
+    ) => {
+      if (!content) return;
+      const MAX_CHUNK = 1900;
+      for (let i = 0; i < content.length; i += MAX_CHUNK) {
+        const slice = content.slice(i, i + MAX_CHUNK);
+        items.push({
+          type: 'text',
+          text: {
+            content: slice,
+            link: url ? { url } : null,
+          },
+          annotations: {
+            bold: Boolean(annotations.bold),
+            italic: Boolean(annotations.italic),
+            strikethrough: Boolean(annotations.strikethrough),
+            underline: Boolean(annotations.underline),
+            code: Boolean(annotations.code),
+            color: 'default',
+          },
+        });
+      }
+    };
+
+    while ((match = inlineRegex.exec(rawText)) !== null) {
+      if (match.index > lastIndex) {
+        pushChunk(rawText.slice(lastIndex, match.index));
+      }
+
+      if (match[1]) {
+        // [label](url)
+        pushChunk(match[2], {}, match[3]);
+      } else if (match[4]) {
+        // ***bold italic***
+        pushChunk(match[5], { bold: true, italic: true });
+      } else if (match[6]) {
+        // **bold**
+        pushChunk(match[7], { bold: true });
+      } else if (match[8]) {
+        // *italic*
+        pushChunk(match[9], { italic: true });
+      } else if (match[10]) {
+        // __bold__
+        pushChunk(match[11], { bold: true });
+      } else if (match[12]) {
+        // _italic_
+        pushChunk(match[13], { italic: true });
+      } else if (match[14]) {
+        // ~~strikethrough~~
+        pushChunk(match[15], { strikethrough: true });
+      } else if (match[16]) {
+        // `code`
+        pushChunk(match[17], { code: true });
+      }
+
+      lastIndex = match.index + match[0].length;
     }
-    const chunks: Array<{ type: 'text'; text: { content: string } }> = [];
-    for (let i = 0; i < text.length; i += MAX_CHUNK) {
-      chunks.push({
-        type: 'text',
-        text: { content: text.slice(i, i + MAX_CHUNK) },
-      });
+
+    if (lastIndex < rawText.length) {
+      pushChunk(rawText.slice(lastIndex));
     }
-    return chunks;
+
+    return items.length > 0
+      ? items
+      : [{ type: 'text', text: { content: rawText }, annotations: {} }];
+  }
+
+  private splitIntoRichText(text: string): Array<Record<string, unknown>> {
+    return this.parseMarkdownToRichText(text);
   }
 
   private convertMarkdownToBlocks(
@@ -681,7 +703,12 @@ export class NotionApiClient {
               language:
                 codeLanguage.toLowerCase().replace(/[^a-z0-9_]/g, '') ||
                 'plain text',
-              rich_text: this.splitIntoRichText(fullCode),
+              rich_text: [
+                {
+                  type: 'text',
+                  text: { content: fullCode.slice(0, 1900) },
+                },
+              ],
             },
           });
         }
@@ -713,7 +740,7 @@ export class NotionApiClient {
           object: 'block',
           type: 'heading_1',
           heading_1: {
-            rich_text: this.splitIntoRichText(line.slice(2).trim()),
+            rich_text: this.parseMarkdownToRichText(line.slice(2).trim()),
           },
         });
         continue;
@@ -724,7 +751,7 @@ export class NotionApiClient {
           object: 'block',
           type: 'heading_2',
           heading_2: {
-            rich_text: this.splitIntoRichText(line.slice(3).trim()),
+            rich_text: this.parseMarkdownToRichText(line.slice(3).trim()),
           },
         });
         continue;
@@ -735,7 +762,7 @@ export class NotionApiClient {
           object: 'block',
           type: 'heading_3',
           heading_3: {
-            rich_text: this.splitIntoRichText(line.slice(4).trim()),
+            rich_text: this.parseMarkdownToRichText(line.slice(4).trim()),
           },
         });
         continue;
@@ -748,13 +775,18 @@ export class NotionApiClient {
         line.startsWith('> [!IMPORTANT]') ||
         line.startsWith('> [!WARNING]')
       ) {
+        let iconEmoji = '💡';
+        if (line.startsWith('> [!TIP]')) iconEmoji = '✨';
+        if (line.startsWith('> [!IMPORTANT]')) iconEmoji = '📌';
+        if (line.startsWith('> [!WARNING]')) iconEmoji = '⚠️';
+
         const cleanCallout = line.replace(/^>\s*\[![A-Z]+\]\s*/i, '').trim();
         blocks.push({
           object: 'block',
           type: 'callout',
           callout: {
-            icon: { type: 'emoji', emoji: '💡' },
-            rich_text: this.splitIntoRichText(cleanCallout || 'Catatan'),
+            icon: { type: 'emoji', emoji: iconEmoji },
+            rich_text: this.parseMarkdownToRichText(cleanCallout || 'Catatan'),
           },
         });
         continue;
@@ -765,7 +797,7 @@ export class NotionApiClient {
           object: 'block',
           type: 'quote',
           quote: {
-            rich_text: this.splitIntoRichText(line.slice(2).trim()),
+            rich_text: this.parseMarkdownToRichText(line.slice(2).trim()),
           },
         });
         continue;
@@ -779,7 +811,7 @@ export class NotionApiClient {
           type: 'to_do',
           to_do: {
             checked: todoMatch[1].toLowerCase() === 'x',
-            rich_text: this.splitIntoRichText(todoMatch[2].trim()),
+            rich_text: this.parseMarkdownToRichText(todoMatch[2].trim()),
           },
         });
         continue;
@@ -792,7 +824,7 @@ export class NotionApiClient {
           object: 'block',
           type: 'bulleted_list_item',
           bulleted_list_item: {
-            rich_text: this.splitIntoRichText(bulletText),
+            rich_text: this.parseMarkdownToRichText(bulletText),
           },
         });
         continue;
@@ -805,7 +837,7 @@ export class NotionApiClient {
           object: 'block',
           type: 'numbered_list_item',
           numbered_list_item: {
-            rich_text: this.splitIntoRichText(numMatch[1].trim()),
+            rich_text: this.parseMarkdownToRichText(numMatch[1].trim()),
           },
         });
         continue;
@@ -816,7 +848,7 @@ export class NotionApiClient {
         object: 'block',
         type: 'paragraph',
         paragraph: {
-          rich_text: this.splitIntoRichText(trimmed),
+          rich_text: this.parseMarkdownToRichText(trimmed),
         },
       });
     }
@@ -827,14 +859,28 @@ export class NotionApiClient {
   private convertBlocksToMarkdown(blocks: NotionBlock[]): string {
     const lines: string[] = [];
 
+    const formatRichTextItem = (t: NotionRichText): string => {
+      let text = t.plain_text || t.text?.content || '';
+      if (!text) return '';
+      if (t.annotations?.code) text = `\`${text}\``;
+      if (t.annotations?.bold && t.annotations?.italic) text = `***${text}***`;
+      else if (t.annotations?.bold) text = `**${text}**`;
+      else if (t.annotations?.italic) text = `*${text}*`;
+      if (t.annotations?.strikethrough) text = `~~${text}~~`;
+      if (t.text?.link?.url) text = `[${text}](${t.text.link.url})`;
+      return text;
+    };
+
+    const extractFormattedText = (richTextArr?: NotionRichText[]): string => {
+      if (!richTextArr || !Array.isArray(richTextArr)) return '';
+      return richTextArr.map(formatRichTextItem).join('');
+    };
+
     for (const block of blocks) {
       const type = block.type;
       const data = block[type] as
         { rich_text?: NotionRichText[]; checked?: boolean } | undefined;
-      const text =
-        data?.rich_text && Array.isArray(data.rich_text)
-          ? data.rich_text.map((t) => t.plain_text || '').join('')
-          : '';
+      const text = extractFormattedText(data?.rich_text);
 
       switch (type) {
         case 'heading_1':
@@ -855,8 +901,17 @@ export class NotionApiClient {
         case 'to_do':
           lines.push(`- [${data?.checked ? 'x' : ' '}] ${text}`);
           break;
+        case 'callout':
+          lines.push(`> [!NOTE]\n> ${text}\n`);
+          break;
+        case 'quote':
+          lines.push(`> ${text}\n`);
+          break;
         case 'code':
           lines.push(`\`\`\`\n${text}\n\`\`\`\n`);
+          break;
+        case 'divider':
+          lines.push(`---\n`);
           break;
         case 'paragraph':
         default:

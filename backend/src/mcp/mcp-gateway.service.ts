@@ -1,10 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { IMcpServer } from './interfaces/mcp-server.interface';
-import { McpTransportType } from './interfaces/mcp-transport.types';
 import {
+  IMcpServer,
+  McpTransportType,
   McpToolDefinition,
   McpToolCallResult,
-} from './interfaces/mcp-tool.interface';
+} from './mcp.types';
 import { ObsidianMcpServer } from './internal/obsidian/obsidian-mcp.server';
 import { NotionMcpConnector } from './remote/connectors/notion/notion-mcp.connector';
 import { GenericRemoteConnector } from './remote/connectors/generic-remote.connector';
