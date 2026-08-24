@@ -1,16 +1,15 @@
 import React from 'react'
-import { Globe, Zap, BookOpen, ExternalLink, FileText, ExternalLink as LaunchIcon } from 'lucide-react'
+import { Globe, Zap, BookOpen, ExternalLink, FileText } from 'lucide-react'
 import { MarkdownRenderer } from '@/shared/components'
 import { CompactArtifactPill } from './CompactArtifactPill'
 import { ThinkingIndicator } from './ThinkingIndicator'
-import type { ChatMessage, Artifact, ActionCardData } from '@/shared/types/workspace'
+import type { ChatMessage, Artifact } from '@/shared/types/workspace'
 
 interface ChatMessageItemProps {
   msg: ChatMessage
   artifacts: Artifact[]
   isStreaming?: boolean
   onOpenArtifact: (artifact: Artifact) => void
-  onExecuteAction?: (actionKey: string, card: ActionCardData) => void
 }
 
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
@@ -18,7 +17,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   artifacts,
   isStreaming = false,
   onOpenArtifact,
-  onExecuteAction,
 }) => {
   const isUser = msg.role === 'user'
 
@@ -64,23 +62,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     )
   }
 
-  const handleActionClick = (actionKey: string, card: ActionCardData) => {
-    // If it is an Obsidian Launch action
-    if (actionKey === 'open_obsidian' || actionKey === 'open_note') {
-      const uri =
-        card.obsidianUri ||
-        (card.locationPath
-          ? `obsidian://open?vault=${encodeURIComponent('Obsidian Vault')}&file=${encodeURIComponent(card.locationPath)}`
-          : undefined)
-      if (uri) {
-        window.open(uri, '_self')
-        return
-      }
-    }
-
-    onExecuteAction?.(actionKey, card)
-  }
-
   return (
     <div className="w-full space-y-2.5 pt-1 animate-in fade-in duration-200">
       {/* Live Thinking Indicator */}
@@ -111,58 +92,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           <span className="text-muted">·</span>
           <span className="text-muted truncate max-w-xs">{msg.sideAgent.targetResource}</span>
           <span className="text-semantic-success font-semibold">({msg.sideAgent.executionTimeMs}ms)</span>
-        </div>
-      )}
-
-      {/* Interactive Action Card (Obsidian Vault / Notion Sync) */}
-      {msg.actionCard && (
-        <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2.5 max-w-lg shadow-2xs">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                  {msg.actionCard.badge || msg.actionCard.badgeText || 'Obsidian Vault'}
-                </span>
-                <span className="text-ink font-semibold text-xs">{msg.actionCard.title}</span>
-              </div>
-              {(msg.actionCard.subtitle || msg.actionCard.locationPath) && (
-                <div className="text-[11px] font-mono text-muted mt-0.5">
-                  {msg.actionCard.subtitle || msg.actionCard.locationPath}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <p className="text-xs text-muted leading-relaxed">
-            {msg.actionCard.description}
-          </p>
-
-          {msg.actionCard.actions && msg.actionCard.actions.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap pt-1">
-              {msg.actionCard.actions.map((act, idx) => {
-                const actionKey = act.actionKey || act.key || ''
-                const isPrimary = act.primary
-                const isObsidianAction =
-                  actionKey.includes('obsidian') ||
-                  act.label.toLowerCase().includes('obsidian')
-
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => handleActionClick(actionKey, msg.actionCard!)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      isPrimary || isObsidianAction
-                        ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-2xs'
-                        : 'bg-surface hover:bg-surface-elevated border border-hairline text-ink'
-                    }`}
-                  >
-                    {isObsidianAction && <LaunchIcon size={12} />}
-                    <span>{act.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
         </div>
       )}
 

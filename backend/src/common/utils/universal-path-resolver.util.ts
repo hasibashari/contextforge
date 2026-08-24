@@ -103,6 +103,23 @@ export class UniversalPathResolver {
     // Check if input is a Windows Drive Path (e.g., C:\Users\... or C:/Users/...)
     const winDriveMatch = clean.match(/^([a-zA-Z]):[\\/](.*)/);
 
+    const isPhysicalPath =
+      clean.startsWith('/') ||
+      clean.startsWith('~') ||
+      clean.startsWith('./') ||
+      clean.startsWith('../') ||
+      clean.startsWith('/mnt/') ||
+      Boolean(winDriveMatch);
+
+    if (!isPhysicalPath) {
+      return {
+        rawInput,
+        resolvedPath: 'dynamic-client-vault',
+        isAccessible: true,
+        platform: currentPlatform,
+      };
+    }
+
     if (
       currentPlatform === 'wsl' ||
       currentPlatform === 'linux' ||
@@ -114,6 +131,8 @@ export class UniversalPathResolver {
         normalized = `/mnt/${driveLetter}/${restPath}`;
       } else if (clean.startsWith('~')) {
         normalized = path.join(os.homedir(), clean.slice(1));
+      } else if (clean.startsWith('/')) {
+        normalized = clean;
       } else {
         normalized = path.resolve(clean);
       }
@@ -128,6 +147,8 @@ export class UniversalPathResolver {
         }
       } else if (clean.startsWith('~')) {
         normalized = path.join(os.homedir(), clean.slice(1));
+      } else if (/^[a-zA-Z]:[\\/]/.test(clean)) {
+        normalized = clean;
       } else {
         normalized = path.resolve(clean);
       }
@@ -135,6 +156,8 @@ export class UniversalPathResolver {
       // macOS or standard Unix
       if (clean.startsWith('~')) {
         normalized = path.join(os.homedir(), clean.slice(1));
+      } else if (clean.startsWith('/')) {
+        normalized = clean;
       } else {
         normalized = path.resolve(clean);
       }

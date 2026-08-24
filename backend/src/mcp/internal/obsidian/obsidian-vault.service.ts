@@ -44,9 +44,10 @@ export class ObsidianVaultService implements OnModuleInit {
       // 2. Query active MCP integration from PostgreSQL
       const res = await this.db.query<{
         endpoint: string;
+        status: string;
         auth_config: { vaultName?: string; vaultPath?: string };
       }>(
-        `SELECT endpoint, auth_config 
+        `SELECT endpoint, status, auth_config 
          FROM workspace_integrations 
          WHERE id = 'int-obsidian-vault-mcp' 
             OR name ILIKE '%obsidian%' 
@@ -55,6 +56,17 @@ export class ObsidianVaultService implements OnModuleInit {
 
       if (res.rows.length > 0) {
         const row = res.rows[0];
+
+        // If the MCP integration is disconnected in database, do not mount!
+        if (row.status !== 'connected') {
+          this.vaultRoot = '';
+          this.isPhysicallyAccessible = false;
+          this.logger.log(
+            '📁 Obsidian Protocol Bridge: MCP Server is currently disconnected.',
+          );
+          return '';
+        }
+
         this.vaultName = row.auth_config?.vaultName || 'Obsidian Vault';
 
         const rawPath =
@@ -115,11 +127,20 @@ export class ObsidianVaultService implements OnModuleInit {
   setVaultRoot(rawVaultPath: string): void {
     if (rawVaultPath) {
       const resolved = UniversalPathResolver.resolve(rawVaultPath);
+      if (resolved.resolvedPath === 'dynamic-client-vault') {
+        this.vaultRoot = 'dynamic-client-vault';
+        this.isPhysicallyAccessible = true;
+        this.logger.log(
+          `📁 [Obsidian Protocol Bridge] Active in Browser Client Bridge mode ("${this.vaultName}")`,
+        );
+        return;
+      }
+
       this.vaultRoot = resolved.resolvedPath;
       this.isPhysicallyAccessible = resolved.isAccessible;
 
       this.logger.log(
-        `🔗 [Universal Path Resolver] Mounted Obsidian Vault on [${resolved.platform.toUpperCase()}]: ${this.vaultRoot} (Accessible: ${resolved.isAccessible})`,
+        `🔗 [Universal Path Resolver] Mounted Obsidian Vault on [${resolved.platform.toUpperCase()}]: ${this.vaultRoot} (Accessible: ${this.isPhysicallyAccessible})`,
       );
     } else {
       this.vaultRoot = '';

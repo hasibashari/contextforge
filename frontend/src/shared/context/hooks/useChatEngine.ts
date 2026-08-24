@@ -239,12 +239,24 @@ export function useChatEngine(
 
       try {
         await artifactsApi.updateContent(artifactId, newContent);
+
+        // Direct Browser Folder Auto-Sync (HTML5 File System Access)
+        if (obsidianBridgeService.getPairedDirectoryHandle()) {
+          const art =
+            artifacts.find((a) => a.id === artifactId) || activeArtifact;
+          const fileName = art?.locationPath || `${art?.title || 'Note'}.md`;
+          await obsidianBridgeService.writeNoteToLocalVault(
+            fileName,
+            newContent,
+          );
+        }
+
         showToast('✓ Document changes synced to database & Obsidian');
       } catch {
         showToast('✓ Document changes synced locally');
       }
     },
-    [activeArtifact, showToast],
+    [activeArtifact, artifacts, showToast],
   );
 
   const deleteArtifact = useCallback(
@@ -648,6 +660,18 @@ export function useChatEngine(
               ]);
               setActiveArtifact(createdArtifact);
               setIsAsideOpen?.(true);
+
+              // Auto-sync directly to browser-selected folder (HTML5 File System Access)
+              if (obsidianBridgeService.getPairedDirectoryHandle()) {
+                const fileName =
+                  createdArtifact.locationPath ||
+                  `${createdArtifact.title || 'Note'}.md`;
+                obsidianBridgeService.writeNoteToLocalVault(
+                  fileName,
+                  createdArtifact.content,
+                );
+              }
+
               showToast(`📦 Catatan Berhasil Dibuat: ${createdArtifact.title}`);
             },
             onAutomationCreated: (createdAuto) => {

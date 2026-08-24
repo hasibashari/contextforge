@@ -42,11 +42,22 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
     showToast,
   } = useWorkspace()
 
-  const [targetFolder, setTargetFolder] = useState<string>(
-    (integration?.targetBinding?.defaultOutputPath as string) ||
-      (integration?.targetBinding?.folderScope as string) ||
-      'Notes',
-  )
+  const getInitialObsidianPath = () => {
+    if (!integration) return ''
+    if (integration.authConfig?.vaultPath) return integration.authConfig.vaultPath
+    const endpoint = integration.endpoint || ''
+    const match = endpoint.match(/(?:server-obsidian\s+)(.+)$/)
+    if (match && match[1]) {
+      return match[1].replace(/^["']|["']$/g, '').trim()
+    }
+    return (
+      (integration.targetBinding?.folderScope as string) ||
+      (integration.targetBinding?.defaultOutputPath as string) ||
+      ''
+    )
+  }
+
+  const [targetFolder, setTargetFolder] = useState<string>(getInitialObsidianPath)
   const [isFolderHandleActive, setIsFolderHandleActive] = useState<boolean>(
     Boolean(obsidianBridgeService.getPairedDirectoryHandle()),
   )
@@ -147,29 +158,41 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
     setIsSubmitting(true)
 
     try {
-      const activeFolder =
-        pairedDiskFolderName || targetFolder.trim() || 'Obsidian Vault'
+      const activePath =
+        targetFolder.trim() ||
+        (integration.authConfig?.vaultPath as string) ||
+        ''
+      const activeName =
+        pairedDiskFolderName ||
+        targetFolder.trim() ||
+        (integration.authConfig?.vaultName as string) ||
+        'Obsidian Vault'
+
+      const endpoint = activePath
+        ? `npx -y @modelcontextprotocol/server-obsidian "${activePath}"`
+        : integration.endpoint || 'npx -y @modelcontextprotocol/server-obsidian'
 
       updateConnectorConfig(integration.id, {
         status: 'connected',
-        endpoint: 'npx -y @modelcontextprotocol/server-obsidian',
+        endpoint,
         authConfig: {
-          vaultName: activeFolder,
-          vaultPath: activeFolder,
+          ...integration.authConfig,
+          vaultName: activeName,
+          vaultPath: activePath,
         },
         targetBinding: {
-          folderScope: activeFolder,
-          defaultOutputPath: '',
+          folderScope: activeName,
+          defaultOutputPath: activePath,
         },
       })
 
-      obsidianBridgeService.setPairedVault(activeFolder, '')
+      obsidianBridgeService.setPairedVault(activeName, '')
 
       await discoverTools(integration.id)
       await refreshIntegrations()
 
       showToast(
-        `✨ Successfully connected Obsidian folder "${activeFolder}"!`,
+        `✨ Successfully connected Obsidian folder "${activeName}"!`,
         'success',
       )
       onSuccess?.()
@@ -325,16 +348,6 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                     : 'Select Folder on Disk'}
                 </Button>
               </div>
-
-              {!isFolderHandleActive && (
-                <FormField label="Or Vault Name / Folder Scope">
-                  <Input
-                    value={targetFolder}
-                    onChange={(e) => setTargetFolder(e.target.value)}
-                    placeholder="e.g. My Obsidian Notes"
-                  />
-                </FormField>
-              )}
             </div>
 
             <ModalFooter className="justify-end pt-2">
