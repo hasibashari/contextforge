@@ -21,7 +21,7 @@ export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'failed'
 export interface ToolCall {
   id: string
   toolName: string
-  category: 'mcp' | 'github' | 'notion' | 'openapi' | 'terminal' | 'ast' | 'obsidian' | 'web' | 'calendar'
+  category: 'mcp' | 'notion' | 'obsidian' | 'web' | 'automation' | 'internal_rag'
   description: string
   startedAt: string
   durationMs: number
@@ -267,13 +267,13 @@ export interface ActionCardData {
 
 export interface Artifact {
   id: string
-  type: 'markdown_doc' | 'code_patch' | 'reminder_event' | 'search_synthesis' | 'image_asset'
+  type: 'markdown_doc' | 'code_patch' | 'reminder_event' | 'search_synthesis'
   title: string
   content: string
   locationPath?: string
   imageUrl?: string
   imagePrompt?: string
-  serviceOrigin?: 'obsidian' | 'calendar' | 'web' | 'github' | 'postgres' | 'imagen' | 'notion'
+  serviceOrigin?: 'obsidian' | 'notion' | 'web' | 'postgres' | 'workspace'
   createdAt: string
   updatedAt?: string
   wordCount?: number
@@ -294,10 +294,8 @@ export interface SideAgentExecution {
     | 'create_file'
     | 'edit_file'
     | 'obsidian_write'
-    | 'terminal_command'
-    | 'api_mutate'
-    | 'calendar_schedule'
-    | 'image_render'
+    | 'notion_mutate'
+    | 'automation_trigger'
   targetResource: string
   status: 'queued' | 'running' | 'completed' | 'failed'
   riskLevel: ExecutionRiskLevel
@@ -330,7 +328,7 @@ export interface ChatMessage {
   timestamp: string
   intent?: {
     toolName: string
-    service: 'obsidian' | 'web' | 'calendar' | 'github' | 'database' | 'imagen' | 'briefing' | 'notion' | 'automation' | 'gdrive'
+    service: 'obsidian' | 'web' | 'notion' | 'automation' | 'knowledge' | 'briefing'
     status: 'executing' | 'completed'
     summaryText: string
   }
@@ -364,12 +362,10 @@ export interface ActivityLogEntry {
     | 'ast_verified'
     | 'human_approved'
     | 'human_rejected'
-    | 'pr_created'
     | 'source_indexed'
     | 'obsidian_note_created'
-    | 'reminder_created'
     | 'web_searched'
-    | 'image_generated'
+    | 'automation_created'
     | 'morning_briefing'
   summary: string
   details?: Record<string, unknown>

@@ -773,6 +773,46 @@ class ObsidianBridgeService {
     window.location.href = uri
   }
 
+  private inMemoryHandles: Map<string, FileSystemDirectoryHandle> = new Map()
+
+  async storeDirectoryHandle(
+    sourceId: string,
+    folderName: string,
+    handle: FileSystemDirectoryHandle,
+  ): Promise<void> {
+    this.activeDirectoryHandle = handle
+    this.inMemoryHandles.set(sourceId, handle)
+    this.inMemoryHandles.set(folderName.toLowerCase(), handle)
+    await persistDirectoryHandle(handle)
+    void this.syncVaultStateToBackend()
+  }
+
+  async getDirectoryHandle(sourceIdentifier?: string): Promise<FileSystemDirectoryHandle | null> {
+    if (!sourceIdentifier) return this.resolveActiveHandle()
+    if (this.inMemoryHandles.has(sourceIdentifier)) {
+      return this.inMemoryHandles.get(sourceIdentifier)!
+    }
+    const lower = sourceIdentifier.toLowerCase()
+    if (this.inMemoryHandles.has(lower)) {
+      return this.inMemoryHandles.get(lower)!
+    }
+    return this.resolveActiveHandle()
+  }
+
+  async scanModifiedFiles(
+    sourceIdentifier: string,
+    lastSyncedIso?: string,
+  ): Promise<File[]> {
+    const handle = await this.getDirectoryHandle(sourceIdentifier)
+    if (!handle) return []
+
+    const minTimestamp = lastSyncedIso ? new Date(lastSyncedIso).getTime() : 0
+    const files = await this.readMarkdownFilesFromDirectory(handle)
+    return files
+      .map((f) => f.file)
+      .filter((file) => file.lastModified > minTimestamp)
+  }
+
   downloadMarkdownFile(fileName: string, content: string): void {
     const cleanName = fileName.endsWith('.md') ? fileName : `${fileName}.md`
     const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })

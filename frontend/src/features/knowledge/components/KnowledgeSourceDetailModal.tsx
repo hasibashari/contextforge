@@ -10,7 +10,7 @@ import {
   UploadCloud,
 } from 'lucide-react'
 import type { KnowledgeSource } from '@/shared/types/workspace'
-import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service'
+import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 import {
   Modal,
   ModalHeader,
@@ -47,7 +47,7 @@ export const KnowledgeSourceDetailModal: React.FC<
     let isMounted = true
 
     // Check if directory handle is active on this device
-    browserStorageBridge.getDirectoryHandle(sourceName).then((h) => {
+    obsidianBridgeService.getDirectoryHandle(sourceName).then((h) => {
       if (isMounted) setHasLocalHandle(Boolean(h))
     })
 
@@ -90,7 +90,7 @@ export const KnowledgeSourceDetailModal: React.FC<
   const handleSmartSync = async () => {
     if (hasLocalHandle && onUploadMore && source) {
       try {
-        const modified = await browserStorageBridge.scanModifiedFiles(
+        const modified = await obsidianBridgeService.scanModifiedFiles(
           source.name,
           source.lastSynced
         )

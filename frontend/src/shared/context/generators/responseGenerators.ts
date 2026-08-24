@@ -11,14 +11,10 @@ export interface GeneratedAssistantOutput {
     service:
       | 'obsidian'
       | 'web'
-      | 'calendar'
-      | 'github'
-      | 'database'
-      | 'imagen'
-      | 'briefing'
       | 'notion'
       | 'automation'
-      | 'gdrive'
+      | 'knowledge'
+      | 'briefing'
     status: 'executing' | 'completed'
     summaryText: string
   }

@@ -9,7 +9,6 @@ import {
 } from 'lucide-react'
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
-import { browserStorageBridge } from '@/shared/services/browserStorageBridge.service'
 import { knowledgeApi } from '@/shared/api/knowledgeApi'
 import {
   Modal,
@@ -108,7 +107,7 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
           }
 
           // Persist directory handle for direct disk write-back & delta sync
-          await browserStorageBridge.storeDirectoryHandle(
+          await obsidianBridgeService.storeDirectoryHandle(
             result.rootName,
             result.rootName,
             result.handle
