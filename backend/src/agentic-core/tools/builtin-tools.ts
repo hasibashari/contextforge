@@ -5,6 +5,11 @@ const strProp = (description: string): Schema => ({
   description,
 });
 
+const boolProp = (description: string): Schema => ({
+  type: 'BOOLEAN' as unknown as Type,
+  description,
+});
+
 const arrayProp = (description: string): Schema => ({
   type: 'ARRAY' as unknown as Type,
   description,
@@ -25,28 +30,13 @@ export interface ToolMetadata {
 }
 
 export const TOOL_CATALOG: Record<string, ToolMetadata> = {
-  obsidian_write_note: {
-    name: 'obsidian_write_note',
-    category: 'mcp_obsidian',
-    readOnly: false,
-    serverName: 'Obsidian MCP Server',
-    description:
-      'Writes a structured Markdown document with frontmatter and backlinks to local Obsidian Vault.',
-  },
-  obsidian_create_daily_note: {
-    name: 'obsidian_create_daily_note',
-    category: 'mcp_obsidian',
-    readOnly: false,
-    serverName: 'Obsidian MCP Server',
-    description:
-      'Creates an atomic Daily Note for today in the DailyNotes folder of Obsidian Vault.',
-  },
-  obsidian_read_note: {
-    name: 'obsidian_read_note',
+  obsidian_get_vault_info: {
+    name: 'obsidian_get_vault_info',
     category: 'mcp_obsidian',
     readOnly: true,
     serverName: 'Obsidian MCP Server',
-    description: 'Reads note contents and queries backlinks in Obsidian Vault.',
+    description:
+      'Discovers active vault name, mounted status, and scope via Browser Bridge.',
   },
   obsidian_list_folders: {
     name: 'obsidian_list_folders',
@@ -54,7 +44,83 @@ export const TOOL_CATALOG: Record<string, ToolMetadata> = {
     readOnly: true,
     serverName: 'Obsidian MCP Server',
     description:
-      'Scans and returns existing folder paths in the Obsidian Vault so notes can be organized into matching existing folders.',
+      'Inspects directory folder hierarchy in the connected Obsidian Vault.',
+  },
+  obsidian_find_folder: {
+    name: 'obsidian_find_folder',
+    category: 'mcp_obsidian',
+    readOnly: true,
+    serverName: 'Obsidian MCP Server',
+    description:
+      'Searches for existing vault folders matching a keyword or topic.',
+  },
+  obsidian_create_folder: {
+    name: 'obsidian_create_folder',
+    category: 'mcp_obsidian',
+    readOnly: false,
+    serverName: 'Obsidian MCP Server',
+    description:
+      'Explicitly creates a directory or subfolder path in the vault.',
+  },
+  obsidian_list_files: {
+    name: 'obsidian_list_files',
+    category: 'mcp_obsidian',
+    readOnly: true,
+    serverName: 'Obsidian MCP Server',
+    description: 'Lists files inside a specified vault directory.',
+  },
+  obsidian_search_files: {
+    name: 'obsidian_search_files',
+    category: 'mcp_obsidian',
+    readOnly: true,
+    serverName: 'Obsidian MCP Server',
+    description:
+      'Searches for notes in the vault by filename, title, or content.',
+  },
+  obsidian_read_note: {
+    name: 'obsidian_read_note',
+    category: 'mcp_obsidian',
+    readOnly: true,
+    serverName: 'Obsidian MCP Server',
+    description: 'Reads note contents and structure from the connected vault.',
+  },
+  obsidian_write_note: {
+    name: 'obsidian_write_note',
+    category: 'mcp_obsidian',
+    readOnly: false,
+    serverName: 'Obsidian MCP Server',
+    description:
+      'Writes or updates a structured Markdown document with frontmatter and backlinks.',
+  },
+  obsidian_create_daily_note: {
+    name: 'obsidian_create_daily_note',
+    category: 'mcp_obsidian',
+    readOnly: false,
+    serverName: 'Obsidian MCP Server',
+    description:
+      'Creates or appends a timestamped log entry to the daily note.',
+  },
+  obsidian_delete_file: {
+    name: 'obsidian_delete_file',
+    category: 'mcp_obsidian',
+    readOnly: false,
+    serverName: 'Obsidian MCP Server',
+    description: 'Safely removes a note/file from the Obsidian Vault.',
+  },
+  obsidian_move_file: {
+    name: 'obsidian_move_file',
+    category: 'mcp_obsidian',
+    readOnly: false,
+    serverName: 'Obsidian MCP Server',
+    description: 'Moves or renames a note/file in the Obsidian Vault.',
+  },
+  obsidian_search_backlinks: {
+    name: 'obsidian_search_backlinks',
+    category: 'mcp_obsidian',
+    readOnly: true,
+    serverName: 'Obsidian MCP Server',
+    description:
+      'Extracts bi-directional link graphs and wikilink references for a note.',
   },
   notion_get_tasks: {
     name: 'notion_get_tasks',
@@ -128,18 +194,118 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
     },
   },
   {
+    name: 'obsidian_get_vault_info',
+    description:
+      'MCP Obsidian Protocol: Discovers the active Obsidian vault name, connection state, and folder scope via Browser Bridge.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {},
+    },
+  },
+  {
+    name: 'obsidian_list_folders',
+    description:
+      'MCP Obsidian Protocol: Inspects the real-time directory structure and existing folder names in the Obsidian Vault. Call this to inspect existing folders before creating or organizing notes.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        path: strProp(
+          'Optional vault-relative subfolder path e.g. "Projects" or "Work". Leave empty for root.',
+        ),
+        recursive: boolProp(
+          'Whether to inspect nested subdirectories recursively (defaults to false)',
+        ),
+      },
+    },
+  },
+  {
+    name: 'obsidian_find_folder',
+    description:
+      'MCP Obsidian Protocol: Searches for folders in the vault matching a query keyword or topic.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        query: strProp('Keyword or topic name to search for among folders'),
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'obsidian_create_folder',
+    description:
+      'MCP Obsidian Protocol: Explicitly creates a new directory or nested folder in the Obsidian Vault.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        path: strProp(
+          'Vault-relative directory path to create, e.g. "Projects/Project Alpha"',
+        ),
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'obsidian_list_files',
+    description:
+      'MCP Obsidian Protocol: Lists notes and files inside a vault folder.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        folderPath: strProp(
+          'Vault-relative folder path, e.g. "Projects". Leave empty for vault root.',
+        ),
+        extension: strProp('Optional file extension filter, e.g. ".md"'),
+        recursive: boolProp(
+          'Whether to list files recursively in all subdirectories',
+        ),
+      },
+    },
+  },
+  {
+    name: 'obsidian_search_files',
+    description:
+      'MCP Obsidian Protocol: Searches notes in the vault by title, filename, or text content.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        query: strProp(
+          'Search keyword, title, or topic to find in vault notes',
+        ),
+        folderPath: strProp('Optional subfolder path to restrict search scope'),
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'obsidian_read_note',
+    description:
+      'MCP Obsidian Protocol: Reads note contents, headings, and frontmatter from the Obsidian vault using a vault-relative path.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        path: strProp(
+          'Vault-relative path to the note file, e.g. "Projects/Project Alpha/architecture.md"',
+        ),
+      },
+      required: ['path'],
+    },
+  },
+  {
     name: 'obsidian_write_note',
     description:
-      'MCP Obsidian Protocol: Writes or updates a Markdown document with YAML frontmatter, headings, and [[backlinks]] in the local Obsidian vault.',
+      'MCP Obsidian Protocol: Writes or updates a Markdown document with YAML frontmatter, headings, and [[backlinks]] in the local Obsidian vault via Browser Bridge. Automatically creates missing parent directories.',
     parameters: {
       type: 'OBJECT' as unknown as Type,
       properties: {
         title: strProp('Title of the markdown document'),
         path: strProp(
-          'Target relative vault file path, e.g. Work/Notes/system-architecture.md',
+          'Target vault-relative file path, e.g. "Projects/Active/architecture.md"',
         ),
         content: strProp(
           'Complete formatted markdown content including YAML frontmatter and [[backlinks]]',
+        ),
+        createMissingFolders: boolProp(
+          'Whether to automatically create missing parent directories (defaults to true)',
         ),
       },
       required: ['title', 'content'],
@@ -148,33 +314,57 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: 'obsidian_create_daily_note',
     description:
-      'MCP Obsidian Protocol: Creates or appends to a daily note for a given date in the Obsidian vault.',
+      'MCP Obsidian Protocol: Creates or appends a timestamped log entry to the daily note in the Obsidian vault.',
     parameters: {
       type: 'OBJECT' as unknown as Type,
       properties: {
-        date: strProp('ISO date string (YYYY-MM-DD), defaults to today'),
-        content: strProp('Markdown content for the daily note'),
+        section: strProp(
+          'Section title, e.g. "Meeting Notes" or "Engineering Log"',
+        ),
+        text: strProp('Markdown log content to append to the daily note'),
+        date: strProp(
+          'Optional ISO date string (YYYY-MM-DD), defaults to today',
+        ),
       },
+      required: ['text'],
     },
   },
   {
-    name: 'obsidian_read_note',
+    name: 'obsidian_delete_file',
     description:
-      'MCP Obsidian Protocol: Reads note contents or index from the Obsidian vault.',
+      'MCP Obsidian Protocol: Safely deletes a file from the Obsidian vault.',
     parameters: {
       type: 'OBJECT' as unknown as Type,
       properties: {
-        path: strProp('Relative path to the note file in the vault'),
+        path: strProp('Vault-relative path of the file to delete'),
       },
+      required: ['path'],
     },
   },
   {
-    name: 'obsidian_list_folders',
+    name: 'obsidian_move_file',
     description:
-      'MCP Obsidian Protocol: Inspects the real-time directory structure and existing folder names in the Obsidian Vault. Call this to choose an existing folder before writing a note.',
+      'MCP Obsidian Protocol: Moves or renames a note/file in the Obsidian vault to a new destination path.',
     parameters: {
       type: 'OBJECT' as unknown as Type,
-      properties: {},
+      properties: {
+        sourcePath: strProp('Source vault-relative path'),
+        targetPath: strProp('Destination vault-relative path'),
+        overwrite: boolProp('Whether to overwrite destination file if exists'),
+      },
+      required: ['sourcePath', 'targetPath'],
+    },
+  },
+  {
+    name: 'obsidian_search_backlinks',
+    description:
+      'MCP Obsidian Protocol: Finds incoming backlinks and references pointing to a target note.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        targetNote: strProp('Target note name to find incoming links for'),
+      },
+      required: ['targetNote'],
     },
   },
   {

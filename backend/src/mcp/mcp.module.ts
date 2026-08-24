@@ -7,9 +7,12 @@ import { McpSseClient } from './remote/clients/mcp-sse.client';
 import { NotionMcpConnector } from './remote/connectors/notion/notion-mcp.connector';
 import { McpGatewayService } from './mcp-gateway.service';
 
+import { ObsidianBridgeGatewayService } from './internal/obsidian/obsidian-bridge.gateway';
+
 @Module({
   imports: [DatabaseModule],
   providers: [
+    ObsidianBridgeGatewayService,
     ObsidianVaultService,
     ObsidianMcpServer,
     McpHttpClient,
@@ -18,6 +21,7 @@ import { McpGatewayService } from './mcp-gateway.service';
     McpGatewayService,
   ],
   exports: [
+    ObsidianBridgeGatewayService,
     McpGatewayService,
     ObsidianVaultService,
     ObsidianMcpServer,

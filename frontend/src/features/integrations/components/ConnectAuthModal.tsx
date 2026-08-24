@@ -242,8 +242,8 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
           isNotion
             ? 'Authorize Notion Model Context Protocol workspace'
             : isObsidian
-            ? 'Select an Obsidian folder for automated note synchronization'
-            : `Establish MCP connection with ${integration.name}`
+              ? 'Select an Obsidian folder for automated note synchronization'
+              : `Establish MCP connection with ${integration.name}`
         }
         onClose={onClose}
       />
@@ -298,24 +298,22 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                 </div>
                 {isFolderHandleActive && (
                   <Badge variant="success" size="xs">
-                    ✓ Folder Connected
+                    ✓ Browser Storage Paired
                   </Badge>
                 )}
               </div>
               <p className="text-muted text-[11px] font-sans leading-relaxed">
-                Choose an Obsidian note directory on your computer. Notes created by
-                Action Agent will be written directly into this folder.
+                Connect your Obsidian Vault. You can pair your folder directly in the browser (HTML5 File System) and/or specify your local host path.
               </p>
 
               {/* Folder Selector Status & Action */}
               <div className="p-3.5 bg-canvas rounded-xl border border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                      isFolderHandleActive
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${isFolderHandleActive
                         ? 'bg-semantic-success/10 text-semantic-success'
                         : 'bg-[#7c3aed]/10 text-[#7c3aed]'
-                    }`}
+                      }`}
                   >
                     <Folder size={18} />
                   </div>
@@ -323,14 +321,12 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                     <div className="font-semibold text-ink text-xs truncate">
                       {isFolderHandleActive
                         ? `📁 ${pairedDiskFolderName}`
-                        : targetFolder.trim()
-                        ? `📁 ${targetFolder.trim()}`
-                        : 'No folder selected yet'}
+                        : 'Pair Browser Folder (Auto-Save)'}
                     </div>
                     <div className="text-[11px] text-muted font-sans truncate">
-                      {isFolderHandleActive || targetFolder.trim()
-                        ? 'Notes will be saved directly to this folder'
-                        : 'Click the button to select your Obsidian folder'}
+                      {isFolderHandleActive
+                        ? 'Browser will auto-save notes directly into this folder'
+                        : 'Click to select folder from your Windows / Mac / Linux disk'}
                     </div>
                   </div>
                 </div>
@@ -348,6 +344,18 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
                     : 'Select Folder on Disk'}
                 </Button>
               </div>
+
+              {/* Optional Host / Server Disk Path */}
+              <FormField
+                label="Vault Disk Path"
+              >
+                <Input
+                  value={targetFolder}
+                  onChange={(e) => setTargetFolder(e.target.value)}
+                  placeholder="e.g. C:\Users\Username\Documents\MyObsidianVault"
+                  className="font-mono text-xs"
+                />
+              </FormField>
             </div>
 
             <ModalFooter className="justify-end pt-2">

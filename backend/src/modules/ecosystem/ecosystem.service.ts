@@ -5,6 +5,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { McpGatewayService } from '../../mcp/mcp-gateway.service';
+import { McpToolDefinition } from '../../mcp/interfaces/mcp-tool.interface';
+import { ObsidianVaultService } from '../../mcp/internal/obsidian/obsidian-vault.service';
 import { EncryptionService } from '../../common/security/encryption.service';
 import {
   EcosystemRepository,
@@ -29,6 +31,7 @@ export class EcosystemService {
   constructor(
     private readonly repo: EcosystemRepository,
     private readonly mcpGateway: McpGatewayService,
+    private readonly obsidianVaultService: ObsidianVaultService,
     private readonly encryption: EncryptionService,
   ) {}
 
@@ -238,6 +241,12 @@ export class EcosystemService {
     };
     const created = await this.repo.createIntegration(secureData);
     await this.mcpGateway.refreshRemoteServersFromDb();
+    if (
+      created.id === 'int-obsidian-vault-mcp' ||
+      created.name?.toLowerCase().includes('obsidian')
+    ) {
+      await this.obsidianVaultService.refreshVaultRootFromDb();
+    }
     return this.maskAuthConfigForClient(created);
   }
 
@@ -258,6 +267,12 @@ export class EcosystemService {
       );
     }
     await this.mcpGateway.refreshRemoteServersFromDb();
+    if (
+      id === 'int-obsidian-vault-mcp' ||
+      id.toLowerCase().includes('obsidian')
+    ) {
+      await this.obsidianVaultService.refreshVaultRootFromDb();
+    }
     return this.maskAuthConfigForClient(updated);
   }
 
@@ -625,46 +640,25 @@ export class EcosystemService {
       ];
     }
 
-    // 3. OBSIDIAN MCP VAULT LOCAL BRIDGE
+    // 3. OBSIDIAN MCP VAULT LOCAL BRIDGE (Complete 12-Tool Suite)
     if (isObsidian && discoveredTools.length === 0) {
-      discoveredTools = [
-        {
-          id: `t-${id}-1`,
-          name: 'obsidian_write_note',
-          description:
-            'Append or create structured Markdown files with frontmatter inside Obsidian',
-          parametersSchema: {
-            title: 'string',
-            path: 'string',
-            content: 'string',
-          },
-          readOnly: false,
-        },
-        {
-          id: `t-${id}-2`,
-          name: 'obsidian_read_note',
-          description:
-            'Read and search note contents, backlinks, and tags across markdown files',
-          parametersSchema: { path: 'string', query: 'string' },
-          readOnly: true,
-        },
-        {
-          id: `t-${id}-3`,
-          name: 'obsidian_search_backlinks',
-          description:
-            'Extract bi-directional link graphs and wikilink references across vault',
-          parametersSchema: { targetNote: 'string' },
-          readOnly: true,
-        },
-        {
-          id: `t-${id}-4`,
-          name: 'obsidian_create_daily_note',
-          description:
-            'Format and append entry to the current date daily note log',
-          parametersSchema: { section: 'string', text: 'string' },
-          readOnly: false,
-        },
-      ];
+      const server = this.mcpGateway.getServer('int-obsidian-vault-mcp');
+      if (server) {
+        discoveredTools = server
+          .getTools()
+          .map((t: McpToolDefinition, idx: number) => ({
+            id: `t-${id}-${idx + 1}`,
+            name: t.name,
+            description: t.description,
+            parametersSchema:
+              (t.parametersSchema as Record<string, unknown>) || {},
+            readOnly:
+              !t.name.includes('create') &&
+              !t.name.includes('write') &&
+              !t.name.includes('delete') &&
+              !t.name.includes('move'),
+          }));
+      }
     }
 
     // 4. FALLBACK FOR CUSTOM MCP OR OTHER INTEGRATIONS

@@ -3,61 +3,136 @@
     "id": "int-obsidian-vault-mcp",
     "name": "Obsidian Vault MCP Bridge",
     "category": "mcp_server",
-    "status": "disconnected",
-    "endpoint": "npx -y @modelcontextprotocol/server-obsidian",
-    "version": "v2.1.0",
-    "transport": "stdio",
+    "status": "connected",
+    "endpoint": "browser-bridge://localhost:3001/api/obsidian-bridge/ws",
+    "version": "v2.2.0",
+    "transport": "websocket_bridge",
     "auth_type": "none",
     "auth_config": {
       "vaultName": ""
     },
     "target_binding": {
       "defaultOutputPath": "Work/Notes",
-      "folderScope": "Work/Notes"
+      "folderScope": ""
     },
-    "description": "Direct bi-directional Model Context Protocol bridge into local Obsidian vault files & daily notes.",
+    "description": "Direct bi-directional Model Context Protocol bridge into local Obsidian vault files & dynamic folder discovery.",
     "last_ping_ms": 14,
     "latency_ms": 11,
     "tools": [
       {
         "id": "t-obsidian-1",
-        "name": "obsidian_write_note",
-        "description": "Append or create structured Markdown files with frontmatter inside Obsidian",
-        "parametersSchema": {
-          "vaultName": "string",
-          "path": "string",
-          "content": "string"
-        },
-        "readOnly": false
+        "name": "obsidian_get_vault_info",
+        "description": "Get status, name, and connection state of the paired Obsidian vault",
+        "parametersSchema": {},
+        "readOnly": true
       },
       {
         "id": "t-obsidian-2",
-        "name": "obsidian_read_note",
-        "description": "Read and search note contents, backlinks, and tags across markdown files",
+        "name": "obsidian_list_folders",
+        "description": "List all subfolders in the Obsidian vault or inside a specific relative path",
         "parametersSchema": {
-          "vaultName": "string",
-          "query": "string"
+          "path": "string",
+          "recursive": "boolean"
         },
         "readOnly": true
       },
       {
         "id": "t-obsidian-3",
-        "name": "obsidian_search_backlinks",
-        "description": "Extract bi-directional link graphs and wikilink references across vault",
+        "name": "obsidian_find_folder",
+        "description": "Search for existing folders in the vault matching a keyword or phrase",
         "parametersSchema": {
-          "targetNote": "string"
+          "query": "string"
         },
         "readOnly": true
       },
       {
         "id": "t-obsidian-4",
+        "name": "obsidian_create_folder",
+        "description": "Create a new folder or nested directory path in the Obsidian vault",
+        "parametersSchema": {
+          "path": "string"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-obsidian-5",
+        "name": "obsidian_list_files",
+        "description": "List files in a specific vault folder with optional extension filter",
+        "parametersSchema": {
+          "folderPath": "string",
+          "extension": "string",
+          "recursive": "boolean"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-obsidian-6",
+        "name": "obsidian_search_files",
+        "description": "Search notes across the vault by title or full text markdown content",
+        "parametersSchema": {
+          "query": "string",
+          "folderPath": "string"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-obsidian-7",
+        "name": "obsidian_read_note",
+        "description": "Read the complete Markdown content of a specific note in the vault",
+        "parametersSchema": {
+          "path": "string"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-obsidian-8",
+        "name": "obsidian_write_note",
+        "description": "Create or update a Markdown note with YAML frontmatter in the vault",
+        "parametersSchema": {
+          "title": "string",
+          "path": "string",
+          "content": "string",
+          "createMissingFolders": "boolean"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-obsidian-9",
         "name": "obsidian_create_daily_note",
-        "description": "Format and append entry to the current date daily note log",
+        "description": "Append or create an entry in today's daily scratchpad note",
         "parametersSchema": {
           "section": "string",
           "text": "string"
         },
         "readOnly": false
+      },
+      {
+        "id": "t-obsidian-10",
+        "name": "obsidian_delete_file",
+        "description": "Permanently delete a Markdown note from the Obsidian vault",
+        "parametersSchema": {
+          "path": "string"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-obsidian-11",
+        "name": "obsidian_move_file",
+        "description": "Move or rename a note from sourcePath to targetPath in the vault",
+        "parametersSchema": {
+          "sourcePath": "string",
+          "targetPath": "string"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-obsidian-12",
+        "name": "obsidian_search_backlinks",
+        "description": "Extract bi-directional link graphs and wikilink references [[targetNote]] across vault",
+        "parametersSchema": {
+          "targetNote": "string"
+        },
+        "readOnly": true
       }
     ]
   },
@@ -69,11 +144,13 @@
     "endpoint": "https://mcp.notion.com/mcp",
     "version": "v1.2.0",
     "transport": "streamable_http",
-    "auth_type": "oauth",
-    "auth_config": {},
-    "description": "Official Model Context Protocol server for Notion workspace databases, page trees, and document sync.",
-    "last_ping_ms": 16,
-    "latency_ms": 14,
+    "auth_type": "oauth2",
+    "auth_config": {
+      "token": ""
+    },
+    "description": "Official Model Context Protocol server exposing Notion databases, task management, and knowledge base pages.",
+    "last_ping_ms": 28,
+    "latency_ms": 24,
     "tools": [
       {
         "id": "t-notion-1",

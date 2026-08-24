@@ -91,6 +91,15 @@ export class McpGatewayService implements OnModuleInit {
   }
 
   /**
+   * Retrieves a registered server by ID
+   */
+  getServer(id: string): IMcpServer | undefined {
+    if (id === 'int-obsidian-vault-mcp') return this.obsidianServer;
+    if (id === 'int-notion-mcp') return this.notionConnector;
+    return this.servers.get(id);
+  }
+
+  /**
    * Discovers which server provides the specified tool
    */
   findServerForTool(toolName: string): IMcpServer | undefined {

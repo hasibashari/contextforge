@@ -661,16 +661,40 @@ export function useChatEngine(
               setActiveArtifact(createdArtifact);
               setIsAsideOpen?.(true);
 
+              // Immediately attach artifactId to current streaming message so CompactArtifactPill appears in real-time
+              setChatSessions((prev) =>
+                prev.map((session) =>
+                  session.id === currentTargetSessionId ||
+                  session.id === activeSessionId
+                    ? {
+                        ...session,
+                        activeArtifactId: createdArtifact.id,
+                        messages: session.messages.map((m) =>
+                          m.id === assistantMsgId
+                            ? { ...m, artifactId: createdArtifact.id }
+                            : m,
+                        ),
+                      }
+                    : session,
+                ),
+              );
+
               // Auto-sync directly to browser-selected folder (HTML5 File System Access)
-              if (obsidianBridgeService.getPairedDirectoryHandle()) {
-                const fileName =
-                  createdArtifact.locationPath ||
-                  `${createdArtifact.title || 'Note'}.md`;
-                obsidianBridgeService.writeNoteToLocalVault(
+              const fileName =
+                createdArtifact.locationPath ||
+                `${createdArtifact.title || 'Note'}.md`;
+              obsidianBridgeService
+                .writeNoteToLocalVault(
                   fileName,
                   createdArtifact.content,
-                );
-              }
+                )
+                .then((ok) => {
+                  if (ok) {
+                    showToast(
+                      `📁 Saved directly to local folder: "${fileName}"`,
+                    );
+                  }
+                });
 
               showToast(`📦 Catatan Berhasil Dibuat: ${createdArtifact.title}`);
             },
@@ -681,6 +705,7 @@ export function useChatEngine(
             onAssistantMessage: (backendMsg) => {
               setChatSessions((prev) =>
                 prev.map((session) =>
+                  session.id === currentTargetSessionId ||
                   session.id === activeSessionId
                     ? {
                         ...session,
@@ -700,6 +725,7 @@ export function useChatEngine(
               const durationMs = Date.now() - streamStartTime;
               setChatSessions((prev) =>
                 prev.map((session) =>
+                  session.id === currentTargetSessionId ||
                   session.id === activeSessionId
                     ? {
                         ...session,

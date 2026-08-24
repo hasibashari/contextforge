@@ -89,7 +89,7 @@ export default function IntegrationsView() {
               <span>Probe Status</span>
             </button>
 
-            <div className="flex items-center gap-2 bg-canvas-soft border border-hairline rounded-xl px-3.5 py-2 text-ink shadow-2xs whitespace-nowrap">
+            <div className="flex items-center gap-1.5 bg-canvas-soft border border-hairline rounded-xl px-3 py-2 text-xs text-ink shadow-2xs whitespace-nowrap">
               <span
                 className={`w-2 h-2 rounded-full shrink-0 ${
                   connectedCount > 0
@@ -97,7 +97,7 @@ export default function IntegrationsView() {
                     : 'bg-semantic-error'
                 }`}
               />
-              <span className="text-body font-medium text-xs sm:text-sm">
+              <span className="text-body font-medium text-xs">
                 <strong className="text-ink font-semibold">
                   {connectedCount}
                 </strong>{' '}

@@ -1,11 +1,7 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import { DatabaseService } from '../../../common/database/database.service';
-import { UniversalPathResolver } from '../../../common/utils/universal-path-resolver.util';
+import { Injectable, Logger } from '@nestjs/common';
+import { ObsidianBridgeGatewayService } from './obsidian-bridge.gateway';
 
 export interface VaultWriteResult {
-  absolutePath: string;
   relativePath: string;
   bytesWritten: number;
   lineCount: number;
@@ -13,218 +9,247 @@ export interface VaultWriteResult {
   formattedContent: string;
   durationMs: number;
   obsidianUri?: string;
-  isPhysicalDiskWrite: boolean;
+  isBridgeWrite: boolean;
+  foldersCreated?: string[];
+}
+
+export interface VaultFolderItem {
+  path: string;
+  name: string;
+  subfolderCount: number;
+  filesCount: number;
+}
+
+export interface VaultFileItem {
+  path: string;
+  name: string;
+  extension: string;
+  size: number;
+  lastModified?: number;
 }
 
 @Injectable()
-export class ObsidianVaultService implements OnModuleInit {
+export class ObsidianVaultService {
   private readonly logger = new Logger(ObsidianVaultService.name);
-  private vaultRoot: string = '';
-  private vaultName: string = 'Obsidian Vault';
-  private isPhysicallyAccessible: boolean = false;
 
-  constructor(private readonly db: DatabaseService) {}
+  constructor(private readonly bridgeGateway: ObsidianBridgeGatewayService) {}
 
-  async onModuleInit() {
-    await this.refreshVaultRootFromDb();
+  /**
+   * Refreshes active vault metadata from database or browser bridge
+   */
+  async refreshVaultRootFromDb(): Promise<void> {
+    await this.verifyPathAccess();
   }
 
   /**
-   * Refreshes active vault root from PostgreSQL workspace_integrations or environment
+   * Sanitizes relative path to be strictly vault-relative and normalized
    */
-  async refreshVaultRootFromDb(): Promise<string> {
-    try {
-      // 1. Check environment variable override
-      const envVaultPath = process.env.OBSIDIAN_VAULT_PATH;
-      if (envVaultPath) {
-        this.setVaultRoot(envVaultPath);
-        return this.vaultRoot;
-      }
+  private sanitizeVaultRelativePath(
+    rawPath: string,
+    defaultName: string = 'Note.md',
+  ): string {
+    const clean = (rawPath || defaultName)
+      .replace(/\\/g, '/')
+      .replace(/\0/g, '')
+      .replace(/^(\.\.(\/|\\|$))+/, '')
+      .replace(/^\/+/, '');
 
-      // 2. Query active MCP integration from PostgreSQL
-      const res = await this.db.query<{
-        endpoint: string;
-        status: string;
-        auth_config: { vaultName?: string; vaultPath?: string };
-      }>(
-        `SELECT endpoint, status, auth_config 
-         FROM workspace_integrations 
-         WHERE id = 'int-obsidian-vault-mcp' 
-            OR name ILIKE '%obsidian%' 
-         LIMIT 1;`,
-      );
-
-      if (res.rows.length > 0) {
-        const row = res.rows[0];
-
-        // If the MCP integration is disconnected in database, do not mount!
-        if (row.status !== 'connected') {
-          this.vaultRoot = '';
-          this.isPhysicallyAccessible = false;
-          this.logger.log(
-            '📁 Obsidian Protocol Bridge: MCP Server is currently disconnected.',
-          );
-          return '';
-        }
-
-        this.vaultName = row.auth_config?.vaultName || 'Obsidian Vault';
-
-        const rawPath =
-          row.auth_config?.vaultPath ||
-          this.extractRawPathFromEndpoint(row.endpoint);
-
-        if (rawPath) {
-          this.setVaultRoot(rawPath);
-          return this.vaultRoot;
-        }
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Could not load Obsidian integration from DB: ${msg}`);
-    }
-
-    if (!this.vaultRoot) {
-      this.logger.log(
-        '📁 Obsidian Protocol Bridge: No physical vault path connected in MCP Integrations yet.',
-      );
-    }
-
-    return this.vaultRoot;
+    return clean.endsWith('.md') || clean.includes('.') ? clean : `${clean}.md`;
   }
 
   /**
-   * Extracts raw directory path from CLI command endpoint
+   * Real-time connection and accessibility check via Browser Bridge
    */
-  private extractRawPathFromEndpoint(endpoint?: string): string {
-    if (!endpoint) return '';
-    const clean = endpoint.trim();
-
-    // Check quoted argument at end: e.g. npx ... "/path/with spaces"
-    const quotedMatch = clean.match(/(["'])(.+?)\1$/);
-    if (quotedMatch && quotedMatch[2]) {
-      return quotedMatch[2];
-    }
-
-    const parts = clean.split(/\s+/);
-    const last = parts[parts.length - 1];
-    if (
-      last &&
-      (last.startsWith('/') ||
-        last.startsWith('~') ||
-        last.startsWith('./') ||
-        last.startsWith('../') ||
-        /^[a-zA-Z]:[\\/]/.test(last))
-    ) {
-      return last;
-    }
-
-    return '';
-  }
-
-  /**
-   * Sets or updates active mounted vault root using UniversalPathResolver
-   */
-  setVaultRoot(rawVaultPath: string): void {
-    if (rawVaultPath) {
-      const resolved = UniversalPathResolver.resolve(rawVaultPath);
-      if (resolved.resolvedPath === 'dynamic-client-vault') {
-        this.vaultRoot = 'dynamic-client-vault';
-        this.isPhysicallyAccessible = true;
-        this.logger.log(
-          `📁 [Obsidian Protocol Bridge] Active in Browser Client Bridge mode ("${this.vaultName}")`,
-        );
-        return;
-      }
-
-      this.vaultRoot = resolved.resolvedPath;
-      this.isPhysicallyAccessible = resolved.isAccessible;
-
-      this.logger.log(
-        `🔗 [Universal Path Resolver] Mounted Obsidian Vault on [${resolved.platform.toUpperCase()}]: ${this.vaultRoot} (Accessible: ${this.isPhysicallyAccessible})`,
-      );
-    } else {
-      this.vaultRoot = '';
-      this.isPhysicallyAccessible = false;
-    }
-  }
-
-  /**
-   * Returns the canonical root path of the local vault if mounted
-   */
-  getVaultRoot(): string {
-    return this.vaultRoot || 'dynamic-client-vault';
-  }
-
-  /**
-   * Real-time path accessibility check on local filesystem
-   */
-  async verifyPathAccess(): Promise<{
+  verifyPathAccess(): Promise<{
     isAccessible: boolean;
     isClientPaired?: boolean;
     path: string;
     reason?: string;
+    vaultName?: string;
   }> {
-    if (!this.vaultRoot) {
-      await this.refreshVaultRootFromDb();
+    const info = this.bridgeGateway.getVaultInfo();
+    const isBridgeLive = this.bridgeGateway.isBridgeConnected();
+
+    if (!isBridgeLive) {
+      return Promise.resolve({
+        isAccessible: false,
+        isClientPaired: false,
+        path: info.vaultName || 'Obsidian Vault',
+        reason:
+          'Obsidian Browser Bridge disconnected. Please open the web app to pair your vault.',
+        vaultName: info.vaultName,
+      });
     }
 
-    if (!this.vaultRoot || this.vaultRoot === 'dynamic-client-vault') {
-      return {
-        isAccessible: true,
-        isClientPaired: true,
-        path: this.vaultName || 'Obsidian Vault',
-        reason: `Obsidian Vault connected via Client Bridge ("${this.vaultName || 'Active Vault'}")`,
-      };
-    }
+    return Promise.resolve({
+      isAccessible: true,
+      isClientPaired: true,
+      path: info.vaultName || 'Active Vault',
+      reason: `Obsidian Vault connected via Browser Bridge ("${info.vaultName}")`,
+      vaultName: info.vaultName,
+    });
+  }
 
+  /**
+   * Discovers active vault information & connection state
+   */
+  async getVaultInfo(): Promise<Record<string, unknown>> {
     try {
-      await fs.access(this.vaultRoot, fs.constants.R_OK | fs.constants.W_OK);
-      this.isPhysicallyAccessible = true;
-      return {
-        isAccessible: true,
-        path: this.vaultRoot,
-        reason: `Vault directory accessible at ${this.vaultRoot}`,
-      };
+      const liveInfo = await this.bridgeGateway.dispatchBridgeRequest<
+        Record<string, unknown>
+      >('get_vault_info', {}, 5000);
+      return liveInfo;
     } catch {
-      // Gracefully fall back to client/URI bridge mode if physical disk path is client-side
-      this.isPhysicallyAccessible = false;
-      return {
-        isAccessible: true,
-        isClientPaired: true,
-        path: this.vaultName || this.vaultRoot,
-        reason: `Obsidian MCP Server connected (Client & URI Bridge: "${this.vaultName}")`,
-      };
+      return this.bridgeGateway.getVaultInfo() as unknown as Record<
+        string,
+        unknown
+      >;
     }
   }
 
   /**
-   * Safely formats and writes a Markdown note with YAML frontmatter
-   * Supports direct physical disk write (Local/WSL) and Obsidian URI protocol (Cloud/Remote).
+   * Lists folder hierarchy in vault at given path
+   */
+  async getVaultFolders(
+    targetSubpath = '',
+    recursive = false,
+  ): Promise<string[]> {
+    try {
+      const res = await this.bridgeGateway.dispatchBridgeRequest<{
+        folders: Array<string | VaultFolderItem>;
+      }>('list_folders', { path: targetSubpath, recursive });
+
+      if (Array.isArray(res?.folders)) {
+        const stringFolders: string[] = res.folders.map(
+          (f: string | VaultFolderItem) => (typeof f === 'string' ? f : f.path),
+        );
+        this.bridgeGateway.setCachedFolders(stringFolders);
+        return stringFolders;
+      }
+      return this.bridgeGateway.getCachedFolders();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Could not list vault folders over bridge: ${msg}`);
+      return this.bridgeGateway.getCachedFolders();
+    }
+  }
+
+  /**
+   * Searches for folders matching a query name
+   */
+  async findFolder(query: string): Promise<string[]> {
+    const cleanQuery = (query || '').toLowerCase().trim();
+    if (!cleanQuery) return this.getVaultFolders();
+
+    try {
+      const res = await this.bridgeGateway.dispatchBridgeRequest<{
+        folders: string[];
+      }>('find_folder', { query: cleanQuery });
+      if (Array.isArray(res?.folders)) {
+        return res.folders;
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Bridge find_folder fallback: ${msg}`);
+    }
+
+    // Fallback to searching cached folders
+    const all = this.bridgeGateway.getCachedFolders();
+    return all.filter((f) => f.toLowerCase().includes(cleanQuery));
+  }
+
+  /**
+   * Explicitly creates a folder path in the vault
+   */
+  async createFolder(
+    folderPath: string,
+  ): Promise<{ success: boolean; path: string; message: string }> {
+    const cleanPath = (folderPath || '')
+      .replace(/\\/g, '/')
+      .replace(/^\/+|\/+$/g, '');
+    if (!cleanPath) {
+      throw new Error('Folder path cannot be empty.');
+    }
+
+    return await this.bridgeGateway.dispatchBridgeRequest<{
+      success: boolean;
+      path: string;
+      message: string;
+    }>('create_folder', { path: cleanPath });
+  }
+
+  /**
+   * Lists files in a vault folder
+   */
+  async listFiles(
+    folderPath = '',
+    extension = '',
+    recursive = false,
+  ): Promise<VaultFileItem[]> {
+    const cleanFolder = (folderPath || '')
+      .replace(/\\/g, '/')
+      .replace(/^\/+|\/+$/g, '');
+    return await this.bridgeGateway.dispatchBridgeRequest<VaultFileItem[]>(
+      'list_files',
+      {
+        folderPath: cleanFolder,
+        extension,
+        recursive,
+      },
+    );
+  }
+
+  /**
+   * Searches files by filename or content
+   */
+  async searchFiles(
+    query: string,
+    folderPath = '',
+  ): Promise<Array<{ path: string; matchType: string; snippet?: string }>> {
+    const cleanQuery = (query || '').trim();
+    return await this.bridgeGateway.dispatchBridgeRequest<
+      Array<{ path: string; matchType: string; snippet?: string }>
+    >('search_files', { query: cleanQuery, folderPath });
+  }
+
+  /**
+   * Reads a Markdown note from the connected vault via Browser Bridge
+   */
+  async readNote(targetRelPath: string): Promise<string | null> {
+    const cleanRelPath = this.sanitizeVaultRelativePath(targetRelPath);
+    try {
+      const res = await this.bridgeGateway.dispatchBridgeRequest<{
+        content: string;
+        path: string;
+      }>('read_note', { path: cleanRelPath });
+      return res.content;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `Failed to read note "${cleanRelPath}" via Browser Bridge: ${msg}`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Writes/updates a Markdown note with frontmatter and bi-directional linking via Browser Bridge
    */
   async writeNote(
     title: string,
     targetRelPath: string,
     rawContent: string,
     metadata: Record<string, unknown> = {},
+    createMissingFolders = true,
   ): Promise<VaultWriteResult> {
     const startTime = Date.now();
+    const cleanRelPath = this.sanitizeVaultRelativePath(
+      targetRelPath,
+      `${title}.md`,
+    );
 
-    // Ensure active vault root is loaded from DB
-    if (!this.vaultRoot) {
-      await this.refreshVaultRootFromDb();
-    }
-
-    // 1. Sanitize relative path (prevent escaping directory)
-    const sanitizedRelPath = (targetRelPath || `${title}.md`)
-      .replace(/\0/g, '')
-      .replace(/^(\.\.(\/|\\|$))+/, '');
-
-    const normalizedRelPath = sanitizedRelPath.endsWith('.md')
-      ? sanitizedRelPath
-      : `${sanitizedRelPath}.md`;
-
-    // 2. Format frontmatter if not already included
-    let formattedContent = rawContent.trim();
+    // Format frontmatter if not already present
+    let formattedContent = (rawContent || '').trim();
     if (!formattedContent.startsWith('---')) {
       const isoDate = new Date().toISOString().slice(0, 10);
       const tagsList = Array.isArray(metadata.tags)
@@ -237,7 +262,7 @@ export class ObsidianVaultService implements OnModuleInit {
         `date: ${isoDate}`,
         `tags: [${tagsList}]`,
         `status: active`,
-        `created_by: ContextForge Personal Assistant`,
+        `created_by: ContextForge Assistant`,
         '---',
         '',
       ].join('\n');
@@ -247,133 +272,119 @@ export class ObsidianVaultService implements OnModuleInit {
 
     const lineCount = formattedContent.split('\n').length;
     const bytesWritten = Buffer.byteLength(formattedContent, 'utf-8');
-    const obsidianUri = UniversalPathResolver.buildObsidianUri(
-      this.vaultName,
-      normalizedRelPath,
-      formattedContent,
+
+    // Build standard Obsidian deep link URI
+    const vaultName = (
+      this.bridgeGateway.getVaultInfo().vaultName || 'Obsidian Vault'
+    ).trim();
+    const cleanFileUri = encodeURIComponent(cleanRelPath.replace(/\.md$/, ''));
+    const obsidianUri = `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${cleanFileUri}`;
+
+    // Dispatch write over Browser Bridge
+    await this.bridgeGateway.dispatchBridgeRequest('write_note', {
+      path: cleanRelPath,
+      title,
+      content: formattedContent,
+      createMissingFolders,
+    });
+
+    const durationMs = Date.now() - startTime;
+    this.logger.log(
+      `✅ [Browser Bridge] Successfully written note: "${cleanRelPath}" (${bytesWritten} bytes)`,
     );
 
-    // 3. Physical Disk Write (for Local Windows, WSL, macOS, Linux deployments)
-    if (this.vaultRoot) {
-      const resolvedPath = UniversalPathResolver.sanitizeSubPath(
-        this.vaultRoot,
-        normalizedRelPath,
-      );
-
-      if (resolvedPath) {
-        try {
-          const targetDir = path.dirname(resolvedPath);
-          await fs.mkdir(targetDir, { recursive: true });
-          await fs.writeFile(resolvedPath, formattedContent, 'utf-8');
-          const durationMs = Date.now() - startTime;
-
-          this.logger.log(
-            `✅ [Obsidian MCP] Auto-created file and directory at: ${resolvedPath}`,
-          );
-
-          return {
-            absolutePath: resolvedPath,
-            relativePath: path.relative(this.vaultRoot, resolvedPath),
-            bytesWritten,
-            lineCount,
-            title,
-            formattedContent,
-            durationMs,
-            obsidianUri,
-            isPhysicalDiskWrite: true,
-          };
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
-          this.logger.error(`❌ Failed to write note to disk path: ${msg}`);
-        }
-      } else {
-        this.logger.warn(
-          `⚠️ Security Block: Attempted write outside mounted vault sandbox (${normalizedRelPath})`,
-        );
-      }
-    }
-
-    // 4. Fallback / Cloud Mode: Return clean formatted artifact + Obsidian URI for client sync
-    const durationMs = Date.now() - startTime;
     return {
-      absolutePath: normalizedRelPath,
-      relativePath: normalizedRelPath,
+      relativePath: cleanRelPath,
       bytesWritten,
       lineCount,
       title,
       formattedContent,
       durationMs,
       obsidianUri,
-      isPhysicalDiskWrite: false,
+      isBridgeWrite: true,
     };
   }
 
   /**
-   * Safely reads a note from the mounted vault if available
+   * Creates or appends to a Daily Note
    */
-  async readNote(targetRelPath: string): Promise<string | null> {
-    if (!this.vaultRoot) {
-      await this.refreshVaultRootFromDb();
-    }
-    if (!this.vaultRoot) {
-      return null;
-    }
+  async createDailyNote(
+    section = 'Log Activity',
+    text = '',
+    targetDate?: string,
+  ): Promise<VaultWriteResult> {
+    const today = targetDate || new Date().toISOString().slice(0, 10);
+    const dailyPath = `DailyNotes/${today}.md`;
 
-    const resolvedPath = UniversalPathResolver.sanitizeSubPath(
-      this.vaultRoot,
-      targetRelPath,
+    const existingContent = (await this.readNote(dailyPath)) || '';
+    const timeStr = new Date().toLocaleTimeString();
+    const newEntry = `\n\n### [${timeStr}] ${section}\n${text}`;
+    const updatedContent = existingContent
+      ? `${existingContent}${newEntry}`
+      : `# Daily Note - ${today}${newEntry}`;
+
+    return await this.writeNote(
+      `Daily Note ${today}`,
+      dailyPath,
+      updatedContent,
+      {
+        tags: ['daily-note', 'journal'],
+      },
     );
-
-    if (!resolvedPath) {
-      throw new Error('Security Exception: Invalid path traversal.');
-    }
-
-    try {
-      return await fs.readFile(resolvedPath, 'utf-8');
-    } catch {
-      return null;
-    }
   }
 
   /**
-   * Scans and returns existing folder paths in the mounted Obsidian Vault
-   * so the AI can place new notes into matching existing folders rather than creating arbitrary ones.
+   * Deletes a file from the vault via Browser Bridge
    */
-  async getVaultFolders(): Promise<string[]> {
-    if (!this.vaultRoot) {
-      await this.refreshVaultRootFromDb();
-    }
-    if (!this.vaultRoot) {
-      return [];
-    }
+  async deleteFile(
+    targetRelPath: string,
+  ): Promise<{ success: boolean; path: string }> {
+    const cleanRelPath = this.sanitizeVaultRelativePath(targetRelPath);
+    return await this.bridgeGateway.dispatchBridgeRequest<{
+      success: boolean;
+      path: string;
+    }>('delete_file', { path: cleanRelPath });
+  }
+
+  /**
+   * Moves or renames a file in the vault via Browser Bridge
+   */
+  async moveFile(
+    sourcePath: string,
+    targetPath: string,
+    overwrite = false,
+  ): Promise<{ success: boolean; sourcePath: string; targetPath: string }> {
+    const cleanSource = this.sanitizeVaultRelativePath(sourcePath);
+    const cleanTarget = this.sanitizeVaultRelativePath(targetPath);
+
+    return await this.bridgeGateway.dispatchBridgeRequest<{
+      success: boolean;
+      sourcePath: string;
+      targetPath: string;
+    }>('move_file', {
+      sourcePath: cleanSource,
+      targetPath: cleanTarget,
+      overwrite,
+    });
+  }
+
+  /**
+   * Searches for actual backlinks / references across the connected vault notes
+   */
+  async searchBacklinks(
+    targetNote: string,
+  ): Promise<Array<{ notePath: string; lineSnippet: string }>> {
+    const cleanTarget = targetNote.replace(/\.md$/, '').trim();
+    if (!cleanTarget) return [];
 
     try {
-      const folders: string[] = [];
-      const scanDir = async (dir: string, baseRel: string, depth = 0) => {
-        if (depth > 2) return;
-        try {
-          const entries = await fs.readdir(dir, { withFileTypes: true });
-          for (const entry of entries) {
-            if (
-              entry.isDirectory() &&
-              !entry.name.startsWith('.') &&
-              entry.name !== 'node_modules'
-            ) {
-              const rel = baseRel ? `${baseRel}/${entry.name}` : entry.name;
-              folders.push(rel);
-              await scanDir(path.join(dir, entry.name), rel, depth + 1);
-            }
-          }
-        } catch {
-          // ignore unreadable subdirectories
-        }
-      };
-
-      await scanDir(this.vaultRoot, '', 0);
-      return folders;
+      const res = await this.bridgeGateway.dispatchBridgeRequest<
+        Array<{ notePath: string; lineSnippet: string }>
+      >('search_backlinks', { targetNote: cleanTarget });
+      return Array.isArray(res) ? res : [];
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Failed to scan vault folders: ${msg}`);
+      this.logger.warn(`Bridge search_backlinks failed: ${msg}`);
       return [];
     }
   }
