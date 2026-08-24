@@ -45,9 +45,9 @@ export default function KnowledgeSourcesView() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
       {/* Top Banner Header */}
       <PageHeader
-        eyebrow="Multi-Source Context Ingestion"
+        eyebrow="Multi-Source Context Grounding"
         title="Knowledge Grounding Engine"
-        description="Connect code repositories, Notion spaces, and OpenAPI specs to give agents deep project grounding with zero hallucination."
+        description="Connect your local Obsidian Vault, code repositories, Notion spaces, and documents. Agentic LLMs automatically compile notes, cross-link concepts, and maintain your knowledge graph."
         actions={
           <Button
             variant="primary"

@@ -171,17 +171,23 @@ export class EcosystemService {
     const rows = await this.repo.getIntegrations();
 
     // Run parallel live health probe on all integrations
-    const probed = await Promise.all(
-      rows.map(async (row) => {
+    const probed: WorkspaceIntegrationRow[] = await Promise.all(
+      rows.map(async (row): Promise<WorkspaceIntegrationRow> => {
+        // If the user has explicitly disconnected the connector in DB, honor it!
+        if (row.status === 'disconnected') {
+          return {
+            ...row,
+            status: 'disconnected',
+            health_message: 'Disconnected by user',
+          };
+        }
+
         try {
           const probe = await this.mcpGateway.pingServer(row.id);
           const isProbeSuccess = probe.status === 'connected';
 
-          // Preserve connected status if row is explicitly connected or probe succeeds
           const effectiveStatus: WorkspaceIntegrationRow['status'] =
-            isProbeSuccess || row.status === 'connected'
-              ? 'connected'
-              : 'disconnected';
+            isProbeSuccess ? 'connected' : 'disconnected';
 
           const effectiveLatency = probe.latencyMs || row.latency_ms || 12;
 
@@ -195,6 +201,7 @@ export class EcosystemService {
         } catch {
           return {
             ...row,
+            status: row.status,
             health_message:
               row.status === 'connected'
                 ? 'MCP server active (client bridge)'

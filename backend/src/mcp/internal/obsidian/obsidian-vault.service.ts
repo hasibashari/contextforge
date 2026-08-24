@@ -100,12 +100,13 @@ export class ObsidianVaultService implements OnModuleInit {
       (last.startsWith('/') ||
         last.startsWith('~') ||
         last.startsWith('./') ||
+        last.startsWith('../') ||
         /^[a-zA-Z]:[\\/]/.test(last))
     ) {
       return last;
     }
 
-    return clean;
+    return '';
   }
 
   /**

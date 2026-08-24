@@ -54,13 +54,9 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
     obsidianBridgeService.getPairedDirectoryHandle()?.name || '',
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [notionToken, setNotionToken] = useState<string>(
-    (integration?.authConfig?.token as string) || '',
-  )
-  const [notionWorkspace, setNotionWorkspace] = useState<string>(
+  const [notionWorkspace] = useState<string>(
     (integration?.authConfig?.workspaceName as string) || 'Notion Workspace',
   )
-  const [notionAuthMode, setNotionAuthMode] = useState<'quick' | 'token'>('quick')
 
   if (!isOpen || !integration) return null
 
@@ -72,58 +68,39 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
     integration.name.toLowerCase().includes('obsidian')
 
   // ----------------------------------------------------
-  // Notion: Direct Browser Authorization or Token Flow
+  // Notion: Direct Browser Authorization Flow
   // ----------------------------------------------------
 
   const handleNotionDirectConnect = async () => {
     setIsSubmitting(true)
     try {
-      if (notionAuthMode === 'token' && notionToken.trim()) {
-        try {
-          await ecosystemApi.verifyNotionToken(notionToken.trim(), notionWorkspace.trim())
-        } catch {
-          // If direct endpoint verification fails, save token config directly
-          updateConnectorConfig(integration.id, {
-            status: 'connected',
-            endpoint: 'https://mcp.notion.com/mcp',
-            transport: 'streamable_http',
-            authType: 'bearer',
-            authConfig: {
-              token: notionToken.trim(),
-              workspaceName: notionWorkspace.trim() || 'Notion Workspace',
-            },
-          })
-        }
-      } else {
-        const res = await ecosystemApi.getNotionOAuthUrl().catch(() => ({
-          configured: false,
-          authUrl:
-            'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback',
-        }))
+      const res = await ecosystemApi.getNotionOAuthUrl().catch(() => ({
+        configured: false,
+        authUrl:
+          'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback',
+      }))
 
-        const targetUrl =
-          res.authUrl ||
-          'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback'
+      const targetUrl =
+        res.authUrl ||
+        'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback'
 
-        window.open(targetUrl, '_blank', 'noopener,noreferrer')
+      window.open(targetUrl, '_blank', 'noopener,noreferrer')
 
-        updateConnectorConfig(integration.id, {
-          status: 'connected',
-          endpoint: 'https://mcp.notion.com/mcp',
-          transport: 'streamable_http',
-          authType: 'oauth',
-          authConfig: {
-            workspaceName: notionWorkspace.trim() || 'Notion Workspace',
-            token: notionToken.trim() || undefined,
-          },
-        })
-      }
+      updateConnectorConfig(integration.id, {
+        status: 'connected',
+        endpoint: 'https://mcp.notion.com/mcp',
+        transport: 'streamable_http',
+        authType: 'oauth',
+        authConfig: {
+          workspaceName: notionWorkspace.trim() || 'Notion Workspace',
+        },
+      })
 
       await discoverTools(integration.id)
       await refreshIntegrations()
 
       showToast(
-        `✨ Successfully connected Notion MCP Workspace "${notionWorkspace}"!`,
+        `✨ Successfully initiated Notion MCP authorization!`,
         'success',
       )
       onSuccess?.()
@@ -252,67 +229,21 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
         {/* Notion Flow */}
         {isNotion && (
           <div className="space-y-4">
-            <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-semibold text-ink text-xs">
-                  <div className="w-5 h-5 rounded bg-black text-white flex items-center justify-center font-bold text-xs shrink-0">
-                    N
-                  </div>
-                  <span>Notion MCP Workspace Authorization</span>
+            <div className="p-4 rounded-xl bg-canvas-soft border border-hairline space-y-3">
+              <div className="flex items-center gap-2.5 font-semibold text-ink text-xs">
+                <div className="w-6 h-6 rounded-md bg-black text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                  N
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setNotionAuthMode('quick')}
-                    className={`px-2 py-1 text-[11px] rounded-lg transition-colors cursor-pointer ${
-                      notionAuthMode === 'quick'
-                        ? 'bg-primary text-on-primary font-semibold'
-                        : 'text-muted hover:text-ink'
-                    }`}
-                  >
-                    Quick OAuth
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNotionAuthMode('token')}
-                    className={`px-2 py-1 text-[11px] rounded-lg transition-colors cursor-pointer ${
-                      notionAuthMode === 'token'
-                        ? 'bg-primary text-on-primary font-semibold'
-                        : 'text-muted hover:text-ink'
-                    }`}
-                  >
-                    Internal Token
-                  </button>
+                <div>
+                  <div className="text-xs font-semibold text-ink">Notion Workspace Authorization</div>
+                  <div className="text-[11px] text-muted font-normal font-sans">Official OAuth MCP Integration</div>
                 </div>
               </div>
 
-              {notionAuthMode === 'quick' ? (
-                <p className="text-muted text-[11px] font-sans leading-relaxed">
-                  Connect your Notion workspace directly. Clicking{' '}
-                  <strong className="text-ink">Connect in Browser</strong> will
-                  open Notion&apos;s official authorization page in your browser
-                  where you can select workspace access for ContextForge.
-                </p>
-              ) : (
-                <div className="space-y-2 pt-1 font-sans">
-                  <FormField label="Internal Integration Secret Token (optional)">
-                    <Input
-                      type="password"
-                      variant="mono"
-                      placeholder="ntn_... or secret_..."
-                      value={notionToken}
-                      onChange={(e) => setNotionToken(e.target.value)}
-                    />
-                  </FormField>
-                  <FormField label="Workspace Label">
-                    <Input
-                      value={notionWorkspace}
-                      onChange={(e) => setNotionWorkspace(e.target.value)}
-                      placeholder="ContextForge Workspace"
-                    />
-                  </FormField>
-                </div>
-              )}
+              <p className="text-muted text-xs font-sans leading-relaxed pt-1">
+                Authorize ContextForge to connect with your Notion workspace. Clicking{' '}
+                <strong className="text-ink font-semibold">Connect in Browser</strong> will open Notion&apos;s official authorization window to select pages and databases.
+              </p>
             </div>
 
             <ModalFooter className="justify-end pt-2">
@@ -321,17 +252,13 @@ export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
               </Button>
               <Button
                 type="button"
-                variant="dark"
+                variant="primary"
                 size="sm"
                 isLoading={isSubmitting}
-                leftIcon={notionAuthMode === 'quick' ? <ExternalLink size={13} /> : <Zap size={13} />}
+                leftIcon={<ExternalLink size={13} />}
                 onClick={handleNotionDirectConnect}
               >
-                {isSubmitting
-                  ? 'Connecting...'
-                  : notionAuthMode === 'quick'
-                  ? 'Connect in Browser'
-                  : 'Connect Workspace'}
+                {isSubmitting ? 'Connecting...' : 'Connect in Browser'}
               </Button>
             </ModalFooter>
           </div>

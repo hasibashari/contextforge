@@ -14,6 +14,7 @@ import {
 interface MarkdownRendererProps {
   content: string
   className?: string
+  onWikilinkClick?: (noteName: string) => void
 }
 
 // Pre-process Obsidian wikilinks: [[Note Title]] or [[Note Title|Custom Alias]]
@@ -30,6 +31,7 @@ function preprocessObsidianWikilinks(text: string): string {
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
   className = '',
+  onWikilinkClick,
 }) => {
   const processedContent = preprocessObsidianWikilinks(content)
 
@@ -168,8 +170,19 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           a: ({ href, children }) => {
             const isWikilink = href?.startsWith('#obsidian-note:')
             if (isWikilink) {
+              const noteName = decodeURIComponent(
+                (href || '').replace('#obsidian-note:', ''),
+              )
               return (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/25 font-mono text-[11px] font-semibold hover:bg-[#7c3aed]/20 transition-colors cursor-pointer select-none">
+                <span
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (onWikilinkClick) {
+                      onWikilinkClick(noteName)
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/25 font-mono text-[11px] font-semibold hover:bg-[#7c3aed]/25 hover:border-[#7c3aed]/50 transition-colors cursor-pointer select-none"
+                >
                   <BookOpen size={11} className="shrink-0" />
                   <span>{String(children).replace(/^📚\s*/, '')}</span>
                 </span>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Globe, Zap, BookOpen, ExternalLink, FileText } from 'lucide-react'
+import { Globe, Zap, BookOpen, ExternalLink, FileText, ExternalLink as LaunchIcon } from 'lucide-react'
 import { MarkdownRenderer } from '@/shared/components'
 import { CompactArtifactPill } from './CompactArtifactPill'
 import { ThinkingIndicator } from './ThinkingIndicator'
@@ -42,7 +42,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     ? artifacts.find((a) => a.id === msg.artifactId)
     : undefined
 
-  const isPlaceholderGenerating = isStreaming && (!msg.content || msg.content.trim() === '')
+  const isPlaceholderGenerating =
+    isStreaming && (!msg.content || msg.content.trim() === '')
 
   // Deduplicate sources & citations
   const uniqueSources = msg.sourceDomains
@@ -63,19 +64,36 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     )
   }
 
+  const handleActionClick = (actionKey: string, card: ActionCardData) => {
+    // If it is an Obsidian Launch action
+    if (actionKey === 'open_obsidian' || actionKey === 'open_note') {
+      const uri =
+        card.obsidianUri ||
+        (card.locationPath
+          ? `obsidian://open?vault=${encodeURIComponent('Obsidian Vault')}&file=${encodeURIComponent(card.locationPath)}`
+          : undefined)
+      if (uri) {
+        window.open(uri, '_self')
+        return
+      }
+    }
+
+    onExecuteAction?.(actionKey, card)
+  }
+
   return (
     <div className="w-full space-y-2.5 pt-1 animate-in fade-in duration-200">
-      {/* Live Thinking Indicator (Animated Logo + "Thinking...", no numbers, no leftover pills) */}
+      {/* Live Thinking Indicator */}
       {isPlaceholderGenerating && <ThinkingIndicator />}
 
-      {/* Assistant Rich Markdown Content with Silky Soft Fade-In Dissolve */}
+      {/* Assistant Rich Markdown Content */}
       {msg.content && (
         <div className="relative leading-relaxed text-ink transition-opacity duration-300 ease-out animate-in fade-in">
           <MarkdownRenderer content={msg.content} />
         </div>
       )}
 
-      {/* Claude-Style Sleek Compact Artifact Button Pill */}
+      {/* Sleek Compact Artifact Button Pill */}
       {attachedArtifact && (
         <div className="pt-0.5">
           <CompactArtifactPill
@@ -96,14 +114,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         </div>
       )}
 
-      {/* Interactive Action Card (Obsidian / Notion / Artifact sync) */}
+      {/* Interactive Action Card (Obsidian Vault / Notion Sync) */}
       {msg.actionCard && (
         <div className="p-3.5 rounded-xl bg-canvas-soft border border-hairline space-y-2.5 max-w-lg shadow-2xs">
           <div className="flex items-start justify-between gap-2">
             <div>
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                  {msg.actionCard.badge || msg.actionCard.badgeText || 'Action Ready'}
+                  {msg.actionCard.badge || msg.actionCard.badgeText || 'Obsidian Vault'}
                 </span>
                 <span className="text-ink font-semibold text-xs">{msg.actionCard.title}</span>
               </div>
@@ -124,16 +142,21 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               {msg.actionCard.actions.map((act, idx) => {
                 const actionKey = act.actionKey || act.key || ''
                 const isPrimary = act.primary
+                const isObsidianAction =
+                  actionKey.includes('obsidian') ||
+                  act.label.toLowerCase().includes('obsidian')
+
                 return (
                   <button
                     key={idx}
-                    onClick={() => onExecuteAction?.(actionKey, msg.actionCard!)}
+                    onClick={() => handleActionClick(actionKey, msg.actionCard!)}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      isPrimary
-                        ? 'bg-primary text-primary-contrast hover:bg-primary-hover shadow-2xs'
+                      isPrimary || isObsidianAction
+                        ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-2xs'
                         : 'bg-surface hover:bg-surface-elevated border border-hairline text-ink'
                     }`}
                   >
+                    {isObsidianAction && <LaunchIcon size={12} />}
                     <span>{act.label}</span>
                   </button>
                 )
@@ -143,7 +166,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         </div>
       )}
 
-      {/* Unified Claude-Style Footnote Sources & Citations Tray (Single, Non-Redundant) */}
+      {/* Footnote Sources Tray */}
       {uniqueSources.length > 0 && (
         <div className="pt-1.5 flex items-center gap-2 flex-wrap text-[11px] font-mono">
           <span className="text-muted text-[10px] uppercase tracking-caption font-semibold flex items-center gap-1">

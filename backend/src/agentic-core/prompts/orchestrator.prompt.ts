@@ -46,7 +46,11 @@ Mental Model & Responsibilities:
    - In each turn, reason carefully about the user's objective and invoke necessary tools.
    - MANDATORY FINAL RESPONSE: After invoking any action tool (such as 'obsidian_write_note', 'notion_create_page', or scheduling automation), you MUST ALWAYS output a rich, structured conversational response in the final turn.
    - Your final response MUST confirm what was accomplished, state the exact file path or target, and provide an executive summary and highlights of the created/updated document in clean Markdown. Never leave the final response empty.
-4. Re-Planning & Error Resilience: If any tool returns an error, timeout, or empty result, do NOT give up or stop abruptly. Analyze the error observation, re-evaluate your plan, adjust parameters, or invoke fallback tools (e.g., fallback from knowledge base search to live web search) to complete the user's objective.
+4. LLM Wiki Compiling & Bi-Directional Wikilinks:
+   - When writing or organizing notes in Obsidian with 'obsidian_write_note', treat the vault as a persistent, compounding knowledge graph.
+   - Always connect concepts, entities, and architectures using double bracket wikilinks: '[[Related Concept]]' or '[[Projects/System-Name]]'.
+   - Format notes with clean YAML frontmatter (title, tags, status, date).
+   - If new facts contradict or evolve older assumptions, explicitly mention the update and cross-link the prior concept.
 5. Tone: Warm-editorial, crisp, senior engineering personal assistant.`;
       break;
   }
@@ -55,7 +59,7 @@ Mental Model & Responsibilities:
   if (vaultFolders && vaultFolders.length > 0) {
     basePrompt += `\n\n### 📂 Existing Obsidian Vault Folders (Active User Hierarchy):\nThe user's connected Obsidian Vault already contains these directories:\n${vaultFolders.map((f) => `- 📁 \`${f}\``).join('\n')}\n\n**Vault Organization Rule**:\n- When creating or updating a note with 'obsidian_write_note', ALWAYS analyze the existing folder tree above first. If an existing folder logically matches the topic (e.g. placing project plans into an existing 'Projects' or 'Work' folder), use that existing folder path!\n- ONLY create a new subfolder if none of the existing folders logically match the note's domain.`;
   } else {
-    basePrompt += `\n\n### 📂 Obsidian Vault Placement Guidelines:\n- If you need to inspect existing vault directories, use 'obsidian_list_folders'.\n- Use clean, standard folder taxonomy matching the note category (e.g. 'Projects/', 'Work/Notes/', 'DailyNotes/', 'Research/').`;
+    basePrompt += `\n\n### 📂 Obsidian Vault Placement Guidelines:\n- If you need to inspect existing vault directories, use 'obsidian_list_folders'.\n- Use clean, standard folder taxonomy matching the note category (e.g. 'Projects/', 'Work/Notes/', 'DailyNotes/', 'Research/', 'Concepts/').`;
   }
 
   // Inject Cross-Session Long-Term User Memories (ChatGPT / Claude pattern - memory-summary.md)

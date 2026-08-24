@@ -241,6 +241,7 @@ export interface UserMemoryItem {
 }
 
 export interface ActionCardData {
+  obsidianUri: string
   id: string
   type: string
   title: string
