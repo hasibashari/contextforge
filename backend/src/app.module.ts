@@ -14,6 +14,7 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { EcosystemModule } from './modules/ecosystem/ecosystem.module';
 import { AutomationModule } from './modules/automation/automation.module';
+import { WikiModule } from './modules/wiki/wiki.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -34,6 +35,7 @@ import { AppController } from './app.controller';
     ActivityModule,
     EcosystemModule,
     AutomationModule,
+    WikiModule,
   ],
   controllers: [AppController],
 })
