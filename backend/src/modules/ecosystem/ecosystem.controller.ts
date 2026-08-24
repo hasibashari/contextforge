@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { EcosystemService } from './ecosystem.service';
+import { NotionOAuthService } from '../../mcp/remote/connectors/notion/notion-oauth.service';
 import type {
   WorkspaceAgentRow,
   WorkspaceSkillRow,
@@ -19,7 +20,10 @@ import type {
 
 @Controller('api/ecosystem')
 export class EcosystemController {
-  constructor(private readonly service: EcosystemService) {}
+  constructor(
+    private readonly service: EcosystemService,
+    private readonly notionOAuthService: NotionOAuthService,
+  ) {}
 
   // ==========================================
   // AGENTS
@@ -195,12 +199,12 @@ export class EcosystemController {
   }
 
   // ==========================================
-  // NOTION OAUTH 2.0 ENDPOINTS
+  // NOTION OAUTH 2.0 ENDPOINTS (Delegated to McpModule)
   // ==========================================
 
   @Get('oauth/notion/authorize')
   getNotionOAuthUrl() {
-    const res = this.service.getNotionOAuthUrl();
+    const res = this.notionOAuthService.getOAuthUrl();
     return {
       success: true,
       data: res,
@@ -236,7 +240,7 @@ export class EcosystemController {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
     try {
-      const result = await this.service.exchangeNotionOAuthCode(code);
+      const result = await this.notionOAuthService.exchangeOAuthCode(code);
       res.setHeader('Content-Type', 'text/html');
       return res.send(`
         <!DOCTYPE html>
@@ -303,7 +307,7 @@ export class EcosystemController {
   async connectNotionToken(
     @Body() body: { token: string; workspaceName?: string },
   ) {
-    const data = await this.service.verifyAndConnectNotionToken(
+    const data = await this.notionOAuthService.verifyAndConnectToken(
       body.token,
       body.workspaceName,
     );

@@ -311,16 +311,83 @@ export class NotionApiClient {
     url: string;
     createdTime: string;
   }> {
-    let resolvedParent = parentId ? { page_id: parentId } : undefined;
+    let resolvedParent: { page_id?: string; database_id?: string } | undefined =
+      parentId ? { page_id: parentId } : undefined;
+
+    let titlePropKey = 'title';
 
     if (!resolvedParent) {
-      const existingPages = await this.fetchPaginatedSearch(
-        authHeaders,
-        '',
-        'page',
-      );
-      if (existingPages.length > 0) {
-        resolvedParent = { page_id: existingPages[0].id };
+      const inventory = await this.listWorkspaceResources(authHeaders);
+      const lowerTitle = (title || '').toLowerCase();
+
+      // 1. Check if user has a semantically matching page (e.g. Notes, Ideas, Knowledge)
+      const matchedPage = inventory.pages.find((p) => {
+        const pName = p.title.toLowerCase();
+        if (
+          lowerTitle.includes('task') ||
+          lowerTitle.includes('tugas') ||
+          lowerTitle.includes('todo')
+        ) {
+          return (
+            pName.includes('task') ||
+            pName.includes('tugas') ||
+            pName.includes('todo')
+          );
+        }
+        return (
+          pName.includes('note') ||
+          pName.includes('catatan') ||
+          pName.includes('idea') ||
+          pName.includes('knowledge') ||
+          pName.includes('research')
+        );
+      });
+
+      // 2. Check if user has a semantically matching database (e.g. Quick Notes, To-do list, Jurnal)
+      const matchedDb = inventory.databases.find((db) => {
+        const dbName = db.title.toLowerCase();
+        if (
+          lowerTitle.includes('task') ||
+          lowerTitle.includes('tugas') ||
+          lowerTitle.includes('todo')
+        ) {
+          return (
+            dbName.includes('todo') ||
+            dbName.includes('task') ||
+            dbName.includes('tugas')
+          );
+        }
+        if (
+          lowerTitle.includes('jurnal') ||
+          lowerTitle.includes('journal') ||
+          lowerTitle.includes('daily')
+        ) {
+          return (
+            dbName.includes('jurnal') ||
+            dbName.includes('journal') ||
+            dbName.includes('daily')
+          );
+        }
+        return (
+          dbName.includes('note') ||
+          dbName.includes('quick note') ||
+          dbName.includes('idea') ||
+          dbName.includes('catatan')
+        );
+      });
+
+      if (matchedPage) {
+        resolvedParent = { page_id: matchedPage.id };
+      } else if (matchedDb) {
+        resolvedParent = { database_id: matchedDb.id };
+      } else if (inventory.pages.length > 0) {
+        // Prefer top-level workspace page
+        const topLevel =
+          inventory.pages.find((p) => p.parentType === 'workspace') ||
+          inventory.pages[0];
+        resolvedParent = { page_id: topLevel.id };
+      } else if (inventory.databases.length > 0) {
+        resolvedParent = { database_id: inventory.databases[0].id };
       }
     }
 
@@ -330,25 +397,46 @@ export class NotionApiClient {
       );
     }
 
+    // If target parent is a database, resolve the exact title property name
+    if (resolvedParent.database_id) {
+      try {
+        const dbRes = await fetch(
+          `https://api.notion.com/v1/databases/${resolvedParent.database_id}`,
+          { headers: authHeaders },
+        );
+        if (dbRes.ok) {
+          const dbMeta = (await dbRes.json()) as {
+            properties?: Record<string, { type?: string }>;
+          };
+          if (dbMeta.properties) {
+            for (const key of Object.keys(dbMeta.properties)) {
+              if (dbMeta.properties[key]?.type === 'title') {
+                titlePropKey = key;
+                break;
+              }
+            }
+          }
+        }
+      } catch {
+        titlePropKey = 'Name';
+      }
+    }
+
+    const allBlocks = this.convertMarkdownToBlocks(content);
+    const initialBlocks = allBlocks.slice(0, 90);
+    const remainingBlocks = allBlocks.slice(90);
+
     const bodyPayload: Record<string, unknown> = {
       parent: resolvedParent,
       properties: {
-        title: {
-          title: [{ text: { content: title } }],
+        [titlePropKey]: {
+          title: this.splitIntoRichText(title || 'Untitled Document'),
         },
       },
     };
 
-    if (content) {
-      bodyPayload.children = [
-        {
-          object: 'block',
-          type: 'paragraph',
-          paragraph: {
-            rich_text: [{ type: 'text', text: { content } }],
-          },
-        },
-      ];
+    if (initialBlocks.length > 0) {
+      bodyPayload.children = initialBlocks;
     }
 
     const createRes = await fetch('https://api.notion.com/v1/pages', {
@@ -365,6 +453,27 @@ export class NotionApiClient {
     }
 
     const createdJson = (await createRes.json()) as NotionRawObject;
+
+    // Append any overflow blocks if markdown exceeded 90 blocks
+    if (remainingBlocks.length > 0) {
+      for (let i = 0; i < remainingBlocks.length; i += 90) {
+        const batch = remainingBlocks.slice(i, i + 90);
+        try {
+          await fetch(
+            `https://api.notion.com/v1/blocks/${createdJson.id}/children`,
+            {
+              method: 'PATCH',
+              headers: authHeaders,
+              body: JSON.stringify({ children: batch }),
+            },
+          );
+        } catch (appendErr) {
+          this.logger.warn(
+            `Failed to append overflow blocks to page ${createdJson.id}: ${String(appendErr)}`,
+          );
+        }
+      }
+    }
 
     return {
       id: createdJson.id,
@@ -521,6 +630,198 @@ export class NotionApiClient {
       }
     }
     return 'Active';
+  }
+
+  private splitIntoRichText(
+    text: string,
+  ): Array<{ type: 'text'; text: { content: string } }> {
+    if (!text) return [];
+    const MAX_CHUNK = 1900;
+    if (text.length <= MAX_CHUNK) {
+      return [{ type: 'text', text: { content: text } }];
+    }
+    const chunks: Array<{ type: 'text'; text: { content: string } }> = [];
+    for (let i = 0; i < text.length; i += MAX_CHUNK) {
+      chunks.push({
+        type: 'text',
+        text: { content: text.slice(i, i + MAX_CHUNK) },
+      });
+    }
+    return chunks;
+  }
+
+  private convertMarkdownToBlocks(
+    markdown: string,
+  ): Array<Record<string, unknown>> {
+    if (!markdown || !markdown.trim()) return [];
+
+    const rawLines = markdown.split(/\r?\n/);
+    const blocks: Array<Record<string, unknown>> = [];
+    let inCodeBlock = false;
+    let codeLanguage = 'plain text';
+    let codeContent: string[] = [];
+
+    for (let i = 0; i < rawLines.length; i++) {
+      const line = rawLines[i];
+      const trimmed = line.trim();
+
+      // Code block start/end
+      if (trimmed.startsWith('```')) {
+        if (!inCodeBlock) {
+          inCodeBlock = true;
+          codeLanguage = trimmed.slice(3).trim() || 'plain text';
+          codeContent = [];
+        } else {
+          inCodeBlock = false;
+          const fullCode = codeContent.join('\n');
+          blocks.push({
+            object: 'block',
+            type: 'code',
+            code: {
+              language:
+                codeLanguage.toLowerCase().replace(/[^a-z0-9_]/g, '') ||
+                'plain text',
+              rich_text: this.splitIntoRichText(fullCode),
+            },
+          });
+        }
+        continue;
+      }
+
+      if (inCodeBlock) {
+        codeContent.push(line);
+        continue;
+      }
+
+      if (!trimmed) {
+        continue;
+      }
+
+      // Divider
+      if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+        blocks.push({
+          object: 'block',
+          type: 'divider',
+          divider: {},
+        });
+        continue;
+      }
+
+      // Headings
+      if (line.startsWith('# ')) {
+        blocks.push({
+          object: 'block',
+          type: 'heading_1',
+          heading_1: {
+            rich_text: this.splitIntoRichText(line.slice(2).trim()),
+          },
+        });
+        continue;
+      }
+
+      if (line.startsWith('## ')) {
+        blocks.push({
+          object: 'block',
+          type: 'heading_2',
+          heading_2: {
+            rich_text: this.splitIntoRichText(line.slice(3).trim()),
+          },
+        });
+        continue;
+      }
+
+      if (line.startsWith('### ')) {
+        blocks.push({
+          object: 'block',
+          type: 'heading_3',
+          heading_3: {
+            rich_text: this.splitIntoRichText(line.slice(4).trim()),
+          },
+        });
+        continue;
+      }
+
+      // Callouts & Quotes
+      if (
+        line.startsWith('> [!NOTE]') ||
+        line.startsWith('> [!TIP]') ||
+        line.startsWith('> [!IMPORTANT]') ||
+        line.startsWith('> [!WARNING]')
+      ) {
+        const cleanCallout = line.replace(/^>\s*\[![A-Z]+\]\s*/i, '').trim();
+        blocks.push({
+          object: 'block',
+          type: 'callout',
+          callout: {
+            icon: { type: 'emoji', emoji: '💡' },
+            rich_text: this.splitIntoRichText(cleanCallout || 'Catatan'),
+          },
+        });
+        continue;
+      }
+
+      if (line.startsWith('> ')) {
+        blocks.push({
+          object: 'block',
+          type: 'quote',
+          quote: {
+            rich_text: this.splitIntoRichText(line.slice(2).trim()),
+          },
+        });
+        continue;
+      }
+
+      // To-do list item
+      const todoMatch = line.match(/^[-*]\s+\[([ xX])\]\s+(.+)$/);
+      if (todoMatch) {
+        blocks.push({
+          object: 'block',
+          type: 'to_do',
+          to_do: {
+            checked: todoMatch[1].toLowerCase() === 'x',
+            rich_text: this.splitIntoRichText(todoMatch[2].trim()),
+          },
+        });
+        continue;
+      }
+
+      // Bulleted list item
+      if (line.match(/^[-*+]\s+(.+)$/)) {
+        const bulletText = line.replace(/^[-*+]\s+/, '').trim();
+        blocks.push({
+          object: 'block',
+          type: 'bulleted_list_item',
+          bulleted_list_item: {
+            rich_text: this.splitIntoRichText(bulletText),
+          },
+        });
+        continue;
+      }
+
+      // Numbered list item
+      const numMatch = line.match(/^\d+\.\s+(.+)$/);
+      if (numMatch) {
+        blocks.push({
+          object: 'block',
+          type: 'numbered_list_item',
+          numbered_list_item: {
+            rich_text: this.splitIntoRichText(numMatch[1].trim()),
+          },
+        });
+        continue;
+      }
+
+      // Default paragraph block
+      blocks.push({
+        object: 'block',
+        type: 'paragraph',
+        paragraph: {
+          rich_text: this.splitIntoRichText(trimmed),
+        },
+      });
+    }
+
+    return blocks;
   }
 
   private convertBlocksToMarkdown(blocks: NotionBlock[]): string {

@@ -6,12 +6,15 @@ import { McpHttpClient } from './remote/clients/mcp-http.client';
 import { McpSseClient } from './remote/clients/mcp-sse.client';
 import { NotionApiClient } from './remote/connectors/notion/notion-api.client';
 import { NotionMcpConnector } from './remote/connectors/notion/notion-mcp.connector';
+import { NotionOAuthService } from './remote/connectors/notion/notion-oauth.service';
 import { McpGatewayService } from './mcp-gateway.service';
 
 import { ObsidianBridgeGatewayService } from './internal/obsidian/obsidian-bridge.gateway';
 
+import { SecurityModule } from '../common/security/security.module';
+
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, SecurityModule],
   providers: [
     ObsidianBridgeGatewayService,
     ObsidianVaultService,
@@ -20,6 +23,7 @@ import { ObsidianBridgeGatewayService } from './internal/obsidian/obsidian-bridg
     McpSseClient,
     NotionApiClient,
     NotionMcpConnector,
+    NotionOAuthService,
     McpGatewayService,
   ],
   exports: [
@@ -29,6 +33,7 @@ import { ObsidianBridgeGatewayService } from './internal/obsidian/obsidian-bridg
     ObsidianMcpServer,
     NotionApiClient,
     NotionMcpConnector,
+    NotionOAuthService,
     McpHttpClient,
     McpSseClient,
   ],

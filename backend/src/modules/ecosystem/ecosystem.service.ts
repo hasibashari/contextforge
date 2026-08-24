@@ -1,467 +1,97 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { AgentsService } from './services/agents.service';
+import { SkillsService } from './services/skills.service';
+import { IntegrationsService } from './services/integrations.service';
 import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
-import { McpGatewayService } from '../../mcp/mcp-gateway.service';
-import { McpToolDefinition } from '../../mcp/interfaces/mcp-tool.interface';
-import { ObsidianVaultService } from '../../mcp/internal/obsidian/obsidian-vault.service';
-import { EncryptionService } from '../../common/security/encryption.service';
-import {
-  EcosystemRepository,
   WorkspaceAgentRow,
   WorkspaceSkillRow,
   WorkspaceIntegrationRow,
-} from './ecosystem.repository';
+  CreateSkillDto,
+  CreateIntegrationDto,
+} from './ecosystem.types';
 
-export interface McpDiscoveredTool {
-  id?: string;
-  name: string;
-  description?: string;
-  inputSchema?: Record<string, unknown>;
-  parametersSchema?: Record<string, unknown>;
-  readOnly?: boolean;
-}
-
+/**
+ * EcosystemService (Unified Facade)
+ *
+ * Provides a consolidated interface aggregating the 3 core pillars of the Workspace Ecosystem:
+ * 1. AI Agent Personas (AgentsService)
+ * 2. SOPs & Skills (SkillsService)
+ * 3. MCP Integrations & Tool Discovery (IntegrationsService)
+ */
 @Injectable()
 export class EcosystemService {
   private readonly logger = new Logger(EcosystemService.name);
 
   constructor(
-    private readonly repo: EcosystemRepository,
-    private readonly mcpGateway: McpGatewayService,
-    private readonly obsidianVaultService: ObsidianVaultService,
-    private readonly encryption: EncryptionService,
+    private readonly agentsService: AgentsService,
+    private readonly skillsService: SkillsService,
+    private readonly integrationsService: IntegrationsService,
   ) {}
 
   // ==========================================
-  // PRIVATE HELPERS: Auth Config Secure I/O
-  // ==========================================
-
-  /** Encrypt all sensitive fields inside an auth_config object before persisting to DB */
-  private encryptAuthConfig(
-    authConfig: Record<string, unknown> | undefined,
-  ): Record<string, unknown> | undefined {
-    if (!authConfig || typeof authConfig !== 'object') return authConfig;
-    const sensitiveKeys = ['token', 'apiKey', 'password', 'secret', 'key'];
-    const result = { ...authConfig };
-    for (const key of Object.keys(result)) {
-      const val = result[key];
-      if (
-        sensitiveKeys.some((s) =>
-          key.toLowerCase().includes(s.toLowerCase()),
-        ) &&
-        typeof val === 'string' &&
-        val
-      ) {
-        result[key] = this.encryption.encrypt(val);
-      }
-    }
-    return result;
-  }
-
-  private decryptAuthConfig(
-    authConfig: Record<string, unknown> | undefined,
-  ): Record<string, unknown> | undefined {
-    if (!authConfig || typeof authConfig !== 'object') return authConfig;
-    const sensitiveKeys = ['token', 'apiKey', 'password', 'secret', 'key'];
-    const result = { ...authConfig };
-    for (const key of Object.keys(result)) {
-      const val = result[key];
-      if (
-        sensitiveKeys.some((s) =>
-          key.toLowerCase().includes(s.toLowerCase()),
-        ) &&
-        typeof val === 'string' &&
-        val
-      ) {
-        result[key] = this.encryption.decrypt(val);
-      }
-    }
-    return result;
-  }
-
-  /** Mask sensitive fields in auth_config before sending to frontend */
-  private maskAuthConfigForClient(
-    row: WorkspaceIntegrationRow,
-  ): WorkspaceIntegrationRow {
-    if (!row.auth_config) return row;
-    return {
-      ...row,
-      auth_config: this.encryption.maskAuthConfig(row.auth_config),
-    };
-  }
-
-  // ==========================================
-  // AGENTS
+  // 1. AGENT PERSONAS (Delegated)
   // ==========================================
 
   async getAgents(): Promise<WorkspaceAgentRow[]> {
-    return this.repo.getAgents();
+    return this.agentsService.getAgents();
   }
 
   async getAgentById(id: string): Promise<WorkspaceAgentRow> {
-    const agent = await this.repo.getAgentById(id);
-    if (!agent) {
-      throw new NotFoundException(`Agent with ID "${id}" not found`);
-    }
-    return agent;
+    return this.agentsService.getAgentById(id);
   }
 
   async updateAgent(
     id: string,
     updates: Partial<WorkspaceAgentRow>,
   ): Promise<WorkspaceAgentRow> {
-    const updated = await this.repo.updateAgent(id, updates);
-    if (!updated) {
-      throw new NotFoundException(`Agent with ID "${id}" not found`);
-    }
-    return updated;
+    return this.agentsService.updateAgent(id, updates);
   }
 
   // ==========================================
-  // SKILLS
+  // 2. SOPS & SKILLS (Delegated)
   // ==========================================
 
   async getSkills(): Promise<WorkspaceSkillRow[]> {
-    return this.repo.getSkills();
+    return this.skillsService.getSkills();
   }
 
   async getSkillById(id: string): Promise<WorkspaceSkillRow> {
-    const skill = await this.repo.getSkillById(id);
-    if (!skill) {
-      throw new NotFoundException(`Skill with ID "${id}" not found`);
-    }
-    return skill;
+    return this.skillsService.getSkillById(id);
   }
 
-  async createSkill(data: {
-    name: string;
-    description: string;
-    category: WorkspaceSkillRow['category'];
-    sopSummary: string;
-    instructions: string;
-    assignedTools: string[];
-    icon?: string;
-  }): Promise<WorkspaceSkillRow> {
-    return this.repo.createSkill(data);
+  async createSkill(data: CreateSkillDto): Promise<WorkspaceSkillRow> {
+    return this.skillsService.createSkill(data);
   }
 
   async toggleSkill(id: string): Promise<WorkspaceSkillRow> {
-    const toggled = await this.repo.toggleSkill(id);
-    if (!toggled) {
-      throw new NotFoundException(`Skill with ID "${id}" not found`);
-    }
-    return toggled;
+    return this.skillsService.toggleSkill(id);
   }
 
   async getActiveSkillsInstructions(): Promise<
     Array<{ name: string; instructions: string }>
   > {
-    const active = await this.repo.getActiveSkills();
-    return active.map((s) => ({
-      name: s.name,
-      instructions: s.instructions,
-    }));
+    return this.skillsService.getActiveSkillsInstructions();
   }
 
   // ==========================================
-  // MCP INTEGRATIONS
+  // 3. MCP INTEGRATIONS & TOOLS (Delegated)
   // ==========================================
 
   async getIntegrations(): Promise<WorkspaceIntegrationRow[]> {
-    const rows = await this.repo.getIntegrations();
-
-    // Run parallel live health probe on all integrations
-    const probed: WorkspaceIntegrationRow[] = await Promise.all(
-      rows.map(async (row): Promise<WorkspaceIntegrationRow> => {
-        // If the user has explicitly disconnected the connector in DB, honor it!
-        if (row.status === 'disconnected') {
-          return {
-            ...row,
-            status: 'disconnected',
-            health_message: 'Disconnected by user',
-          };
-        }
-
-        try {
-          const probe = await this.mcpGateway.pingServer(row.id);
-          const isProbeSuccess = probe.status === 'connected';
-
-          const effectiveStatus: WorkspaceIntegrationRow['status'] =
-            isProbeSuccess ? 'connected' : 'disconnected';
-
-          const effectiveLatency = probe.latencyMs || row.latency_ms || 12;
-
-          return {
-            ...row,
-            status: effectiveStatus,
-            health_message: probe.message,
-            latency_ms: effectiveLatency,
-            last_ping_ms: effectiveLatency,
-          };
-        } catch {
-          return {
-            ...row,
-            status: row.status,
-            health_message:
-              row.status === 'connected'
-                ? 'MCP server active (client bridge)'
-                : 'MCP connection probe unavailable',
-            latency_ms: row.latency_ms || 14,
-          };
-        }
-      }),
-    );
-
-    // Mask sensitive credentials before sending to client
-    return probed.map((row) => this.maskAuthConfigForClient(row));
+    return this.integrationsService.getIntegrations();
   }
 
-  async createIntegration(data: {
-    name: string;
-    category?: string;
-    endpoint: string;
-    description: string;
-    transport?: 'stdio' | 'streamable_http' | 'sse' | 'rest';
-    authType?: 'none' | 'bearer' | 'oauth' | 'api_key';
-    authConfig?: {
-      token?: string;
-      headers?: Record<string, string>;
-      env?: Record<string, string>;
-    };
-    tools?: any[];
-  }): Promise<WorkspaceIntegrationRow> {
-    const secureData = {
-      ...data,
-      authConfig: data.authConfig
-        ? this.encryptAuthConfig(data.authConfig)
-        : undefined,
-    };
-    const created = await this.repo.createIntegration(secureData);
-    await this.mcpGateway.refreshRemoteServersFromDb();
-    if (
-      created.id === 'int-obsidian-vault-mcp' ||
-      created.name?.toLowerCase().includes('obsidian')
-    ) {
-      await this.obsidianVaultService.refreshVaultRootFromDb();
-    }
-    return this.maskAuthConfigForClient(created);
+  async createIntegration(
+    data: CreateIntegrationDto,
+  ): Promise<WorkspaceIntegrationRow> {
+    return this.integrationsService.createIntegration(data);
   }
 
   async updateIntegration(
     id: string,
     updates: Partial<WorkspaceIntegrationRow>,
   ): Promise<WorkspaceIntegrationRow> {
-    const secureUpdates: Partial<WorkspaceIntegrationRow> = {
-      ...updates,
-      auth_config: updates.auth_config
-        ? this.encryptAuthConfig(updates.auth_config)
-        : updates.auth_config,
-    };
-    const updated = await this.repo.updateIntegration(id, secureUpdates);
-    if (!updated) {
-      throw new NotFoundException(
-        `Integration connector with ID "${id}" not found`,
-      );
-    }
-    await this.mcpGateway.refreshRemoteServersFromDb();
-    if (
-      id === 'int-obsidian-vault-mcp' ||
-      id.toLowerCase().includes('obsidian')
-    ) {
-      await this.obsidianVaultService.refreshVaultRootFromDb();
-    }
-    return this.maskAuthConfigForClient(updated);
-  }
-
-  // ==========================================
-  // REAL NOTION OAUTH 2.0 & TOKEN HANDSHAKE
-  // ==========================================
-
-  getNotionOAuthUrl(): {
-    configured: boolean;
-    authUrl: string;
-    clientId?: string;
-    redirectUri?: string;
-    message?: string;
-  } {
-    const clientId = process.env.NOTION_CLIENT_ID;
-    const redirectUri =
-      process.env.NOTION_REDIRECT_URI ||
-      'http://localhost:3001/api/ecosystem/oauth/notion/callback';
-
-    const effectiveClientId = clientId || 'contextforge-workspace';
-    const authUrl = `https://api.notion.com/v1/oauth/authorize?client_id=${encodeURIComponent(
-      effectiveClientId,
-    )}&response_type=code&owner=user&redirect_uri=${encodeURIComponent(
-      redirectUri,
-    )}`;
-
-    return {
-      configured: Boolean(clientId),
-      authUrl,
-      clientId: effectiveClientId,
-      redirectUri,
-      message: clientId
-        ? 'Notion OAuth is configured with custom client credentials.'
-        : 'Using default Notion OAuth authorization endpoint.',
-    };
-  }
-
-  async exchangeNotionOAuthCode(code: string): Promise<{
-    success: boolean;
-    workspaceName: string;
-    workspaceId?: string;
-    workspaceIcon?: string;
-    botId?: string;
-  }> {
-    const clientId = process.env.NOTION_CLIENT_ID;
-    const clientSecret = process.env.NOTION_CLIENT_SECRET;
-    const redirectUri =
-      process.env.NOTION_REDIRECT_URI ||
-      'http://localhost:3001/api/ecosystem/oauth/notion/callback';
-
-    if (!clientId || !clientSecret) {
-      throw new BadRequestException(
-        'Notion OAuth credentials (NOTION_CLIENT_ID / NOTION_CLIENT_SECRET) are not configured in backend/.env',
-      );
-    }
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString(
-      'base64',
-    );
-
-    try {
-      const response = await fetch('https://api.notion.com/v1/oauth/token', {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${basicAuth}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: redirectUri,
-        }),
-      });
-
-      const data = (await response.json()) as {
-        access_token?: string;
-        workspace_name?: string;
-        workspace_id?: string;
-        workspace_icon?: string;
-        bot_id?: string;
-        error?: string;
-        error_description?: string;
-      };
-
-      if (!response.ok || !data.access_token) {
-        throw new BadRequestException(
-          data.error_description ||
-            data.error ||
-            'Failed to exchange Notion OAuth code',
-        );
-      }
-
-      const workspaceName = data.workspace_name || 'Notion Workspace';
-
-      await this.repo.updateIntegration('int-notion-mcp', {
-        status: 'connected',
-        auth_type: 'oauth',
-        endpoint: 'https://mcp.notion.com/mcp',
-        auth_config: this.encryptAuthConfig({
-          token: data.access_token,
-          workspaceName,
-          workspaceId: data.workspace_id,
-          workspaceIcon: data.workspace_icon,
-          botId: data.bot_id,
-        }),
-      });
-
-      await this.discoverTools('int-notion-mcp');
-
-      this.logger.log(
-        `✨ Notion OAuth connected to workspace: ${workspaceName}`,
-      );
-
-      return {
-        success: true,
-        workspaceName,
-        workspaceId: data.workspace_id,
-        workspaceIcon: data.workspace_icon,
-        botId: data.bot_id,
-      };
-    } catch (err: unknown) {
-      this.logger.error('Failed to exchange Notion OAuth code', err);
-      const msg =
-        err instanceof Error ? err.message : 'Notion OAuth exchange failed';
-      throw new BadRequestException(msg);
-    }
-  }
-
-  async verifyAndConnectNotionToken(
-    token: string,
-    workspaceName?: string,
-  ): Promise<{
-    success: boolean;
-    workspaceName: string;
-    bot?: any;
-  }> {
-    if (!token || !token.trim()) {
-      throw new BadRequestException('Token cannot be empty');
-    }
-
-    try {
-      const res = await fetch('https://api.notion.com/v1/users/me', {
-        headers: {
-          Authorization: `Bearer ${token.trim()}`,
-          'Notion-Version': '2022-06-28',
-        },
-      });
-
-      if (!res.ok) {
-        const errJson = (await res.json().catch(() => ({}))) as {
-          message?: string;
-        };
-        throw new BadRequestException(
-          errJson.message ||
-            'Invalid Notion token. Please verify your token at notion.so/my-integrations',
-        );
-      }
-
-      const botData = (await res.json()) as {
-        name?: string;
-        bot?: { owner?: { type?: string; workspace?: boolean } };
-      };
-
-      const resolvedWorkspaceName =
-        workspaceName?.trim() || botData.name || 'Notion Workspace';
-
-      await this.repo.updateIntegration('int-notion-mcp', {
-        status: 'connected',
-        auth_type: 'bearer',
-        endpoint: 'https://mcp.notion.com/mcp',
-        auth_config: this.encryptAuthConfig({
-          token: token.trim(),
-          workspaceName: resolvedWorkspaceName,
-        }),
-      });
-
-      await this.discoverTools('int-notion-mcp');
-
-      return {
-        success: true,
-        workspaceName: resolvedWorkspaceName,
-        bot: botData,
-      };
-    } catch (err: unknown) {
-      if (err instanceof BadRequestException) throw err;
-      const msg =
-        err instanceof Error ? err.message : 'Failed to reach Notion API';
-      throw new BadRequestException(msg);
-    }
+    return this.integrationsService.updateIntegration(id, updates);
   }
 
   async discoverTools(id: string): Promise<{
@@ -470,233 +100,7 @@ export class EcosystemService {
     latencyMs: number;
     message: string;
   }> {
-    const integration = await this.repo.getIntegrationById(id);
-    if (!integration) {
-      throw new NotFoundException(`MCP Connector with ID "${id}" not found`);
-    }
-
-    let latencyMs = 14;
-    let discoveredTools: any[] = [];
-
-    const isNotion =
-      integration.id === 'int-notion-mcp' ||
-      integration.name.toLowerCase().includes('notion') ||
-      integration.endpoint.includes('notion');
-
-    const isObsidian =
-      integration.id === 'int-obsidian-vault-mcp' ||
-      integration.name.toLowerCase().includes('obsidian') ||
-      integration.endpoint.includes('obsidian');
-
-    // 1. DYNAMIC REMOTE MCP SERVER DISCOVERY VIA JSON-RPC 2.0 (tools/list)
-    if (
-      !isObsidian &&
-      integration.endpoint &&
-      (integration.endpoint.startsWith('http://') ||
-        integration.endpoint.startsWith('https://'))
-    ) {
-      const startTime = Date.now();
-      try {
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          Accept: 'application/json, text/event-stream',
-        };
-
-        if (integration.auth_config?.token) {
-          headers['Authorization'] = `Bearer ${integration.auth_config.token}`;
-        }
-        if (isNotion) {
-          headers['Notion-Version'] = '2022-06-28';
-        }
-
-        // Official MCP JSON-RPC 2.0 tools/list request
-        const rpcPayload = {
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'tools/list',
-          params: {},
-        };
-
-        const res = await fetch(integration.endpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(rpcPayload),
-          signal: AbortSignal.timeout(3000),
-        });
-
-        const elapsed = Date.now() - startTime;
-        latencyMs = Math.max(8, elapsed);
-
-        if (res.ok) {
-          const body = (await res.json()) as {
-            result?: { tools?: McpDiscoveredTool[] };
-            tools?: McpDiscoveredTool[];
-          };
-          const rawTools = body?.result?.tools || body?.tools;
-          if (Array.isArray(rawTools) && rawTools.length > 0) {
-            discoveredTools = rawTools.map((t, idx) => ({
-              id: t.id || `t-${id}-${idx + 1}`,
-              name: t.name,
-              description:
-                t.description || `Tool exposed by ${integration.name}`,
-              parametersSchema: t.inputSchema || t.parametersSchema || {},
-              readOnly:
-                typeof t.readOnly === 'boolean'
-                  ? t.readOnly
-                  : !t.name.includes('create') &&
-                    !t.name.includes('update') &&
-                    !t.name.includes('write') &&
-                    !t.name.includes('delete'),
-            }));
-            this.logger.log(
-              `✨ Dynamically discovered ${discoveredTools.length} tools from live MCP endpoint: ${integration.endpoint}`,
-            );
-          }
-        }
-      } catch (err: unknown) {
-        this.logger.debug(
-          `Live MCP JSON-RPC discovery fallback for ${integration.name}: ${String(err)}`,
-        );
-      }
-    }
-
-    // 2. NOTION MCP WORKSPACE LIVE VERIFICATION & STANDARD SUITE
-    if (isNotion && discoveredTools.length === 0) {
-      if (integration.auth_config?.token) {
-        const startTime = Date.now();
-        try {
-          const res = await fetch('https://api.notion.com/v1/users/me', {
-            headers: {
-              Authorization: `Bearer ${integration.auth_config.token}`,
-              'Notion-Version': '2022-06-28',
-            },
-          });
-          const elapsed = Date.now() - startTime;
-          if (res.ok) {
-            latencyMs = Math.max(10, elapsed);
-          }
-        } catch {
-          latencyMs = 24;
-        }
-      }
-
-      discoveredTools = [
-        {
-          id: `t-${id}-1`,
-          name: 'notion_search',
-          description:
-            'Search pages and database titles across Notion workspace',
-          parametersSchema: { query: 'string', filter: 'object' },
-          readOnly: true,
-        },
-        {
-          id: `t-${id}-2`,
-          name: 'notion_get_tasks',
-          description:
-            'Query active tasks, status Kanban boards, and deadlines from Notion Task Database',
-          parametersSchema: { filter: 'string' },
-          readOnly: true,
-        },
-        {
-          id: `t-${id}-3`,
-          name: 'notion_read_page',
-          description:
-            'Read blocks, markdown content, and page properties from Notion',
-          parametersSchema: { pageId: 'string' },
-          readOnly: true,
-        },
-        {
-          id: `t-${id}-4`,
-          name: 'notion_create_page',
-          description:
-            'Create new child pages and structured document entries in Notion',
-          parametersSchema: {
-            parentId: 'string',
-            title: 'string',
-            content: 'string',
-          },
-          readOnly: false,
-        },
-        {
-          id: `t-${id}-5`,
-          name: 'notion_update_database',
-          description:
-            'Insert records and update schema rows in Notion databases',
-          parametersSchema: { databaseId: 'string', properties: 'object' },
-          readOnly: false,
-        },
-        {
-          id: `t-${id}-6`,
-          name: 'notion_query_database',
-          description:
-            'Filter and sort structured records inside Notion databases',
-          parametersSchema: {
-            databaseId: 'string',
-            filter: 'object',
-            sorts: 'array',
-          },
-          readOnly: true,
-        },
-      ];
-    }
-
-    // 3. OBSIDIAN MCP VAULT LOCAL BRIDGE (Complete 12-Tool Suite)
-    if (isObsidian && discoveredTools.length === 0) {
-      const server = this.mcpGateway.getServer('int-obsidian-vault-mcp');
-      if (server) {
-        discoveredTools = server
-          .getTools()
-          .map((t: McpToolDefinition, idx: number) => ({
-            id: `t-${id}-${idx + 1}`,
-            name: t.name,
-            description: t.description,
-            parametersSchema:
-              (t.parametersSchema as Record<string, unknown>) || {},
-            readOnly:
-              !t.name.includes('create') &&
-              !t.name.includes('write') &&
-              !t.name.includes('delete') &&
-              !t.name.includes('move'),
-          }));
-      }
-    }
-
-    // 4. FALLBACK FOR CUSTOM MCP OR OTHER INTEGRATIONS
-    if (discoveredTools.length === 0) {
-      const baseName = integration.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '_');
-      discoveredTools = [
-        {
-          id: `t-${id}-1`,
-          name: `${baseName}_query`,
-          description: `Query and inspect resources provided by ${integration.name}`,
-          parametersSchema: { query: 'string' },
-          readOnly: true,
-        },
-        {
-          id: `t-${id}-2`,
-          name: `${baseName}_execute`,
-          description: `Execute action or mutations on ${integration.name}`,
-          parametersSchema: { action: 'string', payload: 'object' },
-          readOnly: false,
-        },
-      ];
-    }
-
-    await this.repo.updateIntegration(id, {
-      tools: discoveredTools,
-      last_ping_ms: latencyMs,
-      latency_ms: latencyMs,
-      status: 'connected',
-    });
-
-    return {
-      id,
-      tools: discoveredTools,
-      latencyMs,
-      message: `Successfully discovered ${discoveredTools.length} tools from MCP Server "${integration.name}" (${latencyMs}ms)`,
-    };
+    return this.integrationsService.discoverTools(id);
   }
 
   async testIntegration(id: string): Promise<{
@@ -705,35 +109,10 @@ export class EcosystemService {
     latencyMs: number;
     message: string;
   }> {
-    const integration = await this.repo.getIntegrationById(id);
-    if (!integration) {
-      throw new NotFoundException(`MCP Connector with ID "${id}" not found`);
-    }
-
-    const probe = await this.mcpGateway.pingServer(id);
-    const isConnected = probe.status === 'connected';
-
-    await this.repo.updateIntegration(id, {
-      last_ping_ms: probe.latencyMs,
-      latency_ms: probe.latencyMs,
-      status: isConnected ? 'connected' : 'disconnected',
-    });
-
-    return {
-      id,
-      status: isConnected ? 'connected' : 'error',
-      latencyMs: probe.latencyMs,
-      message: `${probe.message} (${probe.latencyMs}ms)`,
-    };
+    return this.integrationsService.testIntegration(id);
   }
 
   async deleteIntegration(id: string): Promise<boolean> {
-    const deleted = await this.repo.deleteIntegration(id);
-    if (!deleted) {
-      throw new NotFoundException(
-        `Integration connector with ID "${id}" not found`,
-      );
-    }
-    return true;
+    return this.integrationsService.deleteIntegration(id);
   }
 }

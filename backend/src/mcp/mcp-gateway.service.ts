@@ -12,6 +12,8 @@ import { DatabaseService } from '../common/database/database.service';
 import { McpHttpClient } from './remote/clients/mcp-http.client';
 import { McpSseClient } from './remote/clients/mcp-sse.client';
 
+import { EncryptionService } from '../common/security/encryption.service';
+
 @Injectable()
 export class McpGatewayService implements OnModuleInit {
   private readonly logger = new Logger(McpGatewayService.name);
@@ -23,6 +25,7 @@ export class McpGatewayService implements OnModuleInit {
     private readonly db: DatabaseService,
     private readonly httpClient: McpHttpClient,
     private readonly sseClient: McpSseClient,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async onModuleInit() {
@@ -238,10 +241,14 @@ export class McpGatewayService implements OnModuleInit {
         );
         if (res.rows.length > 0) {
           const row = res.rows[0];
+          const rawToken = row.auth_config?.token || row.auth_config?.apiKey;
+          const decryptedToken = rawToken
+            ? this.encryption.decrypt(rawToken)
+            : undefined;
           this.notionConnector.configure({
             endpoint: row.endpoint,
-            token: row.auth_config?.token,
-            apiKey: row.auth_config?.apiKey,
+            token: decryptedToken,
+            apiKey: decryptedToken,
           });
         }
       } catch {
