@@ -187,8 +187,8 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
   return (
     <Modal isOpen={true} onClose={onClose} size="3xl">
       <ModalHeader
-        icon={<IntegrationIconBox integration={integration} size="md" />}
-        title={isEditing ? `Edit: ${formData.name}` : integration.name}
+        icon={<IntegrationIconBox integration={currentIntegration} size="md" />}
+        title={isEditing ? `Edit: ${formData.name}` : currentIntegration.name}
         badge={<CheckCircle2 size={15} className="text-primary shrink-0" />}
         subtitle={renderSubtitle()}
         onClose={onClose}

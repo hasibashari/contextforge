@@ -70,13 +70,13 @@ export class ObsidianVaultService {
     const info = this.bridgeGateway.getVaultInfo();
     const isBridgeLive = this.bridgeGateway.isBridgeConnected();
 
-    if (!isBridgeLive) {
+    if (!isBridgeLive || !info.connected) {
       return Promise.resolve({
         isAccessible: false,
         isClientPaired: false,
         path: info.vaultName || 'Obsidian Vault',
         reason:
-          'Obsidian Browser Bridge disconnected. Please open the web app to pair your vault.',
+          'Obsidian Vault is disconnected or not paired. Please select an Obsidian folder to connect.',
         vaultName: info.vaultName,
       });
     }

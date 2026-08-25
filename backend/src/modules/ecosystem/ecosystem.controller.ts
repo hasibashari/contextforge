@@ -243,65 +243,18 @@ export class EcosystemController {
 
     try {
       const result = await this.notionOAuthService.exchangeOAuthCode(code);
-      res.setHeader('Content-Type', 'text/html');
-      return res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Notion Connected - ContextForge</title>
-            <style>
-              body { font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 50px; background: #0b0f19; color: #f8fafc; }
-              .card { background: #161e2e; border: 1px solid #334155; border-radius: 16px; padding: 32px; max-width: 440px; margin: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-              .success { color: #10b981; font-size: 24px; font-weight: bold; margin-bottom: 8px; }
-              .ws { color: #60a5fa; font-weight: 600; font-size: 16px; margin: 16px 0; background: #1e293b; padding: 10px; border-radius: 8px; }
-              .hint { color: #64748b; font-size: 12px; margin-top: 16px; }
-              .btn { display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; margin-top: 16px; }
-            </style>
-          </head>
-          <body>
-            <div class="card">
-              <div class="success">✨ Notion Connected!</div>
-              <p style="color: #cbd5e1; font-size: 14px;">Your workspace is now securely paired with ContextForge MCP.</p>
-              <div class="ws">🌐 Workspace: ${result.workspaceName}</div>
-              <a href="${frontendUrl}/integrations" class="btn">Return to ContextForge</a>
-              <p class="hint">Redirecting back to dashboard automatically...</p>
-            </div>
-            <script>
-              if (window.opener) {
-                window.opener.postMessage({ 
-                  type: 'NOTION_AUTH_SUCCESS', 
-                  workspace: { workspaceName: ${JSON.stringify(result.workspaceName)} }
-                }, '*');
-                setTimeout(() => window.close(), 1200);
-              } else {
-                setTimeout(() => { window.location.href = '${frontendUrl}/integrations?oauth=success'; }, 1500);
-              }
-            </script>
-          </body>
-        </html>
-      `);
+      return res.redirect(
+        `${frontendUrl}/oauth/callback?status=success&provider=notion&account=${encodeURIComponent(
+          result.workspaceName || 'Notion Workspace',
+        )}`,
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'OAuth exchange failed';
-      res.setHeader('Content-Type', 'text/html');
-      return res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>Notion Authorization Error</title></head>
-          <body style="font-family: system-ui, sans-serif; text-align: center; padding: 48px; background: #0b0f19; color: #f87171;">
-            <div style="background: #161e2e; border: 1px solid #334155; border-radius: 16px; padding: 32px; max-width: 440px; margin: auto;">
-              <h2>❌ Connection Failed</h2>
-              <p style="color: #cbd5e1; font-size: 14px;">${msg}</p>
-              <a href="${frontendUrl}/integrations" style="display: inline-block; background: #3b82f6; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 13px; margin-top: 16px;">Back to Integrations</a>
-            </div>
-            <script>
-              if (window.opener) {
-                window.opener.postMessage({ type: 'NOTION_AUTH_ERROR', error: ${JSON.stringify(msg)} }, '*');
-                setTimeout(() => window.close(), 2500);
-              }
-            </script>
-          </body>
-        </html>
-      `);
+      return res.redirect(
+        `${frontendUrl}/oauth/callback?status=error&provider=notion&error=${encodeURIComponent(
+          msg,
+        )}`,
+      );
     }
   }
 
@@ -339,90 +292,31 @@ export class EcosystemController {
     @Query('error') error: string,
     @Res() res: Response,
   ) {
-    if (error || !code) {
-      res.setHeader('Content-Type', 'text/html');
-      return res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>Google Calendar Authorization Cancelled</title></head>
-          <body style="font-family: system-ui, sans-serif; text-align: center; padding: 48px; background: #0b0f19; color: #f87171;">
-            <h2>⚠️ Google Calendar Authorization Cancelled</h2>
-            <p style="color: #94a3b8;">${error || 'No authorization code returned'}</p>
-            <script>
-              if (window.opener) {
-                window.opener.postMessage({ type: 'GOOGLE_CALENDAR_AUTH_ERROR', error: '${error || 'Cancelled'}' }, '*');
-                setTimeout(() => window.close(), 1500);
-              }
-            </script>
-          </body>
-        </html>
-      `);
-    }
-
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    if (error || !code) {
+      return res.redirect(
+        `${frontendUrl}/oauth/callback?status=error&provider=google-calendar&error=${encodeURIComponent(
+          error || 'No authorization code returned',
+        )}`,
+      );
+    }
 
     try {
       const result =
         await this.googleCalendarOAuthService.exchangeOAuthCode(code);
-      res.setHeader('Content-Type', 'text/html');
-      return res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Google Calendar Connected - ContextForge</title>
-            <style>
-              body { font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 50px; background: #0b0f19; color: #f8fafc; }
-              .card { background: #161e2e; border: 1px solid #334155; border-radius: 16px; padding: 32px; max-width: 440px; margin: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-              .success { color: #10b981; font-size: 24px; font-weight: bold; margin-bottom: 8px; }
-              .ws { color: #60a5fa; font-weight: 600; font-size: 16px; margin: 16px 0; background: #1e293b; padding: 10px; border-radius: 8px; }
-              .hint { color: #64748b; font-size: 12px; margin-top: 16px; }
-              .btn { display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; margin-top: 16px; }
-            </style>
-          </head>
-          <body>
-            <div class="card">
-              <div class="success">✨ Google Calendar Connected!</div>
-              <p style="color: #cbd5e1; font-size: 14px;">Your Google Calendar is now securely paired with ContextForge MCP.</p>
-              <div class="ws">📅 Account: ${result.workspaceName}</div>
-              <a href="${frontendUrl}/integrations" class="btn">Return to ContextForge</a>
-              <p class="hint">Redirecting back to dashboard automatically...</p>
-            </div>
-            <script>
-              if (window.opener) {
-                window.opener.postMessage({ 
-                  type: 'GOOGLE_CALENDAR_AUTH_SUCCESS', 
-                  account: { workspaceName: ${JSON.stringify(result.workspaceName)} }
-                }, '*');
-                setTimeout(() => window.close(), 1200);
-              } else {
-                setTimeout(() => { window.location.href = '${frontendUrl}/integrations?oauth=gcal_success'; }, 1500);
-              }
-            </script>
-          </body>
-        </html>
-      `);
+      return res.redirect(
+        `${frontendUrl}/oauth/callback?status=success&provider=google-calendar&account=${encodeURIComponent(
+          result.workspaceName || 'Google Calendar Account',
+        )}`,
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'OAuth exchange failed';
-      res.setHeader('Content-Type', 'text/html');
-      return res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>Google Calendar Authorization Error</title></head>
-          <body style="font-family: system-ui, sans-serif; text-align: center; padding: 48px; background: #0b0f19; color: #f87171;">
-            <div style="background: #161e2e; border: 1px solid #334155; border-radius: 16px; padding: 32px; max-width: 440px; margin: auto;">
-              <h2>❌ Connection Failed</h2>
-              <p style="color: #cbd5e1; font-size: 14px;">${msg}</p>
-              <a href="${frontendUrl}/integrations" style="display: inline-block; background: #3b82f6; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 13px; margin-top: 16px;">Back to Integrations</a>
-            </div>
-            <script>
-              if (window.opener) {
-                window.opener.postMessage({ type: 'GOOGLE_CALENDAR_AUTH_ERROR', error: ${JSON.stringify(msg)} }, '*');
-                setTimeout(() => window.close(), 2500);
-              }
-            </script>
-          </body>
-        </html>
-      `);
+      return res.redirect(
+        `${frontendUrl}/oauth/callback?status=error&provider=google-calendar&error=${encodeURIComponent(
+          msg,
+        )}`,
+      );
     }
   }
 

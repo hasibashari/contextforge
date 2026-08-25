@@ -67,13 +67,8 @@ export class IntegrationsService {
     // Run parallel live health probe on all integrations
     const probed: WorkspaceIntegrationRow[] = await Promise.all(
       rows.map(async (row): Promise<WorkspaceIntegrationRow> => {
-        // If the user has explicitly disconnected a remote generic connector in DB, honor it
-        if (
-          row.status === 'disconnected' &&
-          row.id !== 'int-notion-mcp' &&
-          row.id !== 'int-obsidian-vault-mcp' &&
-          row.id !== 'int-google-calendar-mcp'
-        ) {
+        // If the user has explicitly disconnected the connector in DB, honor it
+        if (row.status === 'disconnected') {
           return {
             ...row,
             status: 'disconnected',

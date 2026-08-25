@@ -21,6 +21,22 @@ export async function getStoredDirectoryHandle(): Promise<FileSystemDirectoryHan
   }
 }
 
+export async function clearStoredDirectoryHandle(): Promise<void> {
+  if (typeof window === 'undefined' || !('indexedDB' in window)) return
+  try {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, 1)
+      req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE)
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => reject(req.error)
+    })
+    const tx = db.transaction(IDB_STORE, 'readwrite')
+    tx.objectStore(IDB_STORE).delete(IDB_KEY)
+  } catch {
+    // Ignore IDB errors
+  }
+}
+
 export async function persistDirectoryHandle(handle: FileSystemDirectoryHandle): Promise<void> {
   if (typeof window === 'undefined' || !('indexedDB' in window)) return
   try {

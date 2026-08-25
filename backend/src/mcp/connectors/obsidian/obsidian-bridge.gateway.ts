@@ -69,7 +69,7 @@ export class ObsidianBridgeGatewayService
   // Cached state reported by active browser client
   private activeVaultInfo: BridgeVaultInfo = {
     connected: false,
-    vaultName: 'Obsidian Vault',
+    vaultName: '',
     permissionGranted: false,
   };
   private cachedFolders: string[] = [];
@@ -101,20 +101,17 @@ export class ObsidianBridgeGatewayService
         );
         this.activeClients.add(ws);
 
-        ws.on('message', (data: RawData) => {
-          this.handleClientMessage(ws, data);
+        ws.on('message', (rawData: RawData) => {
+          this.handleClientMessage(ws, rawData);
         });
 
         ws.on('close', () => {
-          this.logger.log(`🔌 [Browser Bridge] Client disconnected`);
+          this.logger.log('🔌 [Browser Bridge] Client disconnected');
           this.activeClients.delete(ws);
-          if (this.activeClients.size === 0) {
-            this.activeVaultInfo.connected = false;
-          }
         });
 
         ws.on('error', (err: Error) => {
-          this.logger.warn(`[Browser Bridge] WebSocket error: ${err.message}`);
+          this.logger.warn(`Browser bridge client error: ${err.message}`);
           this.activeClients.delete(ws);
         });
 
@@ -180,16 +177,22 @@ export class ObsidianBridgeGatewayService
           this.activeVaultInfo = {
             ...this.activeVaultInfo,
             ...message.vaultInfo,
-            connected: true,
+            connected: Boolean(message.vaultInfo.connected),
             lastSyncedAt: new Date().toISOString(),
           };
         }
         if (Array.isArray(message.folders)) {
           this.cachedFolders = message.folders;
         }
-        this.logger.log(
-          `📁 [Browser Bridge] Vault state synchronized: "${this.activeVaultInfo.vaultName}" (${this.cachedFolders.length} folders indexed)`,
-        );
+        if (this.activeVaultInfo.connected && this.activeVaultInfo.vaultName) {
+          this.logger.log(
+            `📁 [Browser Bridge] Vault state synchronized: "${this.activeVaultInfo.vaultName}" (${this.cachedFolders.length} folders indexed)`,
+          );
+        } else {
+          this.logger.debug(
+            `🔌 [Browser Bridge] Vault status: Disconnected / Not paired`,
+          );
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

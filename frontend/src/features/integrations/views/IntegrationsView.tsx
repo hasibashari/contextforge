@@ -9,6 +9,7 @@ import {
   IntegrationCard,
   ConnectorDetailModal,
   ConnectAuthModal,
+  ConnectionSuccessModal,
 } from '@/features/integrations'
 import {
   EmptyState,
@@ -31,9 +32,14 @@ export default function IntegrationsView() {
   // Modals & Inspection State (ID-based for full reactivity)
   const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null)
   const [connectingConnectorId, setConnectingConnectorId] = useState<string | null>(null)
+  const [successModalData, setSuccessModalData] = useState<{
+    integrationId: string
+    accountName?: string
+  } | null>(null)
 
   const selectedConnector = integrations.find((i) => i.id === selectedConnectorId) || null
   const connectingConnector = integrations.find((i) => i.id === connectingConnectorId) || null
+  const successIntegration = integrations.find((i) => i.id === successModalData?.integrationId) || null
 
   // Testing State
   const [testingId, setTestingId] = useState<string | null>(null)
@@ -45,25 +51,66 @@ export default function IntegrationsView() {
       showToast('✨ Notion OAuth authorization completed successfully!', 'success')
       refreshIntegrations()
       window.history.replaceState({}, document.title, window.location.pathname)
+      const timer = setTimeout(() => {
+        setSuccessModalData({
+          integrationId: 'int-notion-mcp',
+          accountName: 'Notion Workspace',
+        })
+      }, 100)
+      return () => clearTimeout(timer)
     } else if (oauthStatus === 'gcal_success') {
       showToast('✨ Google Calendar connected successfully!', 'success')
       refreshIntegrations()
       window.history.replaceState({}, document.title, window.location.pathname)
+      const timer = setTimeout(() => {
+        setSuccessModalData({
+          integrationId: 'int-google-calendar-mcp',
+          accountName: 'Google Calendar Account',
+        })
+      }, 100)
+      return () => clearTimeout(timer)
     }
 
     // Popup window postMessage listener
     const handleAuthMessage = (event: MessageEvent) => {
       if (!event.data || typeof event.data !== 'object') return
 
-      if (event.data.type === 'GOOGLE_CALENDAR_AUTH_SUCCESS') {
+      if (event.data.type === 'MCP_AUTH_SUCCESS') {
+        const provider = (event.data.provider as string) || 'google-calendar'
+        const account = (event.data.account as string) || 'Connected Account'
+        const targetId = provider.includes('calendar') || provider.includes('google')
+          ? 'int-google-calendar-mcp'
+          : provider.includes('notion')
+          ? 'int-notion-mcp'
+          : 'int-obsidian-vault-mcp'
+
+        showToast(`✨ ${account} connected successfully!`, 'success')
+        refreshIntegrations()
+        setConnectingConnectorId(null)
+        setSuccessModalData({
+          integrationId: targetId,
+          accountName: account,
+        })
+      } else if (event.data.type === 'GOOGLE_CALENDAR_AUTH_SUCCESS') {
         const account = event.data.account?.workspaceName || 'Google Account'
         showToast(`✨ Google Calendar (${account}) connected successfully!`, 'success')
         refreshIntegrations()
+        setConnectingConnectorId(null)
+        setSuccessModalData({
+          integrationId: 'int-google-calendar-mcp',
+          accountName: account,
+        })
       } else if (event.data.type === 'GOOGLE_CALENDAR_AUTH_ERROR') {
         showToast(`⚠️ Google Calendar authorization failed: ${event.data.error || 'Unknown error'}`, 'error')
       } else if (event.data.type === 'NOTION_AUTH_SUCCESS') {
+        const account = event.data.workspace?.workspaceName || 'Notion Workspace'
         showToast('✨ Notion workspace connected successfully!', 'success')
         refreshIntegrations()
+        setConnectingConnectorId(null)
+        setSuccessModalData({
+          integrationId: 'int-notion-mcp',
+          accountName: account,
+        })
       }
     }
 
@@ -97,25 +144,12 @@ export default function IntegrationsView() {
       <PageHeader
         eyebrow="Ecosystem & Protocol Extensibility"
         title="Model Context Protocol (MCP) Servers"
-        description="Connect external Model Context Protocol (MCP) servers (Obsidian, Notion, GitHub) to empower autonomous agents with active tool execution and file mutation."
+        description="Connect external Model Context Protocol (MCP) servers (Obsidian, Notion, Google Calendar) to empower autonomous agents with active tool execution and file mutation."
         actions={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                refreshIntegrations()
-                showToast('⚡ Live MCP Health Probe refreshed', 'info')
-              }}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-ink bg-surface-card hover:bg-surface-strong border border-hairline rounded-xl shadow-2xs transition-colors cursor-pointer"
-              title="Run live probe on all MCP servers"
-            >
-              <RotateCcw size={13} className="text-muted" />
-              <span>Probe Status</span>
-            </button>
-
-            <div className="flex items-center gap-1.5 bg-canvas-soft border border-hairline rounded-xl px-3 py-2 text-xs text-ink shadow-2xs whitespace-nowrap">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-card border border-hairline shadow-2xs font-mono text-xs">
               <span
-                className={`w-2 h-2 rounded-full shrink-0 ${
+                className={`w-2 h-2 rounded-full ${
                   connectedCount > 0
                     ? 'bg-semantic-success animate-pulse'
                     : 'bg-semantic-error'
@@ -141,7 +175,7 @@ export default function IntegrationsView() {
           />
           <input
             type="text"
-            placeholder="Search MCP servers or tools (e.g. obsidian, notion, writer, tasks)..."
+            placeholder="Search MCP servers or tools (e.g. obsidian, notion, calendar, tasks)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-surface-card border border-hairline rounded-xl text-xs text-ink placeholder:text-muted focus:outline-none focus:border-primary"
@@ -200,6 +234,22 @@ export default function IntegrationsView() {
         integration={connectingConnector}
         isOpen={Boolean(connectingConnector)}
         onClose={() => setConnectingConnectorId(null)}
+        onSuccess={() => {
+          if (connectingConnector) {
+            setSuccessModalData({
+              integrationId: connectingConnector.id,
+              accountName: connectingConnector.name,
+            })
+          }
+        }}
+      />
+
+      <ConnectionSuccessModal
+        integration={successIntegration}
+        accountName={successModalData?.accountName}
+        isOpen={Boolean(successModalData && successIntegration)}
+        onClose={() => setSuccessModalData(null)}
+        onTest={handleTestPing}
       />
     </div>
   )

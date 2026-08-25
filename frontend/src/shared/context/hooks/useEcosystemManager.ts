@@ -41,13 +41,13 @@ export function useEcosystemManager(
         if (backendIntegrations && backendIntegrations.length > 0) {
           setIntegrations(backendIntegrations);
 
-          // Synchronize Obsidian vault name from connected MCP integration
+          // Synchronize Obsidian vault name ONLY if connected
           const obsInt = backendIntegrations.find(
             (i) =>
               i.id === 'int-obsidian-vault-mcp' ||
               i.name.toLowerCase().includes('obsidian'),
           );
-          if (obsInt) {
+          if (obsInt && obsInt.status === 'connected') {
             const vaultName =
               (obsInt.authConfig?.vaultName as string) ||
               (obsInt.targetBinding?.folderScope as string) ||
@@ -163,6 +163,15 @@ export function useEcosystemManager(
           : `Connected connector "${intg.name}"`,
         isConnected ? 'warning' : 'success',
       );
+
+      if (
+        integrationId === 'int-obsidian-vault-mcp' ||
+        integrationId.toLowerCase().includes('obsidian')
+      ) {
+        if (newStatus === 'disconnected') {
+          void obsidianBridgeService.unpairVault();
+        }
+      }
 
       try {
         const updated = await ecosystemApi.updateIntegration(integrationId, {

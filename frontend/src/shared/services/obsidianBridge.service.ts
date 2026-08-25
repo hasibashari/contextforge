@@ -15,6 +15,7 @@ import type {
 import {
   getStoredDirectoryHandle,
   persistDirectoryHandle,
+  clearStoredDirectoryHandle,
   verifyHandlePermission,
 } from './obsidian/obsidianStorage'
 
@@ -108,13 +109,18 @@ class ObsidianBridgeService {
       }
     }
 
+    const isConnected = Boolean(this.activeDirectoryHandle && hasPermission)
+    const vaultName = isConnected
+      ? this.getPairedVaultName() || this.activeDirectoryHandle?.name || 'Obsidian Vault'
+      : ''
+
     this.bridgeSocket.send(
       JSON.stringify({
         type: 'mcp_bridge_sync_vault',
         vaultInfo: {
-          connected: Boolean(this.activeDirectoryHandle && hasPermission),
-          vaultName: this.getPairedVaultName() || this.activeDirectoryHandle?.name || 'Obsidian Vault',
-          subfolderScope: this.getPairedSubfolderScope(),
+          connected: isConnected,
+          vaultName: vaultName,
+          subfolderScope: isConnected ? this.getPairedSubfolderScope() : '',
           permissionGranted: hasPermission,
           foldersCount: folders.length,
           lastSyncedAt: new Date().toISOString(),
@@ -281,6 +287,19 @@ class ObsidianBridgeService {
       if (cleanScope) localStorage.setItem('contextforge_obsidian_subfolder_scope', cleanScope)
     }
     void this.syncVaultStateToBackend()
+  }
+
+  async unpairVault(): Promise<void> {
+    this.activeDirectoryHandle = null
+    this.pairedVaultName = ''
+    this.pairedSubfolderScope = ''
+    this.inMemoryHandles.clear()
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('contextforge_obsidian_vault_name')
+      localStorage.removeItem('contextforge_obsidian_subfolder_scope')
+    }
+    await clearStoredDirectoryHandle()
+    await this.syncVaultStateToBackend()
   }
 
   parseObsidianUri(location: string): ParsedObsidianUri {

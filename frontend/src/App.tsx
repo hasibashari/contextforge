@@ -10,6 +10,7 @@ const DashboardView = lazy(() => import('./features/dashboard/views/DashboardVie
 const AgentsDirectoryView = lazy(() => import('./features/agents/views/AgentsDirectoryView'))
 const KnowledgeSourcesView = lazy(() => import('./features/knowledge/views/KnowledgeSourcesView'))
 const IntegrationsView = lazy(() => import('./features/integrations/views/IntegrationsView'))
+const OAuthCallbackView = lazy(() => import('./features/integrations/views/OAuthCallbackView'))
 const AutomationView = lazy(() => import('./features/automation/views/AutomationView'))
 const SettingsView = lazy(() => import('./features/settings/views/SettingsView'))
 
@@ -32,6 +33,9 @@ function App() {
           <Routes>
             {/* Landing Page */}
             <Route path="/" element={<HomeView />} />
+
+            {/* Standalone OAuth Callback Receiver */}
+            <Route path="/oauth/callback" element={<OAuthCallbackView />} />
 
             {/* AI Agent Workspace Application */}
             <Route element={<WorkspaceLayout />}>
