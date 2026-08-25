@@ -16,10 +16,10 @@ The **Google Calendar MCP Connector** extends ContextForge with full calendar sc
 
 ## 2. Architecture & Directory Layout
 
-The Google Calendar MCP implementation follows the established ContextForge connector conventions (`backend/src/mcp/remote/connectors/google-calendar`):
+The Google Calendar MCP implementation follows the established ContextForge connector conventions (`backend/src/mcp/connectors/google-calendar`):
 
 ```
-backend/src/mcp/remote/connectors/google-calendar/
+backend/src/mcp/connectors/google-calendar/
 ├── google-calendar.types.ts            # TypeScript interfaces & DTOs
 ├── google-calendar-tools.definition.ts # Declarative tool schemas
 ├── google-calendar-parser.engine.ts    # ISO 8601 parsing, timezone fallback, free/busy calculations

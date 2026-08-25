@@ -1,5 +1,8 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../common/database/database.service';
+import { OBSIDIAN_MCP_TOOLS } from '../../mcp/connectors/obsidian/obsidian-tools.definition';
+import { NOTION_MCP_TOOLS } from '../../mcp/connectors/notion/notion-tools.definition';
+import { GOOGLE_CALENDAR_MCP_TOOLS } from '../../mcp/connectors/google-calendar/google-calendar-tools.definition';
 
 export interface WorkspaceAgentRow {
   id: string;
@@ -153,6 +156,69 @@ export class EcosystemRepository implements OnModuleInit {
         ALTER TABLE workspace_integrations ADD COLUMN IF NOT EXISTS auth_type VARCHAR(30) DEFAULT 'none';
         ALTER TABLE workspace_integrations ADD COLUMN IF NOT EXISTS auth_config JSONB DEFAULT '{}';
       `);
+
+      // Seed core MCP integrations if missing
+      await this.db.query(
+        `INSERT INTO workspace_integrations (
+          id, name, category, status, endpoint, version, transport, auth_type, auth_config, description, tools, last_ping_ms, latency_ms, is_custom
+        ) VALUES
+        (
+          'int-obsidian-vault-mcp',
+          'Obsidian Vault MCP Bridge',
+          'mcp_server',
+          'connected',
+          'browser-bridge://localhost:3001/api/obsidian-bridge/ws',
+          'v2.2.0',
+          'stdio',
+          'none',
+          '{"vaultName": "Obsidian Vault"}'::jsonb,
+          'Direct bi-directional Model Context Protocol bridge into local Obsidian vault files & dynamic folder discovery.',
+          $1::jsonb,
+          14,
+          11,
+          false
+        ),
+        (
+          'int-notion-mcp',
+          'Notion Workspace MCP Server',
+          'mcp_server',
+          'disconnected',
+          'https://mcp.notion.com/mcp',
+          'v1.2.0',
+          'streamable_http',
+          'oauth',
+          '{"workspaceName": "Notion Workspace"}'::jsonb,
+          'Official Model Context Protocol server exposing Notion databases, task management, and knowledge base pages.',
+          $2::jsonb,
+          28,
+          24,
+          false
+        ),
+        (
+          'int-google-calendar-mcp',
+          'Google Calendar MCP Server',
+          'productivity',
+          'disconnected',
+          'https://www.googleapis.com/calendar/v3',
+          'v1.0.0',
+          'streamable_http',
+          'oauth',
+          '{}'::jsonb,
+          'Model Context Protocol server for Google Calendar events, scheduling, attendees, and availability.',
+          $3::jsonb,
+          25,
+          20,
+          false
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          tools = EXCLUDED.tools,
+          description = EXCLUDED.description;`,
+        [
+          JSON.stringify(OBSIDIAN_MCP_TOOLS),
+          JSON.stringify(NOTION_MCP_TOOLS),
+          JSON.stringify(GOOGLE_CALENDAR_MCP_TOOLS),
+        ],
+      );
 
       this.logger.log('✨ Ecosystem database tables verified in PostgreSQL');
     } catch (err: unknown) {

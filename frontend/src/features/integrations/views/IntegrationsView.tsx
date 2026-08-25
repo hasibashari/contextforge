@@ -40,11 +40,35 @@ export default function IntegrationsView() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('oauth') === 'success') {
+    const oauthStatus = urlParams.get('oauth')
+    if (oauthStatus === 'success') {
       showToast('✨ Notion OAuth authorization completed successfully!', 'success')
       refreshIntegrations()
       window.history.replaceState({}, document.title, window.location.pathname)
+    } else if (oauthStatus === 'gcal_success') {
+      showToast('✨ Google Calendar connected successfully!', 'success')
+      refreshIntegrations()
+      window.history.replaceState({}, document.title, window.location.pathname)
     }
+
+    // Popup window postMessage listener
+    const handleAuthMessage = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== 'object') return
+
+      if (event.data.type === 'GOOGLE_CALENDAR_AUTH_SUCCESS') {
+        const account = event.data.account?.workspaceName || 'Google Account'
+        showToast(`✨ Google Calendar (${account}) connected successfully!`, 'success')
+        refreshIntegrations()
+      } else if (event.data.type === 'GOOGLE_CALENDAR_AUTH_ERROR') {
+        showToast(`⚠️ Google Calendar authorization failed: ${event.data.error || 'Unknown error'}`, 'error')
+      } else if (event.data.type === 'NOTION_AUTH_SUCCESS') {
+        showToast('✨ Notion workspace connected successfully!', 'success')
+        refreshIntegrations()
+      }
+    }
+
+    window.addEventListener('message', handleAuthMessage)
+    return () => window.removeEventListener('message', handleAuthMessage)
   }, [refreshIntegrations, showToast])
 
   const handleTestPing = async (id: string) => {

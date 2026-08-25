@@ -71,7 +71,8 @@ export class IntegrationsService {
         if (
           row.status === 'disconnected' &&
           row.id !== 'int-notion-mcp' &&
-          row.id !== 'int-obsidian-vault-mcp'
+          row.id !== 'int-obsidian-vault-mcp' &&
+          row.id !== 'int-google-calendar-mcp'
         ) {
           return {
             ...row,

@@ -365,4 +365,42 @@ export const ecosystemApi = {
       bot?: Record<string, unknown>;
     }>(res);
   },
+
+  // ------------------------------------------
+  // GOOGLE CALENDAR OAUTH 2.0 HELPERS
+  // ------------------------------------------
+  async getGoogleCalendarOAuthUrl(): Promise<{
+    configured: boolean;
+    authUrl: string;
+    scopes?: string[];
+    message?: string;
+  }> {
+    const res = await fetch(`${API_BASE_URL}/ecosystem/oauth/google-calendar/authorize`);
+    return handleApiResponse<{
+      configured: boolean;
+      authUrl: string;
+      scopes?: string[];
+      message?: string;
+    }>(res);
+  },
+
+  async verifyGoogleCalendarToken(
+    token: string,
+    refreshToken?: string,
+  ): Promise<{
+    success: boolean;
+    accountEmail?: string;
+    message?: string;
+  }> {
+    const res = await fetch(`${API_BASE_URL}/ecosystem/oauth/google-calendar/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, refreshToken }),
+    });
+    return handleApiResponse<{
+      success: boolean;
+      accountEmail?: string;
+      message?: string;
+    }>(res);
+  },
 };
