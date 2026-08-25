@@ -89,6 +89,13 @@ export class AndroidBridgeGatewayService
    * Explicitly disconnects all active Android clients (e.g. user clicked Disconnect in UI)
    */
   public disconnectAllClients(reason = 'User disconnected from Desktop') {
+    const hasActiveClients = this.activeClients.size > 0;
+    const wasConnected = this.activeDeviceInfo.connected;
+
+    if (!hasActiveClients && !wasConnected) {
+      return;
+    }
+
     this.logger.log(`🔌 Disconnecting all Android clients: ${reason}`);
 
     for (const ws of this.activeClients) {
@@ -111,7 +118,9 @@ export class AndroidBridgeGatewayService
 
     this.activeClients.clear();
     this.activeDeviceInfo.connected = false;
-    this.notifyDisconnected();
+    if (wasConnected) {
+      this.notifyDisconnected();
+    }
   }
 
   onModuleInit() {
@@ -168,7 +177,10 @@ export class AndroidBridgeGatewayService
         ws.on('close', () => {
           this.logger.log('📱 [Android WebSocket Bridge] Device disconnected');
           this.activeClients.delete(ws);
-          if (this.activeClients.size === 0) {
+          if (
+            this.activeClients.size === 0 &&
+            this.activeDeviceInfo.connected
+          ) {
             this.activeDeviceInfo.connected = false;
             this.notifyDisconnected();
           }
@@ -179,7 +191,10 @@ export class AndroidBridgeGatewayService
             `Android WebSocket bridge client error: ${err.message}`,
           );
           this.activeClients.delete(ws);
-          if (this.activeClients.size === 0) {
+          if (
+            this.activeClients.size === 0 &&
+            this.activeDeviceInfo.connected
+          ) {
             this.activeDeviceInfo.connected = false;
             this.notifyDisconnected();
           }

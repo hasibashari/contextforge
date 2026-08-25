@@ -149,6 +149,13 @@ export class IntegrationsService {
     return probed.map((row) => this.maskAuthConfigForClient(row));
   }
 
+  async getIntegrationById(
+    id: string,
+  ): Promise<WorkspaceIntegrationRow | null> {
+    const row = await this.repo.getIntegrationById(id);
+    return row ? this.maskAuthConfigForClient(row) : null;
+  }
+
   async createIntegration(
     data: CreateIntegrationDto,
   ): Promise<WorkspaceIntegrationRow> {
@@ -166,13 +173,30 @@ export class IntegrationsService {
     ) {
       await this.obsidianVaultService.refreshVaultRootFromDb();
     }
-    return this.maskAuthConfigForClient(created);
+
+    this.logger.log(
+      `✨ [MCP: ${created.name}] Registered & Active (${created.id})`,
+    );
+    const clientSafe = this.maskAuthConfigForClient(created);
+    this.eventsService?.emitIntegrationStatus(
+      created.id,
+      clientSafe.status,
+      clientSafe,
+    );
+    return clientSafe;
   }
 
   async updateIntegration(
     id: string,
     updates: Partial<WorkspaceIntegrationRow>,
   ): Promise<WorkspaceIntegrationRow> {
+    const existing = await this.repo.getIntegrationById(id);
+    if (!existing) {
+      throw new NotFoundException(
+        `Integration connector with ID "${id}" not found`,
+      );
+    }
+
     const secureUpdates: Partial<WorkspaceIntegrationRow> = {
       ...updates,
       auth_config: updates.auth_config
@@ -185,6 +209,7 @@ export class IntegrationsService {
         `Integration connector with ID "${id}" not found`,
       );
     }
+
     await this.mcpGateway.refreshRemoteServersFromDb();
     if (
       id === 'int-obsidian-vault-mcp' ||
@@ -195,25 +220,37 @@ export class IntegrationsService {
     if (
       (id === 'int-android-bridge-mcp' ||
         id.toLowerCase().includes('android')) &&
-      updates.status === 'disconnected'
+      updates.status === 'disconnected' &&
+      existing.status !== 'disconnected'
     ) {
       this.androidBridgeGateway?.disconnectAllClients(
         'User disconnected from Desktop',
       );
     }
 
-    if (updates.status === 'connected') {
-      this.logger.log(`✨ [MCP: ${updated.name}] Connected (${id})`);
-    } else if (updates.status === 'disconnected') {
-      this.logger.log(`🔌 [MCP: ${updated.name}] Disconnected (${id})`);
+    const statusChanged = updates.status && updates.status !== existing.status;
+
+    if (statusChanged) {
+      if (updates.status === 'connected') {
+        this.logger.log(`✨ [MCP: ${updated.name}] Connected (${id})`);
+      } else if (updates.status === 'disconnected') {
+        this.logger.log(`🔌 [MCP: ${updated.name}] Disconnected (${id})`);
+      }
     }
 
     const clientSafe = this.maskAuthConfigForClient(updated);
-    this.eventsService?.emitIntegrationStatus(
-      id,
-      clientSafe.status,
-      clientSafe,
-    );
+    if (
+      statusChanged ||
+      updates.auth_config ||
+      updates.endpoint ||
+      updates.tools
+    ) {
+      this.eventsService?.emitIntegrationStatus(
+        id,
+        clientSafe.status,
+        clientSafe,
+      );
+    }
     return clientSafe;
   }
 

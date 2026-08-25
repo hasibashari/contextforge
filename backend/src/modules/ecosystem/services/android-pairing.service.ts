@@ -76,10 +76,17 @@ export class AndroidPairingService implements OnModuleInit {
   }
 
   private async handleDeviceDisconnected() {
-    this.logger.log(
-      '⚡ [AndroidPairingService] Android device disconnected. Updating database to disconnected state.',
-    );
     try {
+      const current = await this.integrationsService.getIntegrationById(
+        'int-android-bridge-mcp',
+      );
+      if (current && current.status === 'disconnected') {
+        return;
+      }
+
+      this.logger.log(
+        '⚡ [AndroidPairingService] Android device disconnected. Updating database to disconnected state.',
+      );
       await this.integrationsService.updateIntegration(
         'int-android-bridge-mcp',
         {
@@ -121,11 +128,17 @@ export class AndroidPairingService implements OnModuleInit {
 
     // 2. Persist connected status & device info to PostgreSQL Database
     try {
+      const port =
+        this.configService?.get<number>('PORT') ||
+        this.configService?.get<number>('app.port') ||
+        process.env.PORT ||
+        3001;
+
       await this.integrationsService.updateIntegration(
         'int-android-bridge-mcp',
         {
           status: 'connected',
-          endpoint: `ws://${this.getLocalLanIp()}:3001/api/android-bridge/ws`,
+          endpoint: `ws://${this.getLocalLanIp()}:${port}/api/android-bridge/ws`,
           auth_config: {
             deviceName: deviceInfo.deviceName,
             androidVersion: deviceInfo.androidVersion,
