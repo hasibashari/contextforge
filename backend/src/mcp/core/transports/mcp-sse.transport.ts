@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { IMcpRemoteClient, McpToolCallResult } from '../../mcp.types';
+import { IMcpRemoteClient, McpToolCallResult } from '../interfaces/mcp.types';
 
 @Injectable()
-export class McpSseClient implements IMcpRemoteClient {
-  private readonly logger = new Logger(McpSseClient.name);
+export class McpSseTransport implements IMcpRemoteClient {
+  private readonly logger = new Logger(McpSseTransport.name);
 
   async callRemoteTool(
     endpoint: string,
@@ -12,9 +12,10 @@ export class McpSseClient implements IMcpRemoteClient {
     authHeaders: Record<string, string> = {},
   ): Promise<McpToolCallResult> {
     const startTime = Date.now();
-    this.logger.log(`[SSE Remote Client] Invoking ${toolName} on ${endpoint}`);
+    this.logger.log(
+      `[SSE Remote Transport] Invoking ${toolName} on ${endpoint}`,
+    );
 
-    // SSE Transport call implementation
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -48,7 +49,9 @@ export class McpSseClient implements IMcpRemoteClient {
       };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`[SSE Remote Client] Fallback for ${toolName}: ${msg}`);
+      this.logger.warn(
+        `[SSE Remote Transport] Fallback for ${toolName}: ${msg}`,
+      );
 
       return {
         success: true,

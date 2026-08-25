@@ -1,4 +1,4 @@
-import { McpToolDefinition } from '../../mcp.types';
+import { McpToolDefinition } from '../../core';
 
 /**
  * Declarative Tool Definitions for the Obsidian Vault Internal MCP Server

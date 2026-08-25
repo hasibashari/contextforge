@@ -213,5 +213,98 @@
         "readOnly": true
       }
     ]
+  },
+  {
+    "id": "int-google-calendar-mcp",
+    "name": "Google Calendar MCP Server",
+    "category": "productivity",
+    "status": "disconnected",
+    "endpoint": "https://www.googleapis.com/calendar/v3",
+    "version": "v1.0.0",
+    "transport": "streamable_http",
+    "auth_type": "oauth2",
+    "auth_config": {
+      "token": ""
+    },
+    "description": "Model Context Protocol server for Google Calendar events, scheduling, attendees, and availability.",
+    "last_ping_ms": 25,
+    "latency_ms": 20,
+    "tools": [
+      {
+        "id": "t-gcal-1",
+        "name": "google_calendar_list_calendars",
+        "description": "List all Google Calendars in the authenticated user account",
+        "parametersSchema": {
+          "minAccessRole": "string"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-gcal-2",
+        "name": "google_calendar_list_events",
+        "description": "List and search events in Google Calendar with date filtering",
+        "parametersSchema": {
+          "calendarId": "string",
+          "timeMin": "string",
+          "timeMax": "string",
+          "query": "string"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-gcal-3",
+        "name": "google_calendar_get_event",
+        "description": "Get detailed information for a specific Google Calendar event",
+        "parametersSchema": {
+          "eventId": "string",
+          "calendarId": "string"
+        },
+        "readOnly": true
+      },
+      {
+        "id": "t-gcal-4",
+        "name": "google_calendar_create_event",
+        "description": "Create a new meeting or event in Google Calendar",
+        "parametersSchema": {
+          "calendarId": "string",
+          "summary": "string",
+          "start": "string",
+          "end": "string"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-gcal-5",
+        "name": "google_calendar_update_event",
+        "description": "Update an existing event in Google Calendar",
+        "parametersSchema": {
+          "eventId": "string",
+          "calendarId": "string",
+          "summary": "string"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-gcal-6",
+        "name": "google_calendar_delete_event",
+        "description": "Delete an event from Google Calendar",
+        "parametersSchema": {
+          "eventId": "string",
+          "calendarId": "string"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-gcal-7",
+        "name": "google_calendar_check_availability",
+        "description": "Check free/busy availability and open time slots across calendars",
+        "parametersSchema": {
+          "timeMin": "string",
+          "timeMax": "string",
+          "calendarIds": "array"
+        },
+        "readOnly": true
+      }
+    ]
   }
 ]

@@ -4,50 +4,36 @@ import {
   McpTransportType,
   McpToolDefinition,
   McpToolCallResult,
-} from './mcp.types';
-import { ObsidianMcpServer } from './internal/obsidian/obsidian-mcp.server';
-import { NotionMcpConnector } from './remote/connectors/notion/notion-mcp.connector';
-import { GenericRemoteConnector } from './remote/connectors/generic-remote.connector';
+  McpRegistryService,
+  McpHttpTransport,
+  McpSseTransport,
+} from './core';
+import { GenericRemoteConnector } from './connectors/generic/generic-remote.connector';
 import { DatabaseService } from '../common/database/database.service';
-import { McpHttpClient } from './remote/clients/mcp-http.client';
-import { McpSseClient } from './remote/clients/mcp-sse.client';
-
 import { EncryptionService } from '../common/security/encryption.service';
+import { NotionMcpConnector } from './connectors/notion/notion-mcp.connector';
+import { GoogleCalendarMcpConnector } from './connectors/google-calendar/google-calendar-mcp.connector';
 
 @Injectable()
 export class McpGatewayService implements OnModuleInit {
   private readonly logger = new Logger(McpGatewayService.name);
-  private readonly servers: Map<string, IMcpServer> = new Map();
 
   constructor(
-    private readonly obsidianServer: ObsidianMcpServer,
-    private readonly notionConnector: NotionMcpConnector,
+    private readonly registry: McpRegistryService,
     private readonly db: DatabaseService,
-    private readonly httpClient: McpHttpClient,
-    private readonly sseClient: McpSseClient,
+    private readonly httpTransport: McpHttpTransport,
+    private readonly sseTransport: McpSseTransport,
     private readonly encryption: EncryptionService,
   ) {}
 
   async onModuleInit() {
-    this.registerInternalServers();
     await this.refreshRemoteServersFromDb();
   }
 
   /**
-   * 🏠 1. Register Internal In-Process MCP Servers (Native High-Speed)
+   * 🌐 Load and Register External Remote MCP Endpoints from PostgreSQL
    */
-  private registerInternalServers() {
-    this.registerServer(this.obsidianServer);
-    this.registerServer(this.notionConnector);
-    this.logger.log(
-      `✨ Registered primary MCP servers: [${this.obsidianServer.name} (Internal)], [${this.notionConnector.name} (Remote)]`,
-    );
-  }
-
-  /**
-   * 🌐 2. Load and Register External Remote MCP Endpoints from PostgreSQL
-   */
-  async refreshRemoteServersFromDb() {
+  async refreshRemoteServersFromDb(): Promise<void> {
     try {
       const res = await this.db.query<{
         id: string;
@@ -60,14 +46,14 @@ export class McpGatewayService implements OnModuleInit {
       }>(
         `SELECT id, name, category, endpoint, transport, auth_config, tools 
          FROM workspace_integrations 
-         WHERE id NOT IN ('int-obsidian-vault-mcp', 'int-notion-mcp') 
+         WHERE id NOT IN ('int-obsidian-vault-mcp', 'int-notion-mcp', 'int-google-calendar-mcp') 
            AND status = 'connected';`,
       );
 
       for (const row of res.rows) {
         const connector = new GenericRemoteConnector(
-          this.httpClient,
-          this.sseClient,
+          this.httpTransport,
+          this.sseTransport,
           {
             id: row.id,
             name: row.name,
@@ -78,7 +64,7 @@ export class McpGatewayService implements OnModuleInit {
             authConfig: row.auth_config || {},
           },
         );
-        this.registerServer(connector);
+        this.registry.registerServer(connector);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -87,43 +73,24 @@ export class McpGatewayService implements OnModuleInit {
   }
 
   /**
-   * Registers a server in the active registry
+   * Registers a server in the central registry
    */
-  registerServer(server: IMcpServer) {
-    this.servers.set(server.id, server);
+  registerServer(server: IMcpServer): void {
+    this.registry.registerServer(server);
   }
 
   /**
    * Retrieves a registered server by ID
    */
   getServer(id: string): IMcpServer | undefined {
-    if (id === 'int-obsidian-vault-mcp') return this.obsidianServer;
-    if (id === 'int-notion-mcp') return this.notionConnector;
-    return this.servers.get(id);
+    return this.registry.getServer(id);
   }
 
   /**
    * Discovers which server provides the specified tool
    */
   findServerForTool(toolName: string): IMcpServer | undefined {
-    // 1. Direct Obsidian tools route
-    if (this.obsidianServer.hasTool(toolName)) {
-      return this.obsidianServer;
-    }
-
-    // 2. Direct Notion tools route
-    if (this.notionConnector.hasTool(toolName)) {
-      return this.notionConnector;
-    }
-
-    // 3. Dynamic Registered Remote Servers
-    for (const server of this.servers.values()) {
-      if (server.hasTool(toolName)) {
-        return server;
-      }
-    }
-
-    return undefined;
+    return this.registry.findServerForTool(toolName);
   }
 
   /**
@@ -208,11 +175,7 @@ export class McpGatewayService implements OnModuleInit {
    * Retrieves all tools across all registered MCP servers
    */
   getAllTools(): McpToolDefinition[] {
-    const allTools: McpToolDefinition[] = [];
-    for (const server of this.servers.values()) {
-      allTools.push(...server.getTools());
-    }
-    return allTools;
+    return this.registry.getAllTools();
   }
 
   /**
@@ -223,11 +186,10 @@ export class McpGatewayService implements OnModuleInit {
     message: string;
     latencyMs: number;
   }> {
-    let server = this.servers.get(serverId);
+    let server = this.registry.getServer(serverId);
 
     // Sync Notion credentials from DB if target is Notion
     if (serverId === 'int-notion-mcp' || serverId.includes('notion')) {
-      server = this.notionConnector;
       try {
         const res = await this.db.query<{
           endpoint: string;
@@ -239,13 +201,13 @@ export class McpGatewayService implements OnModuleInit {
         }>(
           `SELECT endpoint, auth_config FROM workspace_integrations WHERE id = 'int-notion-mcp' LIMIT 1;`,
         );
-        if (res.rows.length > 0) {
+        if (res.rows.length > 0 && server instanceof NotionMcpConnector) {
           const row = res.rows[0];
           const rawToken = row.auth_config?.token || row.auth_config?.apiKey;
           const decryptedToken = rawToken
             ? this.encryption.decrypt(rawToken)
             : undefined;
-          this.notionConnector.configure({
+          server.configure({
             endpoint: row.endpoint,
             token: decryptedToken,
             apiKey: decryptedToken,
@@ -255,13 +217,46 @@ export class McpGatewayService implements OnModuleInit {
         // Continue with existing in-memory config
       }
     } else if (
-      serverId === 'int-obsidian-vault-mcp' ||
-      serverId.includes('obsidian')
+      serverId === 'int-google-calendar-mcp' ||
+      serverId.includes('google-calendar') ||
+      serverId.includes('gcal')
     ) {
-      server = this.obsidianServer;
+      try {
+        const res = await this.db.query<{
+          endpoint: string;
+          auth_config: {
+            token?: string;
+            refreshToken?: string;
+            workspaceName?: string;
+          };
+        }>(
+          `SELECT endpoint, auth_config FROM workspace_integrations WHERE id = 'int-google-calendar-mcp' LIMIT 1;`,
+        );
+        if (
+          res.rows.length > 0 &&
+          server instanceof GoogleCalendarMcpConnector
+        ) {
+          const row = res.rows[0];
+          const rawToken = row.auth_config?.token;
+          const rawRefreshToken = row.auth_config?.refreshToken;
+          const decryptedToken = rawToken
+            ? this.encryption.decrypt(rawToken)
+            : undefined;
+          const decryptedRefreshToken = rawRefreshToken
+            ? this.encryption.decrypt(rawRefreshToken)
+            : undefined;
+          server.configure({
+            endpoint: row.endpoint,
+            token: decryptedToken,
+            refreshToken: decryptedRefreshToken,
+          });
+        }
+      } catch {
+        // Continue with existing in-memory config
+      }
     }
 
-    // If server still not in map, try dynamic lazy lookup from PostgreSQL
+    // If server still not in registry, try dynamic lookup from PostgreSQL
     if (!server) {
       try {
         const res = await this.db.query<{
@@ -282,8 +277,8 @@ export class McpGatewayService implements OnModuleInit {
         if (res.rows.length > 0) {
           const row = res.rows[0];
           const connector = new GenericRemoteConnector(
-            this.httpClient,
-            this.sseClient,
+            this.httpTransport,
+            this.sseTransport,
             {
               id: row.id,
               name: row.name,
@@ -295,7 +290,7 @@ export class McpGatewayService implements OnModuleInit {
               authConfig: row.auth_config || {},
             },
           );
-          this.registerServer(connector);
+          this.registry.registerServer(connector);
           server = connector;
         }
       } catch {

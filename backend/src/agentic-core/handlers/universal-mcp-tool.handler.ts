@@ -29,10 +29,15 @@ export class UniversalMcpToolHandler {
       toolName.startsWith('obsidian_') ||
       toolName === 'dispatch_action_worker' ||
       toolName === 'dispatch_obsidian_worker';
+    const isGoogleCalendar = toolName.startsWith('google_calendar_');
 
     const serverName =
       toolMeta?.serverName ||
-      (isObsidian ? 'Obsidian MCP Server' : 'Notion MCP Server');
+      (isObsidian
+        ? 'Obsidian MCP Server'
+        : isGoogleCalendar
+          ? 'Google Calendar MCP Server'
+          : 'Notion MCP Server');
     const isReadOnly = toolMeta?.readOnly ?? !isObsidian;
 
     emit({
@@ -140,7 +145,11 @@ export class UniversalMcpToolHandler {
       },
       intent: {
         toolName,
-        service: isObsidian ? 'obsidian' : 'notion',
+        service: isObsidian
+          ? 'obsidian'
+          : isGoogleCalendar
+            ? 'google_calendar'
+            : 'notion',
         status: 'completed',
         summaryText: result.summary,
       },

@@ -31,6 +31,7 @@ ContextForge is a fullstack application that combines an agentic AI core with a 
 - [Available Scripts](#available-scripts)
 - [Architecture Overview](#architecture-overview)
 - [API Modules](#api-modules)
+- [Future Roadmap: The Next Horizon](#-future-roadmap-the-next-horizon-android-bridge-mcp)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
@@ -310,6 +311,55 @@ The backend exposes a RESTful API under `/api`. Key module prefixes:
 | `/api/activity`                        | Activity     | Activity log retrieval                          |
 
 Full API documentation and database schema are available in [`docs/ERD.md`](./docs/ERD.md) and [`docs/TDD.md`](./docs/TDD.md).
+
+---
+
+## 🔮 Future Roadmap: The Next Horizon (Android Bridge MCP)
+
+ContextForge is expanding beyond the desktop into an **Ambient Personal Life & Goal Guardian** by linking desktop deep-work (Obsidian) with mobile reality (Android) via the **Model Context Protocol (MCP)**.
+
+```mermaid
+graph LR
+    subgraph Mobile ["📱 Smartphone (Android MCP)"]
+        A["Ambient Telemetry<br/>- Screen Time & Active Apps<br/>- System Clock & Geofencing<br/>- Battery & Sleep Rhythm"]
+        B["Native OS Actuators<br/>- ZenMode (DND) & Focus Lock<br/>- Contextual Push Interventions<br/>- Bedtime Screen Dimming"]
+    end
+
+    subgraph Core ["🤖 ContextForge Nexus (Gemini 3.5)"]
+        C["Android Bridge MCP Server"]
+        D["Epistemic Goal & Habit Engine"]
+        E["Google Calendar MCP (Dynamic CRUD)"]
+    end
+
+    subgraph Local ["📂 Desktop Obsidian Vault"]
+        F["Goals/Mastery-Roadmap.md"]
+        G["DailyNotes/YYYY-MM-DD.md"]
+    end
+
+    A <--> C
+    B <--> C
+    C <--> D
+    D <--> E
+    D <--> F
+    D <--> G
+```
+
+### Key Capabilities of the Android Bridge MCP:
+
+1. **100% Privacy-Preserving Ambient Sensor (Zero File Scraping)**:
+   - **No invasive file access**: The bridge strictly leverages native Android OS APIs (`UsageStatsManager`, `NotificationManager`, `ZenMode / Bedtime Mode`, and `Geofencing API`).
+   - Senses behavioral context (e.g., active screen time on social media during focus hours, late-night phone usage) without touching personal user files or chat data.
+
+2. **Autonomous Nightly Reflection & Adaptive Calendar Re-balancing**:
+   - **Empathetic Accountability Partner**: If a scheduled 9:00 AM learning milestone was missed due to unexpected friction, the AI does not let the schedule turn stale.
+   - It analyzes the day's telemetry, performs **dynamic CRUD on Google Calendar** (shifting tasks to the next optimal focus window), and suggests light evening wind-down tasks aligned with the user's bedtime goals in Obsidian.
+
+3. **Active Focus Enforcer & Bedtime Interventions**:
+   - Sends gentle, context-aware push interventions to the smartphone when usage drifts from predefined Obsidian goals.
+   - Automatically toggles Android's native *Do Not Disturb (DND)* during active desktop deep-work sessions.
+
+4. **Automated Habit & Discipline Journaling**:
+   - Automatically writes daily focus scores, screen-time summaries, and goal fulfillment logs directly into the user's local Obsidian vault (`DailyNotes/YYYY-MM-DD.md`).
 
 ---
 

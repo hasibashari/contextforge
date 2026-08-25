@@ -1,7 +1,8 @@
 import type { FunctionDeclaration, Schema, Type } from '@google/genai';
-import { OBSIDIAN_MCP_TOOLS } from '../../mcp/internal/obsidian/obsidian-tools.definition';
-import { NOTION_MCP_TOOLS } from '../../mcp/remote/connectors/notion/notion-tools.definition';
-import { McpToolDefinition } from '../../mcp/mcp.types';
+import { OBSIDIAN_MCP_TOOLS } from '../../mcp/connectors/obsidian/obsidian-tools.definition';
+import { NOTION_MCP_TOOLS } from '../../mcp/connectors/notion/notion-tools.definition';
+import { GOOGLE_CALENDAR_MCP_TOOLS } from '../../mcp/connectors/google-calendar/google-calendar-tools.definition';
+import { McpToolDefinition } from '../../mcp/core';
 
 const strProp = (description: string): Schema => ({
   type: 'STRING' as unknown as Type,
@@ -19,6 +20,7 @@ export interface ToolMetadata {
   category:
     | 'mcp_obsidian'
     | 'mcp_notion'
+    | 'mcp_google_calendar'
     | 'internal_rag'
     | 'web_search'
     | 'automation';
@@ -209,6 +211,7 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   ...NATIVE_AGENTIC_FUNCTION_DECLARATIONS,
   ...OBSIDIAN_MCP_TOOLS.map(convertMcpToolToGenAiDeclaration),
   ...NOTION_MCP_TOOLS.map(convertMcpToolToGenAiDeclaration),
+  ...GOOGLE_CALENDAR_MCP_TOOLS.map(convertMcpToolToGenAiDeclaration),
 ];
 
 /**
@@ -272,6 +275,20 @@ export const TOOL_CATALOG: Record<string, ToolMetadata> = {
         category: 'mcp_notion' as const,
         readOnly: Boolean(t.readOnly),
         serverName: 'Notion MCP Server',
+        description: t.description,
+      },
+    ]),
+  ),
+
+  // 4. Google Calendar MCP Tools (Mapped dynamically)
+  ...Object.fromEntries(
+    GOOGLE_CALENDAR_MCP_TOOLS.map((t) => [
+      t.name,
+      {
+        name: t.name,
+        category: 'mcp_google_calendar' as const,
+        readOnly: Boolean(t.readOnly),
+        serverName: 'Google Calendar MCP Server',
         description: t.description,
       },
     ]),

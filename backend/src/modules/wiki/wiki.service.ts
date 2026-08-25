@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { GoogleGenAI } from '@google/genai';
 import { GEMINI_CLIENT } from '../../agentic-core/gemini-client.provider';
 import { WikiRepository, WikiPageRecord } from './wiki.repository';
-import { ObsidianVaultService } from '../../mcp/internal/obsidian/obsidian-vault.service';
+import { ObsidianVaultService } from '../../mcp/connectors/obsidian/obsidian-vault.service';
 import {
   WIKI_COMPILER_SYSTEM_PROMPT,
   getWikiIngestionPrompt,

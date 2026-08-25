@@ -1,41 +1,84 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../common/database/database.module';
-import { ObsidianVaultService } from './internal/obsidian/obsidian-vault.service';
-import { ObsidianMcpServer } from './internal/obsidian/obsidian-mcp.server';
-import { McpHttpClient } from './remote/clients/mcp-http.client';
-import { McpSseClient } from './remote/clients/mcp-sse.client';
-import { NotionApiClient } from './remote/connectors/notion/notion-api.client';
-import { NotionMcpConnector } from './remote/connectors/notion/notion-mcp.connector';
-import { NotionOAuthService } from './remote/connectors/notion/notion-oauth.service';
-import { McpGatewayService } from './mcp-gateway.service';
-
-import { ObsidianBridgeGatewayService } from './internal/obsidian/obsidian-bridge.gateway';
-
 import { SecurityModule } from '../common/security/security.module';
+import {
+  McpRegistryService,
+  McpHttpTransport,
+  McpSseTransport,
+  MCP_SERVERS,
+  MCP_OAUTH_HANDLERS,
+} from './core';
+import { McpGatewayService } from './mcp-gateway.service';
+import { McpOAuthController } from './controllers/mcp-oauth.controller';
+import { ObsidianVaultService } from './connectors/obsidian/obsidian-vault.service';
+import { ObsidianMcpServer } from './connectors/obsidian/obsidian-mcp.server';
+import { ObsidianBridgeGatewayService } from './connectors/obsidian/obsidian-bridge.gateway';
+import { NotionApiClient } from './connectors/notion/notion-api.client';
+import { NotionMcpConnector } from './connectors/notion/notion-mcp.connector';
+import { NotionOAuthService } from './connectors/notion/notion-oauth.service';
+import { GoogleCalendarApiClient } from './connectors/google-calendar/google-calendar-api.client';
+import { GoogleCalendarMcpConnector } from './connectors/google-calendar/google-calendar-mcp.connector';
+import { GoogleCalendarOAuthService } from './connectors/google-calendar/google-calendar-oauth.service';
 
 @Module({
   imports: [DatabaseModule, SecurityModule],
+  controllers: [McpOAuthController],
   providers: [
+    McpRegistryService,
     ObsidianBridgeGatewayService,
     ObsidianVaultService,
     ObsidianMcpServer,
-    McpHttpClient,
-    McpSseClient,
+    McpHttpTransport,
+    McpSseTransport,
     NotionApiClient,
     NotionMcpConnector,
     NotionOAuthService,
+    GoogleCalendarApiClient,
+    GoogleCalendarMcpConnector,
+    GoogleCalendarOAuthService,
     McpGatewayService,
+
+    // Multi-Provider for MCP Servers (Plug-and-Play)
+    {
+      provide: MCP_SERVERS,
+      useFactory: (
+        obsidian: ObsidianMcpServer,
+        notion: NotionMcpConnector,
+        gcal: GoogleCalendarMcpConnector,
+      ) => [obsidian, notion, gcal],
+      inject: [
+        ObsidianMcpServer,
+        NotionMcpConnector,
+        GoogleCalendarMcpConnector,
+      ],
+    },
+
+    // Multi-Provider for MCP OAuth Handlers (Plug-and-Play)
+    {
+      provide: MCP_OAUTH_HANDLERS,
+      useFactory: (
+        notionOAuth: NotionOAuthService,
+        gcalOAuth: GoogleCalendarOAuthService,
+      ) => [notionOAuth, gcalOAuth],
+      inject: [NotionOAuthService, GoogleCalendarOAuthService],
+    },
   ],
   exports: [
-    ObsidianBridgeGatewayService,
+    McpRegistryService,
     McpGatewayService,
+    ObsidianBridgeGatewayService,
     ObsidianVaultService,
     ObsidianMcpServer,
     NotionApiClient,
     NotionMcpConnector,
     NotionOAuthService,
-    McpHttpClient,
-    McpSseClient,
+    GoogleCalendarApiClient,
+    GoogleCalendarMcpConnector,
+    GoogleCalendarOAuthService,
+    McpHttpTransport,
+    McpSseTransport,
+    MCP_SERVERS,
+    MCP_OAUTH_HANDLERS,
   ],
 })
 export class McpModule {}

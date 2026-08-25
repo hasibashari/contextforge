@@ -1,12 +1,11 @@
-import { Logger } from '@nestjs/common';
 import {
-  IMcpServer,
   McpTransportType,
   McpToolDefinition,
   McpToolCallResult,
-} from '../../mcp.types';
-import { McpHttpClient } from '../clients/mcp-http.client';
-import { McpSseClient } from '../clients/mcp-sse.client';
+  BaseMcpConnector,
+  McpHttpTransport,
+  McpSseTransport,
+} from '../../core';
 
 export interface GenericRemoteConfig {
   id: string;
@@ -18,9 +17,7 @@ export interface GenericRemoteConfig {
   authConfig?: Record<string, string>;
 }
 
-export class GenericRemoteConnector implements IMcpServer {
-  private readonly logger = new Logger(GenericRemoteConnector.name);
-
+export class GenericRemoteConnector extends BaseMcpConnector {
   public id: string;
   public name: string;
   public category: string;
@@ -32,10 +29,11 @@ export class GenericRemoteConnector implements IMcpServer {
   private authConfig: Record<string, string>;
 
   constructor(
-    private readonly httpClient: McpHttpClient,
-    private readonly sseClient: McpSseClient,
+    private readonly httpTransport: McpHttpTransport,
+    private readonly sseTransport: McpSseTransport,
     config?: GenericRemoteConfig,
   ) {
+    super(config?.name || GenericRemoteConnector.name);
     this.id = config?.id || 'dynamic-remote-mcp';
     this.name = config?.name || 'Custom Remote MCP Server';
     this.category = config?.category || 'productivity';
@@ -67,10 +65,6 @@ export class GenericRemoteConnector implements IMcpServer {
     toolName: string,
     params: Record<string, unknown>,
   ): Promise<McpToolCallResult> {
-    this.logger.log(
-      `Dispatching remote tool "${toolName}" to ${this.name} (${this.endpoint})`,
-    );
-
     const headers: Record<string, string> = {};
     if (this.authConfig.token) {
       headers.Authorization = `Bearer ${this.authConfig.token}`;
@@ -79,7 +73,7 @@ export class GenericRemoteConnector implements IMcpServer {
     }
 
     if (this.transportType === 'sse') {
-      return await this.sseClient.callRemoteTool(
+      return await this.sseTransport.callRemoteTool(
         this.endpoint,
         toolName,
         params,
@@ -87,7 +81,7 @@ export class GenericRemoteConnector implements IMcpServer {
       );
     }
 
-    return await this.httpClient.callRemoteTool(
+    return await this.httpTransport.callRemoteTool(
       this.endpoint,
       toolName,
       params,
@@ -95,10 +89,26 @@ export class GenericRemoteConnector implements IMcpServer {
     );
   }
 
-  async ping(): Promise<{ status: 'connected' | 'error'; latencyMs: number }> {
+  override async ping(): Promise<{
+    status: 'connected' | 'disconnected' | 'error';
+    message?: string;
+    latencyMs: number;
+  }> {
     if (!this.endpoint) {
-      return { status: 'error', latencyMs: 0 };
+      return {
+        status: 'disconnected',
+        message: 'Endpoint is not configured',
+        latencyMs: 0,
+      };
     }
-    return await this.httpClient.pingRemoteEndpoint(this.endpoint);
+    const res = await this.httpTransport.pingRemoteEndpoint(this.endpoint);
+    return {
+      status: res.status === 'connected' ? 'connected' : 'error',
+      message:
+        res.status === 'connected'
+          ? `${this.name} is reachable`
+          : 'Connection failed',
+      latencyMs: res.latencyMs,
+    };
   }
 }

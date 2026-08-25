@@ -11,7 +11,8 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { EcosystemService } from './ecosystem.service';
-import { NotionOAuthService } from '../../mcp/remote/connectors/notion/notion-oauth.service';
+import { NotionOAuthService } from '../../mcp/connectors/notion/notion-oauth.service';
+import { GoogleCalendarOAuthService } from '../../mcp/connectors/google-calendar/google-calendar-oauth.service';
 import type {
   WorkspaceAgentRow,
   WorkspaceSkillRow,
@@ -23,6 +24,7 @@ export class EcosystemController {
   constructor(
     private readonly service: EcosystemService,
     private readonly notionOAuthService: NotionOAuthService,
+    private readonly googleCalendarOAuthService: GoogleCalendarOAuthService,
   ) {}
 
   // ==========================================
@@ -315,6 +317,127 @@ export class EcosystemController {
       success: true,
       data,
       message: `Notion workspace "${data.workspaceName}" connected successfully`,
+    };
+  }
+
+  // ==========================================
+  // GOOGLE CALENDAR OAUTH 2.0 ENDPOINTS
+  // ==========================================
+
+  @Get('oauth/google-calendar/authorize')
+  getGoogleCalendarOAuthUrl() {
+    const res = this.googleCalendarOAuthService.getOAuthUrl();
+    return {
+      success: true,
+      data: res,
+    };
+  }
+
+  @Get('oauth/google-calendar/callback')
+  async handleGoogleCalendarOAuthCallback(
+    @Query('code') code: string,
+    @Query('error') error: string,
+    @Res() res: Response,
+  ) {
+    if (error || !code) {
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>Google Calendar Authorization Cancelled</title></head>
+          <body style="font-family: system-ui, sans-serif; text-align: center; padding: 48px; background: #0b0f19; color: #f87171;">
+            <h2>⚠️ Google Calendar Authorization Cancelled</h2>
+            <p style="color: #94a3b8;">${error || 'No authorization code returned'}</p>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ type: 'GOOGLE_CALENDAR_AUTH_ERROR', error: '${error || 'Cancelled'}' }, '*');
+                setTimeout(() => window.close(), 1500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    try {
+      const result =
+        await this.googleCalendarOAuthService.exchangeOAuthCode(code);
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Google Calendar Connected - ContextForge</title>
+            <style>
+              body { font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 50px; background: #0b0f19; color: #f8fafc; }
+              .card { background: #161e2e; border: 1px solid #334155; border-radius: 16px; padding: 32px; max-width: 440px; margin: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+              .success { color: #10b981; font-size: 24px; font-weight: bold; margin-bottom: 8px; }
+              .ws { color: #60a5fa; font-weight: 600; font-size: 16px; margin: 16px 0; background: #1e293b; padding: 10px; border-radius: 8px; }
+              .hint { color: #64748b; font-size: 12px; margin-top: 16px; }
+              .btn { display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; margin-top: 16px; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <div class="success">✨ Google Calendar Connected!</div>
+              <p style="color: #cbd5e1; font-size: 14px;">Your Google Calendar is now securely paired with ContextForge MCP.</p>
+              <div class="ws">📅 Account: ${result.workspaceName}</div>
+              <a href="${frontendUrl}/integrations" class="btn">Return to ContextForge</a>
+              <p class="hint">Redirecting back to dashboard automatically...</p>
+            </div>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ 
+                  type: 'GOOGLE_CALENDAR_AUTH_SUCCESS', 
+                  account: { workspaceName: ${JSON.stringify(result.workspaceName)} }
+                }, '*');
+                setTimeout(() => window.close(), 1200);
+              } else {
+                setTimeout(() => { window.location.href = '${frontendUrl}/integrations?oauth=gcal_success'; }, 1500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'OAuth exchange failed';
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>Google Calendar Authorization Error</title></head>
+          <body style="font-family: system-ui, sans-serif; text-align: center; padding: 48px; background: #0b0f19; color: #f87171;">
+            <div style="background: #161e2e; border: 1px solid #334155; border-radius: 16px; padding: 32px; max-width: 440px; margin: auto;">
+              <h2>❌ Connection Failed</h2>
+              <p style="color: #cbd5e1; font-size: 14px;">${msg}</p>
+              <a href="${frontendUrl}/integrations" style="display: inline-block; background: #3b82f6; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 13px; margin-top: 16px;">Back to Integrations</a>
+            </div>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ type: 'GOOGLE_CALENDAR_AUTH_ERROR', error: ${JSON.stringify(msg)} }, '*');
+                setTimeout(() => window.close(), 2500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+    }
+  }
+
+  @Post('oauth/google-calendar/token')
+  async connectGoogleCalendarToken(
+    @Body() body: { token: string; refreshToken?: string },
+  ) {
+    const data = await this.googleCalendarOAuthService.verifyAndConnectToken(
+      body.token,
+      body.refreshToken,
+    );
+    return {
+      success: true,
+      data,
+      message: `Google Calendar connected successfully`,
     };
   }
 }

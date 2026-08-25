@@ -1,11 +1,13 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { DatabaseService } from '../../../../common/database/database.service';
-import { EncryptionService } from '../../../../common/security/encryption.service';
+import { DatabaseService } from '../../../common/database/database.service';
+import { EncryptionService } from '../../../common/security/encryption.service';
+import { IMcpOAuthHandler } from '../../core';
 import { NotionMcpConnector } from './notion-mcp.connector';
 
 @Injectable()
-export class NotionOAuthService {
+export class NotionOAuthService implements IMcpOAuthHandler {
   private readonly logger = new Logger(NotionOAuthService.name);
+  readonly providerId = 'notion';
 
   constructor(
     private readonly db: DatabaseService,

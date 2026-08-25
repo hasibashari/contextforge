@@ -14,7 +14,8 @@
     "seed": "ts-node src/common/database/seed-runner.ts",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"src/**/*.ts\" --fix"
+    "lint": "eslint \"src/**/*.ts\" --fix",
+    "test": "ts-node src/tests/run-tests.ts"
   },
   "dependencies": {
     "@google/genai": "^2.17.1",

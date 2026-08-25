@@ -13,7 +13,7 @@ import { UniversalMcpToolHandler } from '../handlers/universal-mcp-tool.handler'
 import { WebSearchToolHandler } from '../handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from '../handlers/knowledge-tool.handler';
 import { AutomationToolHandler } from '../handlers/automation-tool.handler';
-import { ObsidianVaultService } from '../../mcp/internal/obsidian/obsidian-vault.service';
+import { ObsidianVaultService } from '../../mcp/connectors/obsidian/obsidian-vault.service';
 
 export type { StreamEvent, OrchestrationResult };
 
@@ -432,7 +432,7 @@ export class CoreOrchestratorService {
       case 'search_knowledge_vault':
         return this.knowledgeHandler.handle(prompt, args, emit);
 
-      // Universal MCP Tool Invocation (Notion & Obsidian)
+      // Universal MCP Tool Invocation (Notion, Obsidian, Google Calendar)
       case 'query_notion_workspace':
       case 'notion_list_workspace_resources':
       case 'notion_get_tasks':
@@ -440,6 +440,13 @@ export class CoreOrchestratorService {
       case 'notion_read_page':
       case 'notion_create_page':
       case 'notion_update_database':
+      case 'google_calendar_list_calendars':
+      case 'google_calendar_list_events':
+      case 'google_calendar_get_event':
+      case 'google_calendar_create_event':
+      case 'google_calendar_update_event':
+      case 'google_calendar_delete_event':
+      case 'google_calendar_check_availability':
       case 'dispatch_action_worker':
       case 'dispatch_obsidian_worker':
       case 'obsidian_write_note':
@@ -453,7 +460,8 @@ export class CoreOrchestratorService {
         // Dynamic fallback: if tool name matches MCP patterns, route to MCP Gateway
         if (
           toolName.startsWith('obsidian_') ||
-          toolName.startsWith('notion_')
+          toolName.startsWith('notion_') ||
+          toolName.startsWith('google_calendar_')
         ) {
           return this.mcpHandler.execute(toolName, prompt, args, emit);
         }

@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { IMcpRemoteClient, McpToolCallResult } from '../../mcp.types';
+import { IMcpRemoteClient, McpToolCallResult } from '../interfaces/mcp.types';
 
 @Injectable()
-export class McpHttpClient implements IMcpRemoteClient {
-  private readonly logger = new Logger(McpHttpClient.name);
+export class McpHttpTransport implements IMcpRemoteClient {
+  private readonly logger = new Logger(McpHttpTransport.name);
 
   async callRemoteTool(
     endpoint: string,
@@ -12,7 +12,9 @@ export class McpHttpClient implements IMcpRemoteClient {
     authHeaders: Record<string, string> = {},
   ): Promise<McpToolCallResult> {
     const startTime = Date.now();
-    this.logger.log(`[HTTP Remote Client] Calling ${toolName} on ${endpoint}`);
+    this.logger.log(
+      `[HTTP Remote Transport] Calling ${toolName} on ${endpoint}`,
+    );
 
     try {
       const response = await fetch(endpoint, {
@@ -57,10 +59,9 @@ export class McpHttpClient implements IMcpRemoteClient {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `[HTTP Remote Client] Network call fallback for ${toolName}: ${msg}`,
+        `[HTTP Remote Transport] Network call fallback for ${toolName}: ${msg}`,
       );
 
-      // Return graceful standard result format
       return {
         success: true,
         server: endpoint,

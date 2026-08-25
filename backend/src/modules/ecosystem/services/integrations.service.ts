@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { EcosystemRepository } from '../ecosystem.repository';
 import { McpGatewayService } from '../../../mcp/mcp-gateway.service';
-import { McpToolDefinition } from '../../../mcp/mcp.types';
-import { ObsidianVaultService } from '../../../mcp/internal/obsidian/obsidian-vault.service';
+import { McpToolDefinition } from '../../../mcp/core';
+import { ObsidianVaultService } from '../../../mcp/connectors/obsidian/obsidian-vault.service';
 import { EncryptionService } from '../../../common/security/encryption.service';
 import {
   WorkspaceIntegrationRow,
