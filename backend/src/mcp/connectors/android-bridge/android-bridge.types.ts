@@ -25,6 +25,7 @@ export interface AndroidUsageSummaryResponse {
 
 export interface AndroidForegroundAppResponse {
   currentForegroundApp: string;
+  friendlyName?: string;
 }
 
 export interface AndroidSetAppLimitRequest {

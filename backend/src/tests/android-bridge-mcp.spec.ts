@@ -1,6 +1,7 @@
 import assert from 'assert';
 import { AndroidBridgeMcpConnector } from '../mcp/connectors/android-bridge/android-bridge-mcp.connector';
 import { AndroidBridgeApiClient } from '../mcp/connectors/android-bridge/android-bridge-api.client';
+import { AndroidBridgeGatewayService } from '../mcp/connectors/android-bridge/android-bridge.gateway';
 import { ANDROID_BRIDGE_MCP_TOOLS } from '../mcp/connectors/android-bridge/android-bridge-tools.definition';
 import {
   formatDurationMs,
@@ -460,7 +461,8 @@ export async function runAndroidBridgeTests() {
     });
 
     const client = new AndroidBridgeApiClient();
-    const connector = new AndroidBridgeMcpConnector(client);
+    const gateway = new AndroidBridgeGatewayService();
+    const connector = new AndroidBridgeMcpConnector(client, gateway);
     connector.configure({ endpoint: 'http://127.0.0.1:8080' });
 
     assert.strictEqual(connector.id, 'int-android-bridge-mcp');
@@ -517,7 +519,8 @@ export async function runAndroidBridgeTests() {
   // 14. Connector Error Handling & Validation
   await test('14. AndroidBridgeMcpConnector handles errors and invalid inputs gracefully', async () => {
     const client = new AndroidBridgeApiClient();
-    const connector = new AndroidBridgeMcpConnector(client);
+    const gateway = new AndroidBridgeGatewayService();
+    const connector = new AndroidBridgeMcpConnector(client, gateway);
 
     // Missing package name in set_app_limit
     const res1 = await connector.executeTool('android_set_app_limit', {
@@ -556,7 +559,8 @@ export async function runAndroidBridgeTests() {
     });
 
     const client = new AndroidBridgeApiClient();
-    const connector = new AndroidBridgeMcpConnector(client);
+    const gateway = new AndroidBridgeGatewayService();
+    const connector = new AndroidBridgeMcpConnector(client, gateway);
     connector.configure({ endpoint: 'http://127.0.0.1:8080' });
 
     const probe = await connector.ping();

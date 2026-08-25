@@ -3,12 +3,16 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  OnModuleInit,
+  Optional,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import { IntegrationsService } from './integrations.service';
 import { McpRegistryService } from '../../../mcp/core';
 import { AndroidBridgeMcpConnector } from '../../../mcp/connectors/android-bridge/android-bridge-mcp.connector';
+import { AndroidBridgeGatewayService } from '../../../mcp/connectors/android-bridge/android-bridge.gateway';
 
 export interface AndroidPairingSession {
   sessionId: string;
@@ -20,6 +24,7 @@ export interface AndroidPairingSession {
   desktopHost: string;
   desktopPort: number;
   confirmUrl: string;
+  wsUrl: string;
   qrPayloadJson: string;
   deviceInfo?: {
     deviceName: string;
@@ -40,7 +45,7 @@ export interface ConfirmPairingDto {
 }
 
 @Injectable()
-export class AndroidPairingService {
+export class AndroidPairingService implements OnModuleInit {
   private readonly logger = new Logger(AndroidPairingService.name);
   private readonly sessions = new Map<string, AndroidPairingSession>();
 
@@ -50,9 +55,66 @@ export class AndroidPairingService {
   constructor(
     private readonly integrationsService: IntegrationsService,
     private readonly registry: McpRegistryService,
+    @Optional()
+    private readonly androidBridgeGateway?: AndroidBridgeGatewayService,
+    @Optional() private readonly configService?: ConfigService,
   ) {
     // Periodic cleanup of expired sessions every 2 minutes
     setInterval(() => this.cleanupExpiredSessions(), 2 * 60 * 1000);
+  }
+
+  onModuleInit() {
+    if (this.androidBridgeGateway) {
+      this.androidBridgeGateway.onDeviceConnected((deviceInfo) => {
+        void this.handleDeviceConnected(deviceInfo);
+      });
+    }
+  }
+
+  private async handleDeviceConnected(deviceInfo: {
+    deviceName: string;
+    androidVersion?: string;
+    batteryLevel?: number;
+  }) {
+    this.logger.log(
+      `⚡ [AndroidPairingService] Auto-confirming active pairing sessions & persisting DB for "${deviceInfo.deviceName}"`,
+    );
+
+    // 1. Auto-confirm any active waiting pairing sessions
+    for (const session of this.sessions.values()) {
+      if (session.status === 'waiting') {
+        session.status = 'confirmed';
+        session.deviceInfo = {
+          deviceName: deviceInfo.deviceName,
+          deviceEndpoint: `ws://${session.desktopHost}:${session.desktopPort}/api/android-bridge/ws`,
+          androidVersion: deviceInfo.androidVersion,
+          batteryLevel: deviceInfo.batteryLevel,
+          pairedAt: Date.now(),
+        };
+      }
+    }
+
+    // 2. Persist connected status & device info to PostgreSQL Database
+    try {
+      await this.integrationsService.updateIntegration(
+        'int-android-bridge-mcp',
+        {
+          status: 'connected',
+          endpoint: `ws://${this.getLocalLanIp()}:3001/api/android-bridge/ws`,
+          auth_config: {
+            deviceName: deviceInfo.deviceName,
+            androidVersion: deviceInfo.androidVersion,
+            batteryLevel: deviceInfo.batteryLevel,
+            pairedAt: Date.now(),
+            pairedVia: 'websocket_bridge',
+          },
+        },
+      );
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to auto-update DB on WS handshake: ${String(err)}`,
+      );
+    }
   }
 
   /**
@@ -60,8 +122,17 @@ export class AndroidPairingService {
    * so an Android phone on the same Wi-Fi network can connect to ContextForge.
    */
   public getLocalLanIp(): string {
+    const configuredIp =
+      this.configService?.get<string>('DESKTOP_LAN_IP') ||
+      process.env.DESKTOP_LAN_IP;
+    if (configuredIp) {
+      return configuredIp.trim();
+    }
+
     const interfaces = os.networkInterfaces();
-    const candidateIps: string[] = [];
+    const wifi192Ips: string[] = [];
+    const lan10Ips: string[] = [];
+    const otherIps: string[] = [];
 
     for (const name of Object.keys(interfaces)) {
       const netList = interfaces[name];
@@ -70,65 +141,83 @@ export class AndroidPairingService {
       for (const net of netList) {
         // Skip internal (127.0.0.1) and non-IPv4 addresses
         if (net.family === 'IPv4' && !net.internal) {
-          // Prioritize Wi-Fi and Ethernet subnets
-          if (
-            net.address.startsWith('192.168.') ||
-            net.address.startsWith('10.') ||
-            net.address.startsWith('172.')
-          ) {
-            candidateIps.push(net.address);
+          if (net.address.startsWith('192.168.')) {
+            wifi192Ips.push(net.address);
+          } else if (net.address.startsWith('10.')) {
+            lan10Ips.push(net.address);
+          } else if (net.address.startsWith('172.')) {
+            otherIps.push(net.address);
           }
         }
       }
     }
 
-    if (candidateIps.length > 0) {
-      return candidateIps[0];
-    }
+    if (wifi192Ips.length > 0) return wifi192Ips[0];
+    if (lan10Ips.length > 0) return lan10Ips[0];
+    if (otherIps.length > 0) return otherIps[0];
 
     return '127.0.0.1';
   }
 
   /**
-   * Create a new ephemeral pairing session for QR code scanning.
+   * Create a new temporary pairing session for desktop-mobile synchronization.
+   * Generates a 6-digit numeric PIN and unique Session ID.
    */
-  public createPairingSession(
+  public createSession(
     customHost?: string,
-    port: number = 3001,
+    portOverride?: number,
   ): AndroidPairingSession {
-    const host = customHost || this.getLocalLanIp();
     const sessionId = `pair_${crypto.randomBytes(6).toString('hex')}`;
-    const rawPin = Math.floor(100000 + Math.random() * 900000).toString();
-    const formattedPin = `${rawPin.slice(0, 3)}-${rawPin.slice(3)}`;
-    const now = Date.now();
-    const expiresAt = now + this.SESSION_TTL_MS;
+    const pinNumber = Math.floor(100000 + Math.random() * 900000);
+    const pinCode = pinNumber.toString();
+    const formattedPin = `${pinCode.slice(0, 3)}-${pinCode.slice(3)}`;
+
+    const host = customHost?.trim() || this.getLocalLanIp();
+    const port =
+      portOverride || this.configService?.get<number>('app.port', 3001) || 3001;
 
     const confirmUrl = `http://${host}:${port}/api/ecosystem/integrations/android/pair/confirm`;
+    const wsUrl = `ws://${host}:${port}/api/android-bridge/ws`;
 
     const qrPayload = {
       protocol: 'contextforge-mcp-bridge',
-      version: '1.0',
+      version: '2.0',
       sessionId,
-      pinCode: rawPin,
+      pinCode,
       formattedPin,
       confirmUrl,
+      wsUrl,
       desktopHost: host,
       desktopPort: port,
-      expiresAt,
+      expiresAt: Date.now() + this.SESSION_TTL_MS,
     };
 
     const session: AndroidPairingSession = {
       sessionId,
-      pinCode: rawPin,
+      pinCode,
       formattedPin,
-      createdAt: now,
-      expiresAt,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + this.SESSION_TTL_MS,
       status: 'waiting',
       desktopHost: host,
       desktopPort: port,
       confirmUrl,
+      wsUrl,
       qrPayloadJson: JSON.stringify(qrPayload),
     };
+
+    // If WebSocket is already connected from the phone, immediately mark session as confirmed
+    if (this.androidBridgeGateway?.isDeviceConnected()) {
+      const devInfo = this.androidBridgeGateway.getActiveDeviceInfo();
+      session.status = 'confirmed';
+      session.deviceInfo = {
+        deviceName: devInfo.deviceName || 'Android Mobile Device',
+        deviceEndpoint: wsUrl,
+        androidVersion: devInfo.androidVersion,
+        batteryLevel: devInfo.batteryLevel,
+        pairedAt: Date.now(),
+      };
+    }
 
     this.sessions.set(sessionId, session);
     this.logger.log(
@@ -136,6 +225,16 @@ export class AndroidPairingService {
     );
 
     return session;
+  }
+
+  /**
+   * Alias for createSession to support both naming styles
+   */
+  public createPairingSession(
+    customHost?: string,
+    port?: number,
+  ): AndroidPairingSession {
+    return this.createSession(customHost, port);
   }
 
   /**
@@ -147,6 +246,22 @@ export class AndroidPairingService {
       throw new NotFoundException(
         `Pairing session "${sessionId}" not found or expired.`,
       );
+    }
+
+    // If WebSocket is connected, auto-confirm any waiting session
+    if (
+      session.status === 'waiting' &&
+      this.androidBridgeGateway?.isDeviceConnected()
+    ) {
+      const devInfo = this.androidBridgeGateway.getActiveDeviceInfo();
+      session.status = 'confirmed';
+      session.deviceInfo = {
+        deviceName: devInfo.deviceName || 'Android Mobile Device',
+        deviceEndpoint: `ws://${session.desktopHost}:${session.desktopPort}/api/android-bridge/ws`,
+        androidVersion: devInfo.androidVersion,
+        batteryLevel: devInfo.batteryLevel,
+        pairedAt: Date.now(),
+      };
     }
 
     if (Date.now() > session.expiresAt && session.status === 'waiting') {

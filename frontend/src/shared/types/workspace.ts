@@ -217,8 +217,11 @@ export interface Integration {
     vaultPath?: string
     vaultId?: string
     deviceName?: string
+    pairedAt?: number
+    pairedVia?: string
     headers?: Record<string, string>
     env?: Record<string, string>
+    [key: string]: unknown
   }
   isCustom?: boolean
   mountedKnowledgeSourceId?: string

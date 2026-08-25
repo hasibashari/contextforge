@@ -21,6 +21,7 @@ import { GoogleCalendarMcpConnector } from './connectors/google-calendar/google-
 import { GoogleCalendarOAuthService } from './connectors/google-calendar/google-calendar-oauth.service';
 import { AndroidBridgeApiClient } from './connectors/android-bridge/android-bridge-api.client';
 import { AndroidBridgeMcpConnector } from './connectors/android-bridge/android-bridge-mcp.connector';
+import { AndroidBridgeGatewayService } from './connectors/android-bridge/android-bridge.gateway';
 
 @Module({
   imports: [DatabaseModule, SecurityModule],
@@ -39,6 +40,7 @@ import { AndroidBridgeMcpConnector } from './connectors/android-bridge/android-b
     GoogleCalendarMcpConnector,
     GoogleCalendarOAuthService,
     AndroidBridgeApiClient,
+    AndroidBridgeGatewayService,
     AndroidBridgeMcpConnector,
     McpGatewayService,
 
@@ -82,6 +84,7 @@ import { AndroidBridgeMcpConnector } from './connectors/android-bridge/android-b
     GoogleCalendarMcpConnector,
     GoogleCalendarOAuthService,
     AndroidBridgeApiClient,
+    AndroidBridgeGatewayService,
     AndroidBridgeMcpConnector,
     McpHttpTransport,
     McpSseTransport,

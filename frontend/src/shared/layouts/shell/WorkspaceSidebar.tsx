@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import {
+  Terminal,
   MessageSquare,
   Bot,
   Cpu,
   Zap,
   Settings,
+  ShieldCheck,
+  ArrowLeft,
   Sparkles,
   Plus,
   BookOpen,
@@ -92,56 +95,96 @@ export default function WorkspaceSidebar({
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Workspace Brand & Header */}
+        {/* Workspace Brand & Switcher */}
         <div className="p-4 border-b border-hairline">
           <div className="flex items-center justify-between gap-2 mb-3">
-            <Link
-              to="/"
-              className="flex items-center gap-2.5 group cursor-pointer"
-            >
-              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-primary-contrast shadow-sm shadow-primary/20 group-hover:scale-105 transition-transform">
-                <Sparkles size={16} />
+            <Link to="/" className="flex items-center gap-2 group cursor-pointer">
+              <div className="w-7 h-7 rounded-md bg-ink flex items-center justify-center text-canvas group-hover:bg-primary transition-colors">
+                <Terminal size={15} strokeWidth={2.2} />
               </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-sm text-ink tracking-tight font-sans">
-                  ContextForge
-                </span>
-                <span className="text-[10px] font-mono text-muted">
-                  Agentic IDE v2.5
-                </span>
-              </div>
+              <span className="text-sm font-semibold tracking-tight text-ink">
+                Context<span className="text-primary">Forge</span>
+              </span>
             </Link>
-
-            <button
-              onClick={() => {
-                createNewChatSession()
-                onCloseMobile?.()
-              }}
-              title="New Chat Session"
-              className="p-1.5 rounded-lg bg-surface-card border border-hairline hover:border-primary/40 text-muted hover:text-ink transition-colors cursor-pointer"
-            >
-              <Plus size={15} />
-            </button>
+            <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface-strong text-muted">
+              AI OS
+            </span>
           </div>
 
-          {/* Quick Chat Sessions Accordion */}
+          {/* New Chat Primary Button */}
+          <button
+            onClick={() => {
+              createNewChatSession()
+              onCloseMobile?.()
+            }}
+            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            <Plus size={14} />
+            <span>New Chat</span>
+          </button>
+        </div>
+
+        {/* Navigation & Chat Sessions List */}
+        <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
+          {/* Main Navigation */}
           <div className="space-y-1">
-            <div className="flex items-center justify-between text-[11px] font-mono text-muted px-1">
-              <span>ACTIVE THREADS</span>
-              <span>{chatSessions.length}</span>
+            <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-caption text-muted">
+              Workspace Nav
             </div>
 
-            <div className="max-h-36 overflow-y-auto space-y-0.5 pr-1 font-sans">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon
+              const isActive = location.pathname === item.path
+
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={onCloseMobile}
+                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                    isActive
+                      ? 'bg-ink text-canvas shadow-xs font-semibold'
+                      : 'text-body hover:text-ink hover:bg-surface-card'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon size={16} className={isActive ? 'text-primary' : 'text-muted'} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold ${
+                        isActive ? 'bg-primary text-on-primary' : item.badgeColor
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* Recent Chat History */}
+          <div className="space-y-1 pt-2 border-t border-hairline">
+            <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-caption text-muted flex items-center justify-between">
+              <span>Chat Sessions</span>
+              <span className="text-[10px] font-mono text-muted">{chatSessions.length}</span>
+            </div>
+
+            <div className="space-y-1 max-h-52 overflow-y-auto pr-0.5">
               {chatSessions.map((session) => {
-                const isActive = session.id === activeSessionId
+                const isCurrent =
+                  session.id === activeSessionId &&
+                  (location.pathname === '/dashboard' || location.pathname === '/chat')
                 const isEditing = editingSessionId === session.id
 
                 return (
                   <div
                     key={session.id}
                     className={`group relative flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
-                      isActive
-                        ? 'bg-primary/10 text-primary font-medium border border-primary/20'
+                      isCurrent
+                        ? 'bg-surface-strong text-ink font-medium border border-hairline'
                         : 'text-muted hover:text-ink hover:bg-surface-card'
                     }`}
                   >
@@ -149,53 +192,68 @@ export default function WorkspaceSidebar({
                       <div className="flex items-center gap-1 flex-1 min-w-0">
                         <input
                           type="text"
+                          autoFocus
                           value={editingTitle}
                           onChange={(e) => setEditingTitle(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                              renameChatSession(session.id, editingTitle)
-                              setEditingSessionId(null)
-                            } else if (e.key === 'Escape') {
+                              if (editingTitle.trim()) {
+                                renameChatSession(session.id, editingTitle.trim())
+                              }
                               setEditingSessionId(null)
                             }
+                            if (e.key === 'Escape') setEditingSessionId(null)
                           }}
-                          autoFocus
-                          className="w-full bg-canvas px-1.5 py-0.5 text-xs rounded border border-primary focus:outline-hidden text-ink font-sans"
+                          className="flex-1 min-w-0 bg-canvas border border-primary px-2 py-0.5 rounded text-xs text-ink focus:outline-hidden font-sans"
                         />
                         <button
+                          type="button"
                           onClick={() => {
-                            renameChatSession(session.id, editingTitle)
+                            if (editingTitle.trim()) {
+                              renameChatSession(session.id, editingTitle.trim())
+                            }
                             setEditingSessionId(null)
                           }}
-                          className="p-1 text-emerald-500 hover:text-emerald-600"
+                          className="p-1 rounded text-semantic-success hover:bg-semantic-success/15 transition-colors cursor-pointer"
+                          title="Save title (Enter)"
                         >
                           <Check size={12} />
                         </button>
                         <button
+                          type="button"
                           onClick={() => setEditingSessionId(null)}
-                          className="p-1 text-muted hover:text-ink"
+                          className="p-1 rounded text-muted hover:text-ink transition-colors cursor-pointer"
+                          title="Cancel (Esc)"
                         >
                           <X size={12} />
                         </button>
                       </div>
                     ) : (
                       <>
-                        <button
+                        <Link
+                          to="/dashboard"
                           onClick={() => {
                             switchChatSession(session.id)
                             onCloseMobile?.()
                           }}
-                          className="flex-1 text-left truncate cursor-pointer"
+                          className="flex items-center gap-2 truncate flex-1 min-w-0 py-0.5 cursor-pointer"
                         >
-                          <span className="truncate block">
-                            {session.title || 'Untitled Session'}
-                          </span>
-                        </button>
+                          <MessageSquare
+                            size={13}
+                            className={`shrink-0 ${
+                              isCurrent ? 'text-primary' : 'text-muted'
+                            }`}
+                          />
+                          <span className="truncate">{session.title || 'Untitled Chat'}</span>
+                        </Link>
 
-                        {/* Session Actions Menu */}
+                        {/* Context Menu Button */}
                         <div className="relative">
                           <button
+                            type="button"
+                            title="Chat options"
                             onClick={(e) => {
+                              e.preventDefault()
                               e.stopPropagation()
                               setOpenMenuSessionId(
                                 openMenuSessionId === session.id
@@ -203,38 +261,55 @@ export default function WorkspaceSidebar({
                                   : session.id,
                               )
                             }}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-ink rounded transition-opacity cursor-pointer"
+                            className={`p-1 rounded text-muted hover:text-ink hover:bg-surface-strong transition-all shrink-0 cursor-pointer ${
+                              openMenuSessionId === session.id
+                                ? 'opacity-100 bg-surface-strong text-ink'
+                                : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
+                            }`}
                           >
                             <MoreVertical size={13} />
                           </button>
 
                           {openMenuSessionId === session.id && (
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className="absolute right-0 top-6 z-50 w-28 bg-canvas border border-hairline rounded-lg shadow-lg py-1 text-xs"
-                            >
-                              <button
-                                onClick={() => {
-                                  setEditingSessionId(session.id)
-                                  setEditingTitle(session.title)
+                            <>
+                              <div
+                                className="fixed inset-0 z-20"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
                                   setOpenMenuSessionId(null)
                                 }}
-                                className="w-full px-2.5 py-1 text-left hover:bg-surface-card flex items-center gap-1.5 text-muted hover:text-ink cursor-pointer"
-                              >
-                                <Edit2 size={11} />
-                                <span>Rename</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  deleteChatSession(session.id)
-                                  setOpenMenuSessionId(null)
-                                }}
-                                className="w-full px-2.5 py-1 text-left hover:bg-semantic-error/10 text-semantic-error flex items-center gap-1.5 cursor-pointer"
-                              >
-                                <Trash2 size={11} />
-                                <span>Delete</span>
-                              </button>
-                            </div>
+                              />
+                              <div className="absolute right-0 top-full mt-1 w-36 rounded-lg bg-surface-card border border-hairline shadow-md py-1 z-30 space-y-0.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setEditingSessionId(session.id)
+                                    setEditingTitle(session.title)
+                                    setOpenMenuSessionId(null)
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-body hover:text-ink hover:bg-surface-strong text-left cursor-pointer"
+                                >
+                                  <Edit2 size={12} className="text-muted" />
+                                  <span>Rename</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setOpenMenuSessionId(null)
+                                    deleteChatSession(session.id)
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-semantic-error hover:bg-semantic-error/10 text-left cursor-pointer"
+                                >
+                                  <Trash2 size={12} />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            </>
                           )}
                         </div>
                       </>
@@ -244,66 +319,40 @@ export default function WorkspaceSidebar({
               })}
             </div>
           </div>
-        </div>
 
-        {/* Primary Navigation Items */}
-        <div className="flex-1 p-3 space-y-1 overflow-y-auto font-sans">
-          <div className="text-[11px] font-mono text-muted px-2 py-1">
-            WORKSPACE NAVIGATION
+          {/* Safety & Grounding Badge */}
+          <div className="px-2.5 py-2 rounded-lg bg-canvas-soft border border-hairline space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-ink">
+              <ShieldCheck size={14} className="text-semantic-success" />
+              <span>Multi-Source AI Engine</span>
+            </div>
+            <p className="text-[11px] text-muted leading-tight">
+              Obsidian Vault, Calendar, Android MCP, and Web Search connected seamlessly behind the scenes.
+            </p>
           </div>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname === item.path
+        </nav>
 
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={onCloseMobile}
-                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors group cursor-pointer ${
-                  isActive
-                    ? 'bg-primary/10 text-primary font-medium border border-primary/20 shadow-2xs'
-                    : 'text-muted hover:text-ink hover:bg-surface-card border border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon
-                    size={16}
-                    className={
-                      isActive
-                        ? 'text-primary'
-                        : 'text-muted group-hover:text-ink transition-colors'
-                    }
-                  />
-                  <span>{item.label}</span>
-                </div>
+        {/* Bottom Bar: Back to Landing Page & User Profile */}
+        <div className="p-3 border-t border-hairline space-y-2 bg-canvas-soft">
+          <Link
+            to="/"
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted hover:text-ink hover:bg-surface-card transition-colors cursor-pointer"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Home</span>
+          </Link>
 
-                {item.badge && (
-                  <span
-                    className={`text-[10px] font-mono px-2 py-0.5 rounded-full border border-hairline/60 ${item.badgeColor}`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            )
-          })}
-        </div>
-
-        {/* User / Workspace Footer */}
-        <div className="p-3 border-t border-hairline bg-canvas-soft flex items-center justify-between text-xs text-muted font-sans">
-          <div className="flex items-center gap-2 truncate">
-            <div className="w-6 h-6 rounded-full bg-surface-card border border-hairline flex items-center justify-center font-bold text-[10px] text-primary">
-              AI
-            </div>
-            <div className="truncate">
-              <div className="font-semibold text-ink truncate text-[11px]">
-                Developer Workspace
+          <div className="flex items-center justify-between pt-2 border-t border-hairline-soft px-1">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center font-mono text-xs font-bold">
+                CF
               </div>
-              <div className="text-[9px] font-mono text-muted truncate">
-                Local Active Environment
+              <div>
+                <div className="text-xs font-medium text-ink">Lead Architect</div>
+                <div className="text-[10px] text-muted font-mono">Auto-Agent Pro</div>
               </div>
             </div>
+            <Sparkles size={14} className="text-primary" />
           </div>
         </div>
       </aside>

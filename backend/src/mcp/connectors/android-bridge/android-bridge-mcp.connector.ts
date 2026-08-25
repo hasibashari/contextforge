@@ -6,6 +6,7 @@ import {
   McpTransportType,
 } from '../../core';
 import { AndroidBridgeApiClient } from './android-bridge-api.client';
+import { AndroidBridgeGatewayService } from './android-bridge.gateway';
 import { ANDROID_BRIDGE_MCP_TOOLS } from './android-bridge-tools.definition';
 import {
   formatDurationMs,
@@ -15,7 +16,13 @@ import {
   getFriendlyAppName,
   validatePackageName,
 } from './android-bridge-parser.engine';
-import { AndroidBridgeConfig } from './android-bridge.types';
+import {
+  AndroidActiveRestrictionsResponse,
+  AndroidAppUsageItem,
+  AndroidBridgeConfig,
+  AndroidForegroundAppResponse,
+  AndroidUsageSummaryResponse,
+} from './android-bridge.types';
 
 @Injectable()
 export class AndroidBridgeMcpConnector extends BaseMcpConnector {
@@ -28,7 +35,10 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
   private endpoint = 'http://127.0.0.1:8080';
   private deviceName = 'Android Native MCP Device';
 
-  constructor(private readonly apiClient: AndroidBridgeApiClient) {
+  constructor(
+    private readonly apiClient: AndroidBridgeApiClient,
+    private readonly gateway: AndroidBridgeGatewayService,
+  ) {
     super(AndroidBridgeMcpConnector.name);
   }
 
@@ -62,24 +72,44 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
   }
 
   /**
-   * The Android bridge server operates on localhost/LAN.
-   * If endpoint is defined, consider it configured.
+   * Connected if either WebSocket client is active or endpoint is defined
    */
   override isConnected(): boolean {
-    return Boolean(this.endpoint && this.endpoint.length > 0);
+    return (
+      this.gateway.isBridgeConnected() ||
+      Boolean(this.endpoint && this.endpoint.length > 0)
+    );
   }
 
   /**
-   * Execute MCP Tools on Android Device
+   * Execute MCP Tools on Android Device (via WebSocket or HTTP fallback)
    */
   async executeTool(
     toolName: string,
     params: Record<string, unknown>,
   ): Promise<McpToolCallResult> {
     return this.safeExecute(toolName, async () => {
+      const isWs = this.gateway.isBridgeConnected();
+
       switch (toolName) {
         // 1. DEVICE DIAGNOSTICS & PING
         case 'android_get_device_status': {
+          if (isWs) {
+            const devInfo = this.gateway.getDeviceInfo();
+            return {
+              data: {
+                endpoint: 'WebSocket (/api/android-bridge/ws)',
+                status: 'connected',
+                latencyMs: 2,
+                device: devInfo.deviceName,
+                androidVersion: devInfo.androidVersion || '14',
+                batteryLevel: devInfo.batteryLevel ?? 100,
+                transport: 'websocket',
+              },
+              summary: `📱 Android WebSocket Bridge aktif & terhubung (${devInfo.deviceName}, Android ${devInfo.androidVersion || 'Native'}, Baterai: ${devInfo.batteryLevel ?? 100}%).`,
+            };
+          }
+
           const probe = await this.apiClient.ping(
             this.endpoint,
             this.authToken,
@@ -101,10 +131,18 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
 
         // 2. GET RAW USAGE STATS
         case 'android_get_usage': {
-          const usageList = await this.apiClient.getUsage(
-            this.endpoint,
-            this.authToken,
-          );
+          let usageList: AndroidAppUsageItem[];
+          if (isWs) {
+            usageList = await this.gateway.dispatchBridgeRequest<
+              AndroidAppUsageItem[]
+            >('get_usage', params);
+          } else {
+            usageList = await this.apiClient.getUsage(
+              this.endpoint,
+              this.authToken,
+            );
+          }
+
           const formattedText = formatRawUsageList(usageList);
 
           return {
@@ -123,10 +161,20 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
 
         // 3. GET DIGITAL WELLBEING USAGE SUMMARY
         case 'android_get_usage_summary': {
-          const summary = await this.apiClient.getUsageSummary(
-            this.endpoint,
-            this.authToken,
-          );
+          let summary: AndroidUsageSummaryResponse;
+          if (isWs) {
+            summary =
+              await this.gateway.dispatchBridgeRequest<AndroidUsageSummaryResponse>(
+                'get_usage_summary',
+                params,
+              );
+          } else {
+            summary = await this.apiClient.getUsageSummary(
+              this.endpoint,
+              this.authToken,
+            );
+          }
+
           const formattedReport = formatUsageSummaryReport(summary);
 
           return {
@@ -154,12 +202,25 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
 
         // 4. GET CURRENT FOREGROUND APPLICATION
         case 'android_get_foreground_app': {
-          const res = await this.apiClient.getForegroundApp(
-            this.endpoint,
-            this.authToken,
-          );
-          const appPkg = res.currentForegroundApp || 'Unknown / Home Screen';
-          const friendlyName = getFriendlyAppName(appPkg);
+          let appPkg = 'Unknown / Home Screen';
+          let friendlyName = 'Home Screen';
+
+          if (isWs) {
+            const res =
+              await this.gateway.dispatchBridgeRequest<AndroidForegroundAppResponse>(
+                'get_foreground_app',
+                params,
+              );
+            appPkg = res.currentForegroundApp || 'Unknown / Home Screen';
+            friendlyName = res.friendlyName || getFriendlyAppName(appPkg);
+          } else {
+            const res = await this.apiClient.getForegroundApp(
+              this.endpoint,
+              this.authToken,
+            );
+            appPkg = res.currentForegroundApp || 'Unknown / Home Screen';
+            friendlyName = getFriendlyAppName(appPkg);
+          }
 
           return {
             data: {
@@ -190,21 +251,29 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
           }
 
           validatePackageName(packageName);
-
-          const res = await this.apiClient.setAppLimit(
-            this.endpoint,
-            packageName,
-            maxDailyMinutes,
-            this.authToken,
-          );
           const friendlyName = getFriendlyAppName(packageName);
+
+          let res: { status?: string; message?: string };
+          if (isWs) {
+            res = await this.gateway.dispatchBridgeRequest<{
+              status?: string;
+              message?: string;
+            }>('set_app_limit', { packageName, maxDailyMinutes });
+          } else {
+            res = await this.apiClient.setAppLimit(
+              this.endpoint,
+              packageName,
+              maxDailyMinutes,
+              this.authToken,
+            );
+          }
 
           return {
             data: {
               packageName,
               friendlyName,
               maxDailyMinutes,
-              status: res.status,
+              status: res.status || 'success',
               message: res.message,
             },
             summary: `⏳ Berhasil menetapkan batas waktu penggunaan **${maxDailyMinutes} menit/hari** untuk aplikasi **${friendlyName}** (\`${packageName}\`).`,
@@ -222,21 +291,29 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
           }
 
           validatePackageName(packageName);
-
-          const res = await this.apiClient.blockApp(
-            this.endpoint,
-            packageName,
-            block,
-            this.authToken,
-          );
           const friendlyName = getFriendlyAppName(packageName);
+
+          let res: { status?: string; message?: string };
+          if (isWs) {
+            res = await this.gateway.dispatchBridgeRequest<{
+              status?: string;
+              message?: string;
+            }>('block_app', { packageName, block });
+          } else {
+            res = await this.apiClient.blockApp(
+              this.endpoint,
+              packageName,
+              block,
+              this.authToken,
+            );
+          }
 
           return {
             data: {
               packageName,
               friendlyName,
               blocked: block,
-              status: res.status,
+              status: res.status || 'success',
               message: res.message,
             },
             summary: block
@@ -247,10 +324,20 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
 
         // 7. GET ACTIVE RESTRICTIONS
         case 'android_get_active_restrictions': {
-          const restrictions = await this.apiClient.getActiveRestrictions(
-            this.endpoint,
-            this.authToken,
-          );
+          let restrictions: AndroidActiveRestrictionsResponse;
+          if (isWs) {
+            restrictions =
+              await this.gateway.dispatchBridgeRequest<AndroidActiveRestrictionsResponse>(
+                'get_active_restrictions',
+                params,
+              );
+          } else {
+            restrictions = await this.apiClient.getActiveRestrictions(
+              this.endpoint,
+              this.authToken,
+            );
+          }
+
           const report = formatRestrictionsReport(restrictions);
 
           return {
@@ -264,16 +351,23 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
           const enable =
             params.enable !== undefined ? Boolean(params.enable) : true;
 
-          const res = await this.apiClient.setDnd(
-            this.endpoint,
-            enable,
-            this.authToken,
-          );
+          let res: { status?: string };
+          if (isWs) {
+            res = await this.gateway.dispatchBridgeRequest<{
+              status?: string;
+            }>('set_dnd', { enable });
+          } else {
+            res = await this.apiClient.setDnd(
+              this.endpoint,
+              enable,
+              this.authToken,
+            );
+          }
 
           return {
             data: {
               dndEnabled: enable,
-              status: res.status,
+              status: res.status || 'success',
             },
             summary: enable
               ? `🔕 Mode **Do Not Disturb (DND)** berhasil **diaktifkan** pada perangkat Android untuk sesi fokus.`
@@ -296,18 +390,25 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
             );
           }
 
-          const res = await this.apiClient.sendNotification(
-            this.endpoint,
-            title,
-            message,
-            this.authToken,
-          );
+          let res: { status?: string };
+          if (isWs) {
+            res = await this.gateway.dispatchBridgeRequest<{
+              status?: string;
+            }>('send_notification', { title, message });
+          } else {
+            res = await this.apiClient.sendNotification(
+              this.endpoint,
+              title,
+              message,
+              this.authToken,
+            );
+          }
 
           return {
             data: {
               title,
               message,
-              status: res.status,
+              status: res.status || 'success',
             },
             summary: `📬 Notifikasi lokal berhasil dikirim ke perangkat Android:\n**${title}**: ${message}`,
           };
@@ -329,6 +430,15 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
     message?: string;
     latencyMs: number;
   }> {
+    if (this.gateway.isBridgeConnected()) {
+      const devInfo = this.gateway.getDeviceInfo();
+      return {
+        status: 'connected',
+        message: `📱 Connected via WebSocket (${devInfo.deviceName})`,
+        latencyMs: 2,
+      };
+    }
+
     const probe = await this.apiClient.ping(this.endpoint, this.authToken);
     return {
       status: probe.status,

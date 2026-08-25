@@ -90,8 +90,20 @@ export class ObsidianBridgeGatewayService
 
     try {
       this.wss = new WebSocketServer({
-        server,
-        path: '/api/obsidian-bridge/ws',
+        noServer: true,
+      });
+
+      server.on('upgrade', (request, socket, head) => {
+        try {
+          const pathname = (request.url || '').split('?')[0];
+          if (pathname === '/api/obsidian-bridge/ws') {
+            this.wss?.handleUpgrade(request, socket, head, (ws) => {
+              this.wss?.emit('connection', ws, request);
+            });
+          }
+        } catch (err: unknown) {
+          this.logger.warn(`Upgrade routing error: ${String(err)}`);
+        }
       });
 
       this.wss.on('connection', (ws: WsClient, req) => {
