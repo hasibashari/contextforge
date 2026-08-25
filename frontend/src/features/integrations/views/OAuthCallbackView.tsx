@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   CheckCircle2,
@@ -19,7 +19,6 @@ export default function OAuthCallbackView() {
   const errorMsg = searchParams.get('error') || 'Authorization was not completed.'
 
   const isSuccess = status === 'success'
-  const [countdown, setCountdown] = useState<number>(3)
 
   const isGoogle = provider.includes('google') || provider.includes('calendar')
   const isNotion = provider.includes('notion')
@@ -74,23 +73,16 @@ export default function OAuthCallbackView() {
       }
     }
 
-    // Auto-countdown to close window or redirect
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval)
-          if (window.opener) {
-            window.close()
-          } else {
-            navigate('/integrations', { replace: true })
-          }
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+    // One-shot auto-close window or redirect
+    const timer = setTimeout(() => {
+      if (window.opener) {
+        window.close()
+      } else {
+        navigate('/integrations', { replace: true })
+      }
+    }, 1500)
 
-    return () => clearInterval(interval)
+    return () => clearTimeout(timer)
   }, [isSuccess, provider, account, errorMsg, isGoogle, isNotion, navigate])
 
   return (
@@ -166,8 +158,7 @@ export default function OAuthCallbackView() {
           </button>
 
           <p className="text-[11px] text-muted font-mono">
-            Closing window automatically in{' '}
-            <strong className="text-ink font-semibold">{countdown}s</strong>...
+            Closing window automatically...
           </p>
         </div>
       </div>

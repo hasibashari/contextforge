@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState, type FC } from 'react'
 import {
   CheckCircle2,
   Sparkles,
@@ -26,7 +26,7 @@ interface ConnectionSuccessModalProps {
   onTest?: (id: string) => Promise<void> | void
 }
 
-export const ConnectionSuccessModal: React.FC<ConnectionSuccessModalProps> = ({
+export const ConnectionSuccessModal: FC<ConnectionSuccessModalProps> = ({
   integration,
   accountName,
   isOpen,

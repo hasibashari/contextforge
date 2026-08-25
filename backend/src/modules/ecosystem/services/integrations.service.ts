@@ -10,6 +10,7 @@ import { McpToolDefinition } from '../../../mcp/core';
 import { ObsidianVaultService } from '../../../mcp/connectors/obsidian/obsidian-vault.service';
 import { EncryptionService } from '../../../common/security/encryption.service';
 import { AndroidBridgeGatewayService } from '../../../mcp/connectors/android-bridge/android-bridge.gateway';
+import { EcosystemEventsService } from './ecosystem-events.service';
 import {
   WorkspaceIntegrationRow,
   McpDiscoveredTool,
@@ -27,6 +28,8 @@ export class IntegrationsService {
     private readonly encryption: EncryptionService,
     @Optional()
     private readonly androidBridgeGateway?: AndroidBridgeGatewayService,
+    @Optional()
+    private readonly eventsService?: EcosystemEventsService,
   ) {}
 
   // ==========================================
@@ -189,7 +192,29 @@ export class IntegrationsService {
     ) {
       await this.obsidianVaultService.refreshVaultRootFromDb();
     }
-    return this.maskAuthConfigForClient(updated);
+    if (
+      (id === 'int-android-bridge-mcp' ||
+        id.toLowerCase().includes('android')) &&
+      updates.status === 'disconnected'
+    ) {
+      this.androidBridgeGateway?.disconnectAllClients(
+        'User disconnected from Desktop',
+      );
+    }
+
+    if (updates.status === 'connected') {
+      this.logger.log(`✨ [MCP: ${updated.name}] Connected (${id})`);
+    } else if (updates.status === 'disconnected') {
+      this.logger.log(`🔌 [MCP: ${updated.name}] Disconnected (${id})`);
+    }
+
+    const clientSafe = this.maskAuthConfigForClient(updated);
+    this.eventsService?.emitIntegrationStatus(
+      id,
+      clientSafe.status,
+      clientSafe,
+    );
+    return clientSafe;
   }
 
   async discoverTools(id: string): Promise<{

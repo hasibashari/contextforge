@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, type FC } from 'react'
 import {
   ShieldCheck,
   CheckCircle2,
@@ -29,7 +29,7 @@ import type {
   PairingSessionData,
 } from './android-bridge.types'
 
-export const AndroidBridgeConnectModal: React.FC<
+export const AndroidBridgeConnectModal: FC<
   AndroidBridgeConnectModalProps
 > = ({ integration, isOpen, onClose, onSuccess }) => {
   const { updateConnectorConfig, refreshIntegrations, showToast } =
@@ -69,8 +69,6 @@ export const AndroidBridgeConnectModal: React.FC<
     deviceEndpoint: string
   } | null>(null)
 
-  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // 1. Refresh Pairing Session (User-triggered or expiration)
   const refreshPairingSession = useCallback(
@@ -194,69 +192,68 @@ export const AndroidBridgeConnectModal: React.FC<
     }
   }, [isOpen, showToast])
 
-  // 2. Countdown Timer
+  // 2. One-shot timeout on session expiration (Zero polling)
   useEffect(() => {
     if (!isOpen || !session || session.status !== 'waiting') return
 
-    countdownTimerRef.current = setInterval(() => {
-      const remaining = Math.max(
-        0,
-        Math.floor((session.expiresAt - Date.now()) / 1000),
-      )
-      setSecondsRemaining(remaining)
-      if (remaining <= 0) {
-        setSession((prev) => (prev ? { ...prev, status: 'expired' } : null))
-        if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
-      }
-    }, 1000)
+    const timeUntilExpiry = Math.max(0, session.expiresAt - Date.now())
+    const timer = setTimeout(() => {
+      setSession((prev) => (prev ? { ...prev, status: 'expired' } : null))
+      setSecondsRemaining(0)
+    }, timeUntilExpiry)
 
     return () => {
-      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
+      clearTimeout(timer)
     }
   }, [isOpen, session])
 
-  // 3. Polling for mobile handshake scan confirmation
+  // 3. Real-Time Event-Driven listener for mobile scan & handshake confirmation
   useEffect(() => {
     if (!isOpen || !session || session.status !== 'waiting') return
 
-    const pollStatus = async () => {
-      try {
-        const res = await ecosystemApi.checkAndroidPairingStatus(
-          session.sessionId,
-        )
-        if (res) {
-          if (res.status === 'confirmed' && res.deviceInfo) {
-            setIsPairingSuccess(true)
-            setPairedDeviceInfo({
-              deviceName: res.deviceInfo.deviceName,
-              deviceEndpoint: res.deviceInfo.deviceEndpoint,
-            })
-            showToast(
-              `✨ Device "${res.deviceInfo.deviceName}" paired successfully!`,
-              'success',
-            )
-            await refreshIntegrations()
-
-            // Auto-close modal after brief celebration
-            setTimeout(() => {
-              onSuccess?.()
-              onClose()
-            }, 1500)
-          } else if (res.status === 'expired') {
-            setSession((prev) =>
-              prev ? { ...prev, status: 'expired' } : null,
-            )
-          }
+    const handlePairingUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        sessionId: string
+        status: 'waiting' | 'confirmed' | 'expired'
+        deviceInfo?: {
+          deviceName: string
+          deviceEndpoint?: string
+          androidVersion?: string
+          batteryLevel?: number
         }
-      } catch {
-        // Silent catch during background poll
+      }>
+      const data = customEvent.detail
+      if (!data) return
+
+      if (data.sessionId === session.sessionId || !data.sessionId) {
+        if (data.status === 'confirmed' && data.deviceInfo) {
+          setIsPairingSuccess(true)
+          setPairedDeviceInfo({
+            deviceName: data.deviceInfo.deviceName,
+            deviceEndpoint:
+              data.deviceInfo.deviceEndpoint || session.wsUrl || '',
+          })
+          showToast(
+            `✨ Device "${data.deviceInfo.deviceName}" paired successfully!`,
+            'success',
+          )
+          void refreshIntegrations()
+
+          // Auto-close modal after brief celebration
+          setTimeout(() => {
+            onSuccess?.()
+            onClose()
+          }, 1500)
+        } else if (data.status === 'expired') {
+          setSession((prev) => (prev ? { ...prev, status: 'expired' } : null))
+        }
       }
     }
 
-    pollingTimerRef.current = setInterval(pollStatus, 2000)
+    window.addEventListener('contextforge:pairing_updated', handlePairingUpdated)
 
     return () => {
-      if (pollingTimerRef.current) clearInterval(pollingTimerRef.current)
+      window.removeEventListener('contextforge:pairing_updated', handlePairingUpdated)
     }
   }, [isOpen, session, refreshIntegrations, showToast, onSuccess, onClose])
 

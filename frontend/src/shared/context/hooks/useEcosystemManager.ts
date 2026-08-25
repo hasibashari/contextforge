@@ -7,6 +7,10 @@ import type {
 } from '@/shared/types/workspace';
 import { ecosystemApi } from '@/shared/api/ecosystemApi';
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service';
+import {
+  useEcosystemEvents,
+  type IntegrationStatusEvent,
+} from './useEcosystemEvents';
 
 export function useEcosystemManager(
   showToast: (msg: string, type?: ToastType) => void,
@@ -15,6 +19,25 @@ export function useEcosystemManager(
   const [skills, setSkills] = useState<Skill[]>([]);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Real-time Event-Driven integration updates via Server-Sent Events (SSE)
+  const handleRealtimeIntegrationUpdate = useCallback(
+    (event: IntegrationStatusEvent) => {
+      setIntegrations((prev) =>
+        prev.map((item) => {
+          if (item.id !== event.integrationId) return item;
+          return {
+            ...item,
+            status: event.status,
+            ...(event.payload ? (event.payload as Partial<Integration>) : {}),
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  useEcosystemEvents(handleRealtimeIntegrationUpdate);
 
   useEffect(() => {
     let isMounted = true;

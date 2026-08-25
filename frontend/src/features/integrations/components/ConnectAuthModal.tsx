@@ -1,4 +1,4 @@
-import React from 'react'
+import type { FC } from 'react'
 import type { Integration } from '@/shared/types/workspace'
 import { AndroidBridgeConnectModal } from './mcp/android-bridge/AndroidBridgeConnectModal'
 import { GoogleCalendarConnectModal } from './mcp/google-calendar/GoogleCalendarConnectModal'
@@ -17,7 +17,7 @@ export interface ConnectAuthModalProps {
  * Polymorphic MCP Connector Modal Dispatcher
  * Routes the active integration to its dedicated, isolated MCP connector modal.
  */
-export const ConnectAuthModal: React.FC<ConnectAuthModalProps> = ({
+export const ConnectAuthModal: FC<ConnectAuthModalProps> = ({
   integration,
   isOpen,
   onClose,

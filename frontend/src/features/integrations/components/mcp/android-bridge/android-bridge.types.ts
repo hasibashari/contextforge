@@ -23,6 +23,7 @@ export interface PairingSessionData {
   desktopHost: string
   desktopPort: number
   confirmUrl: string
+  wsUrl?: string
   qrPayloadJson: string
 }
 

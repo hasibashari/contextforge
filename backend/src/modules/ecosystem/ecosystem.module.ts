@@ -9,6 +9,7 @@ import { AgentsService } from './services/agents.service';
 import { SkillsService } from './services/skills.service';
 import { IntegrationsService } from './services/integrations.service';
 import { AndroidPairingService } from './services/android-pairing.service';
+import { EcosystemEventsService } from './services/ecosystem-events.service';
 
 @Module({
   imports: [DatabaseModule, SecurityModule, McpModule],
@@ -18,6 +19,7 @@ import { AndroidPairingService } from './services/android-pairing.service';
     SkillsService,
     IntegrationsService,
     AndroidPairingService,
+    EcosystemEventsService,
     EcosystemService,
     EcosystemRepository,
   ],
@@ -26,6 +28,7 @@ import { AndroidPairingService } from './services/android-pairing.service';
     SkillsService,
     IntegrationsService,
     AndroidPairingService,
+    EcosystemEventsService,
     EcosystemService,
     EcosystemRepository,
   ],

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState, type FC, type FormEvent } from 'react'
 import {
   CheckCircle2,
   Terminal,
@@ -53,7 +53,7 @@ interface ConnectorDetailContentProps {
   isTesting: boolean
 }
 
-const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
+const ConnectorDetailContent: FC<ConnectorDetailContentProps> = ({
   integration,
   onClose,
   onTest,
@@ -88,7 +88,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
 
   const isConnected = currentIntegration.status === 'connected'
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = (e: FormEvent) => {
     e.preventDefault()
     onSaveConfig?.(integration.id, {
       name: formData.name,
@@ -524,7 +524,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
   )
 }
 
-export const ConnectorDetailModal: React.FC<ConnectorDetailModalProps> = ({
+export const ConnectorDetailModal: FC<ConnectorDetailModalProps> = ({
   integration,
   onClose,
   onTest,

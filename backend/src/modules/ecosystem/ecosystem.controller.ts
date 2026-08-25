@@ -14,6 +14,7 @@ import { EcosystemService } from './ecosystem.service';
 import { NotionOAuthService } from '../../mcp/connectors/notion/notion-oauth.service';
 import { GoogleCalendarOAuthService } from '../../mcp/connectors/google-calendar/google-calendar-oauth.service';
 import { AndroidPairingService } from './services/android-pairing.service';
+import { EcosystemEventsService } from './services/ecosystem-events.service';
 import type {
   WorkspaceAgentRow,
   WorkspaceSkillRow,
@@ -27,7 +28,17 @@ export class EcosystemController {
     private readonly notionOAuthService: NotionOAuthService,
     private readonly googleCalendarOAuthService: GoogleCalendarOAuthService,
     private readonly androidPairingService: AndroidPairingService,
+    private readonly eventsService: EcosystemEventsService,
   ) {}
+
+  // ==========================================
+  // REAL-TIME EVENT STREAM (Server-Sent Events)
+  // ==========================================
+
+  @Get('events/stream')
+  streamEcosystemEvents(@Res() res: Response) {
+    return this.eventsService.addClient(res);
+  }
 
   // ==========================================
   // AGENTS

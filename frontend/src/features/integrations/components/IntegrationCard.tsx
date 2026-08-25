@@ -1,4 +1,4 @@
-import React from 'react'
+import type { FC } from 'react'
 import { Settings, Zap, Terminal, Globe } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
 import { IntegrationIconBox } from '@/shared/components/ui/IconBox'
@@ -10,7 +10,7 @@ interface IntegrationCardProps {
   onConnect?: () => void
 }
 
-export const IntegrationCard: React.FC<IntegrationCardProps> = ({
+export const IntegrationCard: FC<IntegrationCardProps> = ({
   integration,
   onOpenDetail,
   onConnect,

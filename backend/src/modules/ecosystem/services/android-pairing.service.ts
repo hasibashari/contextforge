@@ -13,6 +13,7 @@ import { IntegrationsService } from './integrations.service';
 import { McpRegistryService } from '../../../mcp/core';
 import { AndroidBridgeMcpConnector } from '../../../mcp/connectors/android-bridge/android-bridge-mcp.connector';
 import { AndroidBridgeGatewayService } from '../../../mcp/connectors/android-bridge/android-bridge.gateway';
+import { EcosystemEventsService } from './ecosystem-events.service';
 
 export interface AndroidPairingSession {
   sessionId: string;
@@ -58,16 +59,35 @@ export class AndroidPairingService implements OnModuleInit {
     @Optional()
     private readonly androidBridgeGateway?: AndroidBridgeGatewayService,
     @Optional() private readonly configService?: ConfigService,
-  ) {
-    // Periodic cleanup of expired sessions every 2 minutes
-    setInterval(() => this.cleanupExpiredSessions(), 2 * 60 * 1000);
-  }
+    @Optional()
+    private readonly eventsService?: EcosystemEventsService,
+  ) {}
 
   onModuleInit() {
     if (this.androidBridgeGateway) {
       this.androidBridgeGateway.onDeviceConnected((deviceInfo) => {
         void this.handleDeviceConnected(deviceInfo);
       });
+
+      this.androidBridgeGateway.onDeviceDisconnected(() => {
+        void this.handleDeviceDisconnected();
+      });
+    }
+  }
+
+  private async handleDeviceDisconnected() {
+    this.logger.log(
+      '⚡ [AndroidPairingService] Android device disconnected. Updating database to disconnected state.',
+    );
+    try {
+      await this.integrationsService.updateIntegration(
+        'int-android-bridge-mcp',
+        {
+          status: 'disconnected',
+        },
+      );
+    } catch (err: unknown) {
+      this.logger.warn(`Failed to update DB on disconnection: ${String(err)}`);
     }
   }
 
@@ -91,6 +111,11 @@ export class AndroidPairingService implements OnModuleInit {
           batteryLevel: deviceInfo.batteryLevel,
           pairedAt: Date.now(),
         };
+        this.eventsService?.emitPairingSessionUpdate(
+          session.sessionId,
+          'confirmed',
+          session.deviceInfo,
+        );
       }
     }
 

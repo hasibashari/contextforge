@@ -57,6 +57,7 @@ export class AndroidBridgeGatewayService
 
   private deviceConnectedListeners: Array<(info: AndroidDeviceInfo) => void> =
     [];
+  private deviceDisconnectedListeners: Array<() => void> = [];
 
   public onDeviceConnected(listener: (info: AndroidDeviceInfo) => void) {
     this.deviceConnectedListeners.push(listener);
@@ -68,6 +69,49 @@ export class AndroidBridgeGatewayService
         this.logger.warn(`Immediate device listener error: ${String(e)}`);
       }
     }
+  }
+
+  public onDeviceDisconnected(listener: () => void) {
+    this.deviceDisconnectedListeners.push(listener);
+  }
+
+  private notifyDisconnected() {
+    this.deviceDisconnectedListeners.forEach((fn) => {
+      try {
+        fn();
+      } catch (e) {
+        this.logger.warn(`Device disconnected listener error: ${String(e)}`);
+      }
+    });
+  }
+
+  /**
+   * Explicitly disconnects all active Android clients (e.g. user clicked Disconnect in UI)
+   */
+  public disconnectAllClients(reason = 'User disconnected from Desktop') {
+    this.logger.log(`🔌 Disconnecting all Android clients: ${reason}`);
+
+    for (const ws of this.activeClients) {
+      try {
+        if (ws.readyState === WsClient.OPEN) {
+          // Send explicit disconnect message to trigger immediate exit on Android
+          ws.send(
+            JSON.stringify({
+              type: 'server_disconnect',
+              reason,
+              timestamp: Date.now(),
+            }),
+          );
+          ws.close(1000, reason);
+        }
+      } catch (err: unknown) {
+        this.logger.warn(`Error closing client socket: ${String(err)}`);
+      }
+    }
+
+    this.activeClients.clear();
+    this.activeDeviceInfo.connected = false;
+    this.notifyDisconnected();
   }
 
   onModuleInit() {
@@ -126,6 +170,7 @@ export class AndroidBridgeGatewayService
           this.activeClients.delete(ws);
           if (this.activeClients.size === 0) {
             this.activeDeviceInfo.connected = false;
+            this.notifyDisconnected();
           }
         });
 
@@ -136,6 +181,7 @@ export class AndroidBridgeGatewayService
           this.activeClients.delete(ws);
           if (this.activeClients.size === 0) {
             this.activeDeviceInfo.connected = false;
+            this.notifyDisconnected();
           }
         });
 
