@@ -27,7 +27,77 @@ export class McpGatewayService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    await this.initCoreConnectorsFromDb();
     await this.refreshRemoteServersFromDb();
+  }
+
+  /**
+   * 🔐 Preload credentials for core built-in MCP connectors (Google Calendar, Notion) from PostgreSQL
+   */
+  async initCoreConnectorsFromDb(): Promise<void> {
+    try {
+      const res = await this.db.query<{
+        id: string;
+        endpoint: string;
+        auth_config: {
+          token?: string;
+          apiKey?: string;
+          refreshToken?: string;
+          workspaceName?: string;
+        };
+        status: string;
+      }>(
+        `SELECT id, endpoint, auth_config, status 
+         FROM workspace_integrations 
+         WHERE id IN ('int-google-calendar-mcp', 'int-notion-mcp');`,
+      );
+
+      for (const row of res.rows) {
+        if (row.id === 'int-google-calendar-mcp') {
+          const server = this.registry.getServer('int-google-calendar-mcp');
+          if (server instanceof GoogleCalendarMcpConnector) {
+            const rawToken = row.auth_config?.token;
+            const rawRefreshToken = row.auth_config?.refreshToken;
+            const decryptedToken = rawToken
+              ? this.encryption.decrypt(rawToken)
+              : undefined;
+            const decryptedRefreshToken = rawRefreshToken
+              ? this.encryption.decrypt(rawRefreshToken)
+              : undefined;
+
+            server.configure({
+              endpoint: row.endpoint,
+              token: decryptedToken,
+              refreshToken: decryptedRefreshToken,
+            });
+            this.logger.log(
+              `🔑 Loaded Google Calendar MCP credentials from PostgreSQL (status: ${row.status})`,
+            );
+          }
+        } else if (row.id === 'int-notion-mcp') {
+          const server = this.registry.getServer('int-notion-mcp');
+          if (server instanceof NotionMcpConnector) {
+            const rawToken = row.auth_config?.token || row.auth_config?.apiKey;
+            const decryptedToken = rawToken
+              ? this.encryption.decrypt(rawToken)
+              : undefined;
+
+            server.configure({
+              endpoint: row.endpoint,
+              token: decryptedToken,
+              apiKey: decryptedToken,
+            });
+            this.logger.log(
+              `🔑 Loaded Notion MCP credentials from PostgreSQL (status: ${row.status})`,
+            );
+          }
+        }
+      }
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Could not preload core MCP connector credentials: ${String(err)}`,
+      );
+    }
   }
 
   /**

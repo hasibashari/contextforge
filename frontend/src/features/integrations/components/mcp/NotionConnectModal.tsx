@@ -23,14 +23,9 @@ export const NotionConnectModal: React.FC<NotionConnectModalProps> = ({
   integration,
   isOpen,
   onClose,
-  onSuccess,
 }) => {
-  const { updateConnectorConfig, discoverTools, refreshIntegrations, showToast } =
-    useWorkspace()
-
+  const { showToast } = useWorkspace()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const workspaceName =
-    (integration.authConfig?.workspaceName as string) || 'Notion Workspace'
 
   const handleNotionDirectConnect = async () => {
     setIsSubmitting(true)
@@ -47,21 +42,10 @@ export const NotionConnectModal: React.FC<NotionConnectModalProps> = ({
 
       window.open(targetUrl, '_blank', 'noopener,noreferrer')
 
-      updateConnectorConfig(integration.id, {
-        status: 'connected',
-        endpoint: 'https://mcp.notion.com/mcp',
-        transport: 'streamable_http',
-        authType: 'oauth',
-        authConfig: {
-          workspaceName: workspaceName.trim() || 'Notion Workspace',
-        },
-      })
-
-      await discoverTools(integration.id)
-      await refreshIntegrations()
-
-      showToast('✨ Successfully initiated Notion MCP authorization!', 'success')
-      onSuccess?.()
+      showToast(
+        '✨ Notion authorization opened in new tab. Please grant access to finish connecting.',
+        'info',
+      )
       onClose()
     } catch (err: unknown) {
       const msg =

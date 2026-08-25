@@ -91,7 +91,7 @@ export async function runGoogleCalendarTests() {
     }
   });
 
-  await test('2. Google Calendar MCP tools are registered in Agentic Core Catalog', () => {
+  await test('2. Google Calendar MCP tools are registered in Agentic Core Catalog with valid Gemini schemas', () => {
     for (const tool of GOOGLE_CALENDAR_MCP_TOOLS) {
       const catalogEntry = TOOL_CATALOG[tool.name];
       assert.ok(catalogEntry, `Tool ${tool.name} missing in TOOL_CATALOG`);
@@ -102,6 +102,45 @@ export async function runGoogleCalendarTests() {
     const declaredNames = BUILTIN_FUNCTION_DECLARATIONS.map((d) => d.name);
     assert.ok(declaredNames.includes('google_calendar_list_events'));
     assert.ok(declaredNames.includes('google_calendar_create_event'));
+
+    // Validate that all FunctionDeclarations have valid array schemas with items defined
+    function validateSchema(
+      schema: Record<string, unknown> | undefined,
+      path: string,
+    ) {
+      if (!schema || typeof schema !== 'object') return;
+      if (schema.type === 'ARRAY') {
+        assert.ok(
+          Boolean(schema.items),
+          `Schema at ${path} has type ARRAY but is missing items field`,
+        );
+      }
+      if (schema.items && typeof schema.items === 'object') {
+        validateSchema(
+          schema.items as Record<string, unknown>,
+          `${path}.items`,
+        );
+      }
+      if (schema.properties && typeof schema.properties === 'object') {
+        for (const [key, val] of Object.entries(
+          schema.properties as Record<string, unknown>,
+        )) {
+          validateSchema(
+            val as Record<string, unknown>,
+            `${path}.properties.${key}`,
+          );
+        }
+      }
+    }
+
+    for (const fn of BUILTIN_FUNCTION_DECLARATIONS) {
+      if (fn.parameters) {
+        validateSchema(
+          fn.parameters as unknown as Record<string, unknown>,
+          fn.name || 'anonymous_tool',
+        );
+      }
+    }
   });
 
   // =========================================================================
@@ -642,6 +681,80 @@ export async function runGoogleCalendarTests() {
       const ping = await connector.ping();
       assert.strictEqual(ping.status, 'connected');
       assert.ok(ping.message?.includes('live connection established'));
+    } finally {
+      restoreFetchMock();
+    }
+  });
+
+  await test('19. Auto-refresh triggers on 401 Unauthorized and retries tool call seamlessly', async () => {
+    let callCount = 0;
+    let refreshTriggered = false;
+
+    setupFetchMock((url, options) => {
+      callCount++;
+      const authHeader = (options?.headers as Record<string, string>)?.[
+        'Authorization'
+      ];
+
+      // First call with expired token returns 401
+      if (callCount === 1) {
+        assert.strictEqual(authHeader, 'Bearer expired-token');
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              error: {
+                message: 'Invalid Credentials',
+                status: 'UNAUTHENTICATED',
+              },
+            }),
+            { status: 401, statusText: 'Unauthorized' },
+          ),
+        );
+      }
+
+      // Second call after refresh with new token returns 200
+      assert.strictEqual(authHeader, 'Bearer brand-new-token');
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: 'primary',
+                summary: 'Refreshed Calendar',
+                primary: true,
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    });
+
+    try {
+      const apiClient = new GoogleCalendarApiClient();
+      const connector = createTestConnector(apiClient);
+      connector.setAuthToken('expired-token');
+      connector.setRefreshToken('valid-refresh-token');
+      connector.setRefreshHandler((rt) => {
+        assert.strictEqual(rt, 'valid-refresh-token');
+        refreshTriggered = true;
+        return Promise.resolve('brand-new-token');
+      });
+
+      const result = await connector.executeTool(
+        'google_calendar_list_calendars',
+        {},
+      );
+
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(refreshTriggered, true);
+      assert.strictEqual(callCount, 2);
+      const data = result.data as {
+        totalDiscovered: number;
+        calendars: Array<{ summary: string }>;
+      };
+      assert.strictEqual(data.totalDiscovered, 1);
+      assert.strictEqual(data.calendars[0].summary, 'Refreshed Calendar');
     } finally {
       restoreFetchMock();
     }

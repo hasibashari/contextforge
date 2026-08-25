@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { DatabaseService } from '../../../common/database/database.service';
 import { EncryptionService } from '../../../common/security/encryption.service';
 import { IMcpOAuthHandler } from '../../core';
@@ -6,7 +11,9 @@ import { GoogleCalendarMcpConnector } from './google-calendar-mcp.connector';
 import { GoogleOAuthTokenResponse } from './google-calendar.types';
 
 @Injectable()
-export class GoogleCalendarOAuthService implements IMcpOAuthHandler {
+export class GoogleCalendarOAuthService
+  implements IMcpOAuthHandler, OnModuleInit
+{
   private readonly logger = new Logger(GoogleCalendarOAuthService.name);
   readonly providerId = 'google-calendar';
 
@@ -15,6 +22,12 @@ export class GoogleCalendarOAuthService implements IMcpOAuthHandler {
     private readonly encryption: EncryptionService,
     private readonly calendarConnector: GoogleCalendarMcpConnector,
   ) {}
+
+  onModuleInit() {
+    this.calendarConnector.setRefreshHandler((refreshToken: string) =>
+      this.refreshAccessToken(refreshToken),
+    );
+  }
 
   /**
    * Generates Google OAuth 2.0 Authorization URL with least-privilege Calendar scopes

@@ -26,7 +26,7 @@ export const GenericConnectModal: React.FC<GenericConnectModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { updateConnectorConfig, discoverTools, refreshIntegrations, showToast } =
+  const { testIntegration, discoverTools, refreshIntegrations, showToast } =
     useWorkspace()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -36,10 +36,7 @@ export const GenericConnectModal: React.FC<GenericConnectModalProps> = ({
     setIsSubmitting(true)
 
     try {
-      updateConnectorConfig(integration.id, {
-        status: 'connected',
-      })
-
+      await testIntegration(integration.id)
       await discoverTools(integration.id)
       await refreshIntegrations()
 

@@ -29,6 +29,24 @@ export interface ToolMetadata {
   description: string;
 }
 
+function mapSchemaType(rawType?: string): Type {
+  const normalized = (rawType || 'STRING').toUpperCase();
+  switch (normalized) {
+    case 'BOOLEAN':
+      return 'BOOLEAN' as unknown as Type;
+    case 'OBJECT':
+      return 'OBJECT' as unknown as Type;
+    case 'ARRAY':
+      return 'ARRAY' as unknown as Type;
+    case 'INTEGER':
+      return 'INTEGER' as unknown as Type;
+    case 'NUMBER':
+      return 'NUMBER' as unknown as Type;
+    default:
+      return 'STRING' as unknown as Type;
+  }
+}
+
 /**
  * Converts a standard MCP JSON Schema parameter definition into a Google GenAI SDK Schema object
  */
@@ -36,34 +54,32 @@ export function convertMcpSchemaToGenAi(
   prop: Record<string, unknown> | string,
 ): Schema {
   if (typeof prop === 'string') {
-    const typeStr = prop.toUpperCase();
+    const isArray = prop.toUpperCase() === 'ARRAY';
     return {
-      type: (typeStr === 'BOOLEAN'
-        ? 'BOOLEAN'
-        : typeStr === 'OBJECT'
-          ? 'OBJECT'
-          : typeStr === 'ARRAY'
-            ? 'ARRAY'
-            : 'STRING') as unknown as Type,
+      type: mapSchemaType(prop),
+      ...(isArray ? { items: { type: 'STRING' as unknown as Type } } : {}),
     };
   }
 
   const pType = (prop.type as string)?.toUpperCase() || 'STRING';
+  const isArray = pType === 'ARRAY';
   const schema: Schema = {
-    type: (pType === 'BOOLEAN'
-      ? 'BOOLEAN'
-      : pType === 'OBJECT'
-        ? 'OBJECT'
-        : pType === 'ARRAY'
-          ? 'ARRAY'
-          : 'STRING') as unknown as Type,
+    type: mapSchemaType(prop.type as string | undefined),
     description: prop.description as string | undefined,
   };
 
-  if (prop.items && typeof prop.items === 'object') {
-    schema.items = convertMcpSchemaToGenAi(
-      prop.items as Record<string, unknown>,
-    );
+  if (isArray) {
+    if (prop.items) {
+      if (typeof prop.items === 'string' || typeof prop.items === 'object') {
+        schema.items = convertMcpSchemaToGenAi(
+          prop.items as Record<string, unknown> | string,
+        );
+      } else {
+        schema.items = { type: 'STRING' as unknown as Type };
+      }
+    } else {
+      schema.items = { type: 'STRING' as unknown as Type };
+    }
   }
 
   if (prop.properties && typeof prop.properties === 'object') {

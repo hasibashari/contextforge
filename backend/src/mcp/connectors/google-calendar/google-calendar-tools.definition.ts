@@ -142,11 +142,21 @@ export const GOOGLE_CALENDAR_MCP_TOOLS: McpToolDefinition[] = [
         },
         attendees: {
           type: 'array',
+          items: {
+            type: 'string',
+            description:
+              'Attendee email address (e.g. "colleague@company.com")',
+          },
           description:
             'Array of attendee email addresses or attendee objects with email and displayName',
         },
         recurrence: {
           type: 'array',
+          items: {
+            type: 'string',
+            description:
+              'RRULE recurrence string, e.g. "RRULE:FREQ=WEEKLY;COUNT=10"',
+          },
           description:
             'List of RRULE, EXRULE, RDATE, and EXDATE lines for recurring events (e.g. ["RRULE:FREQ=WEEKLY;COUNT=10"])',
         },
@@ -204,10 +214,18 @@ export const GOOGLE_CALENDAR_MCP_TOOLS: McpToolDefinition[] = [
         },
         attendees: {
           type: 'array',
+          items: {
+            type: 'string',
+            description: 'Attendee email address',
+          },
           description: 'Updated list of attendee email addresses',
         },
         recurrence: {
           type: 'array',
+          items: {
+            type: 'string',
+            description: 'RRULE recurrence string',
+          },
           description: 'Updated list of RRULE recurrence strings',
         },
       },
@@ -257,6 +275,10 @@ export const GOOGLE_CALENDAR_MCP_TOOLS: McpToolDefinition[] = [
         },
         calendarIds: {
           type: 'array',
+          items: {
+            type: 'string',
+            description: 'Calendar ID or user email address to check',
+          },
           description:
             'List of calendar identifiers or user email addresses to check availability for (default: ["primary"])',
         },

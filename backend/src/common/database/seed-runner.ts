@@ -181,16 +181,26 @@ async function runSeed() {
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
           category = EXCLUDED.category,
-          status = EXCLUDED.status,
           endpoint = EXCLUDED.endpoint,
           version = EXCLUDED.version,
           transport = EXCLUDED.transport,
-          auth_type = EXCLUDED.auth_type,
-          auth_config = EXCLUDED.auth_config,
           description = EXCLUDED.description,
           tools = EXCLUDED.tools,
           last_ping_ms = EXCLUDED.last_ping_ms,
-          latency_ms = EXCLUDED.latency_ms;`,
+          latency_ms = EXCLUDED.latency_ms,
+          status = CASE 
+            WHEN workspace_integrations.status = 'connected' THEN workspace_integrations.status 
+            ELSE EXCLUDED.status 
+          END,
+          auth_config = CASE 
+            WHEN workspace_integrations.auth_config IS NOT NULL AND workspace_integrations.auth_config != '{}'::jsonb AND (workspace_integrations.auth_config->>'token' IS NOT NULL OR workspace_integrations.auth_config->>'apiKey' IS NOT NULL)
+            THEN workspace_integrations.auth_config 
+            ELSE EXCLUDED.auth_config 
+          END,
+          auth_type = CASE 
+            WHEN workspace_integrations.auth_type != 'none' THEN workspace_integrations.auth_type 
+            ELSE EXCLUDED.auth_type 
+          END;`,
         [
           intg.id,
           intg.name,

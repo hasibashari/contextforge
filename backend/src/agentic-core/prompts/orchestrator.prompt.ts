@@ -15,6 +15,37 @@ export function getAgentSystemPrompt(
   memorySummary?: string | UserMemoryPrompt[],
   vaultFolders: string[] = [],
 ): string {
+  const now = new Date();
+  const timeZone = process.env.DEFAULT_TIMEZONE || 'Asia/Jakarta';
+
+  const dateFormattedEn = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone,
+  });
+  const dateFormattedId = now.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone,
+  });
+  const timeFormatted = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone,
+  });
+  const currentIsoDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+
   let basePrompt = '';
 
   switch (agentId) {
@@ -107,6 +138,30 @@ Mental Model & Responsibilities:
 6. Tone: Warm-editorial, crisp, senior engineering personal assistant.`;
       break;
   }
+
+  // Inject Real-Time Temporal Grounding
+  basePrompt += `\n\n### ⏰ Live System Clock & Temporal Grounding:
+- **Current Real-Time Date**: ${dateFormattedEn} / ${dateFormattedId}
+- **Current Local Time**: ${timeFormatted} (${timeZone})
+- **Current ISO Date**: \`${currentIsoDate}\`
+- **Timezone**: \`${timeZone}\`
+
+**Mandatory Temporal Rules for Tools & Relative Dates**:
+1. ALWAYS anchor relative date expressions to the Current Real-Time Date (\`${currentIsoDate}\`):
+   - "hari ini" / "today" -> \`${currentIsoDate}\`
+   - "besok" / "tomorrow" -> compute next day from \`${currentIsoDate}\`
+   - "kemarin" / "yesterday" -> compute previous day from \`${currentIsoDate}\`
+   - "lusa" / "day after tomorrow" -> compute +2 days from \`${currentIsoDate}\`
+   - "minggu ini" / "this week" -> compute date range from Monday to Sunday of current week
+   - "bulan ini" / "this month" -> current month and year of \`${currentIsoDate}\`
+2. **Google Calendar MCP**:
+   - For \`google_calendar_create_event\` and \`google_calendar_update_event\`: ALWAYS format \`start\` and \`end\` as valid ISO 8601 strings with timezone offset (e.g. \`${currentIsoDate}T14:00:00+07:00\`) or date string (\`${currentIsoDate}\`) for all-day events.
+   - For \`google_calendar_list_events\` and \`google_calendar_check_availability\`: Compute \`timeMin\` and \`timeMax\` ISO 8601 parameters relative to \`${currentIsoDate}\`.
+3. **Obsidian MCP**:
+   - For \`obsidian_create_daily_note\`: Defaults to \`${currentIsoDate}\` for daily logs.
+   - For \`obsidian_write_note\`: Frontmatter YAML date should match \`${currentIsoDate}\`.
+4. **Notion MCP**:
+   - For \`notion_create_page\`: Include the current date (\`${currentIsoDate}\`) in meeting summaries, sprint documentation, and action items.`;
 
   // Inject Existing Obsidian Vault Folder Hierarchy (Context-Aware Placement)
   if (vaultFolders && vaultFolders.length > 0) {

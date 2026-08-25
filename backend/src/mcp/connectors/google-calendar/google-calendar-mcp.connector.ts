@@ -31,6 +31,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
 
   private endpoint = 'https://www.googleapis.com/calendar/v3';
   private refreshToken = '';
+  private refreshHandler?: (refreshToken: string) => Promise<string>;
 
   constructor(
     private readonly httpTransport: McpHttpTransport,
@@ -50,6 +51,10 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
 
   getRefreshToken(): string {
     return this.refreshToken;
+  }
+
+  setRefreshHandler(handler: (refreshToken: string) => Promise<string>) {
+    this.refreshHandler = handler;
   }
 
   configure(config: {
@@ -92,7 +97,66 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
   }
 
   override isConnected(): boolean {
-    return Boolean(this.getEffectiveToken());
+    return Boolean(this.getEffectiveToken() || this.refreshToken);
+  }
+
+  private async executeWithAuthRetry<T>(
+    operation: (headers: Record<string, string>) => Promise<T>,
+  ): Promise<T> {
+    let token = this.getEffectiveToken();
+
+    // If no access token but refresh token is available, attempt refresh first
+    if (!token && this.refreshToken && this.refreshHandler) {
+      try {
+        token = await this.refreshHandler(this.refreshToken);
+        this.setAuthToken(token);
+      } catch (err: unknown) {
+        this.logger.warn(`Initial token refresh failed: ${String(err)}`);
+      }
+    }
+
+    if (!token) {
+      throw new Error(
+        'Authentication failed: Google Calendar token is not configured or expired.',
+      );
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+
+    try {
+      return await operation(headers);
+    } catch (err: unknown) {
+      const isAuthError =
+        err instanceof Error &&
+        (err.message.includes('401') ||
+          err.message.includes('Authentication failed') ||
+          err.message.includes('unauthorized') ||
+          err.message.includes('Invalid Credentials') ||
+          err.message.includes('UNAUTHENTICATED'));
+
+      if (isAuthError && this.refreshToken && this.refreshHandler) {
+        this.logger.log(
+          'Google Calendar access token expired or rejected. Auto-refreshing token...',
+        );
+        try {
+          const newToken = await this.refreshHandler(this.refreshToken);
+          if (newToken) {
+            this.setAuthToken(newToken);
+            headers.Authorization = `Bearer ${newToken}`;
+            return await operation(headers);
+          }
+        } catch (refreshErr) {
+          this.logger.error(
+            `Failed to auto-refresh Google Calendar token: ${String(refreshErr)}`,
+          );
+        }
+      }
+
+      throw err;
+    }
   }
 
   async executeTool(
@@ -100,23 +164,17 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
     params: Record<string, unknown>,
   ): Promise<McpToolCallResult> {
     const token = this.getEffectiveToken();
-    if (!token) {
+    if (!token && !this.refreshToken) {
       return this.disconnectedResult(toolName, 'Google Calendar');
     }
-
-    const authHeaders = {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    };
 
     return this.safeExecute(toolName, async () => {
       switch (toolName) {
         // 1. LIST CALENDARS
         case 'google_calendar_list_calendars': {
           const minAccessRole = params.minAccessRole as string | undefined;
-          const res = await this.apiClient.listCalendars(
-            authHeaders,
-            minAccessRole,
+          const res = await this.executeWithAuthRetry((headers) =>
+            this.apiClient.listCalendars(headers, minAccessRole),
           );
           const calendars = res.calendars || [];
           return {
@@ -161,14 +219,16 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
             validateTimeRange(timeMin, timeMax);
           }
 
-          const res = await this.apiClient.listEvents(authHeaders, calendarId, {
-            timeMin,
-            timeMax,
-            query,
-            maxResults,
-            singleEvents,
-            orderBy,
-          });
+          const res = await this.executeWithAuthRetry((headers) =>
+            this.apiClient.listEvents(headers, calendarId, {
+              timeMin,
+              timeMax,
+              query,
+              maxResults,
+              singleEvents,
+              orderBy,
+            }),
+          );
 
           const events = res.events || [];
           const formattedList = events
@@ -198,10 +258,8 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
             throw new Error('Parameter "eventId" wajib diisi.');
           }
 
-          const event = await this.apiClient.getEvent(
-            authHeaders,
-            calendarId,
-            eventId,
+          const event = await this.executeWithAuthRetry((headers) =>
+            this.apiClient.getEvent(headers, calendarId, eventId),
           );
 
           return {
@@ -258,10 +316,8 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
             };
           }
 
-          const created = await this.apiClient.createEvent(
-            authHeaders,
-            calendarId,
-            eventPayload,
+          const created = await this.executeWithAuthRetry((headers) =>
+            this.apiClient.createEvent(headers, calendarId, eventPayload),
           );
 
           const meetLink: string | undefined =
@@ -330,11 +386,13 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
             patchPayload.recurrence = params.recurrence;
           }
 
-          const updated = await this.apiClient.updateEvent(
-            authHeaders,
-            calendarId,
-            eventId,
-            patchPayload,
+          const updated = await this.executeWithAuthRetry((headers) =>
+            this.apiClient.updateEvent(
+              headers,
+              calendarId,
+              eventId,
+              patchPayload,
+            ),
           );
 
           return {
@@ -353,7 +411,9 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
             throw new Error('Parameter "eventId" wajib diisi.');
           }
 
-          await this.apiClient.deleteEvent(authHeaders, calendarId, eventId);
+          await this.executeWithAuthRetry((headers) =>
+            this.apiClient.deleteEvent(headers, calendarId, eventId),
+          );
 
           return {
             data: {
@@ -393,9 +453,8 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
             items: calendarIds.map((id) => ({ id })),
           };
 
-          const freeBusyRes = await this.apiClient.queryFreeBusy(
-            authHeaders,
-            requestPayload,
+          const freeBusyRes = await this.executeWithAuthRetry((headers) =>
+            this.apiClient.queryFreeBusy(headers, requestPayload),
           );
 
           const availabilityReport: Record<
@@ -442,15 +501,41 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
     message?: string;
     latencyMs: number;
   }> {
-    const token = this.getEffectiveToken();
+    let token = this.getEffectiveToken();
     if (!token) {
-      return {
-        status: 'disconnected',
-        message: 'Google Calendar access token is not set.',
-        latencyMs: 0,
-      };
+      if (this.refreshToken && this.refreshHandler) {
+        try {
+          token = await this.refreshHandler(this.refreshToken);
+          this.setAuthToken(token);
+        } catch {
+          // Token refresh failed
+        }
+      }
+      if (!token) {
+        return {
+          status: 'disconnected',
+          message: 'Google Calendar access token is not set.',
+          latencyMs: 0,
+        };
+      }
     }
 
-    return await this.apiClient.ping(token);
+    let probe = await this.apiClient.ping(token);
+    if (
+      probe.status === 'disconnected' &&
+      this.refreshToken &&
+      this.refreshHandler
+    ) {
+      try {
+        const refreshedToken = await this.refreshHandler(this.refreshToken);
+        if (refreshedToken) {
+          this.setAuthToken(refreshedToken);
+          probe = await this.apiClient.ping(refreshedToken);
+        }
+      } catch (err: unknown) {
+        this.logger.debug(`Auto-refresh during ping failed: ${String(err)}`);
+      }
+    }
+    return probe;
   }
 }
