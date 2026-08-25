@@ -19,6 +19,8 @@ import { NotionOAuthService } from './connectors/notion/notion-oauth.service';
 import { GoogleCalendarApiClient } from './connectors/google-calendar/google-calendar-api.client';
 import { GoogleCalendarMcpConnector } from './connectors/google-calendar/google-calendar-mcp.connector';
 import { GoogleCalendarOAuthService } from './connectors/google-calendar/google-calendar-oauth.service';
+import { AndroidBridgeApiClient } from './connectors/android-bridge/android-bridge-api.client';
+import { AndroidBridgeMcpConnector } from './connectors/android-bridge/android-bridge-mcp.connector';
 
 @Module({
   imports: [DatabaseModule, SecurityModule],
@@ -36,6 +38,8 @@ import { GoogleCalendarOAuthService } from './connectors/google-calendar/google-
     GoogleCalendarApiClient,
     GoogleCalendarMcpConnector,
     GoogleCalendarOAuthService,
+    AndroidBridgeApiClient,
+    AndroidBridgeMcpConnector,
     McpGatewayService,
 
     // Multi-Provider for MCP Servers (Plug-and-Play)
@@ -45,11 +49,13 @@ import { GoogleCalendarOAuthService } from './connectors/google-calendar/google-
         obsidian: ObsidianMcpServer,
         notion: NotionMcpConnector,
         gcal: GoogleCalendarMcpConnector,
-      ) => [obsidian, notion, gcal],
+        android: AndroidBridgeMcpConnector,
+      ) => [obsidian, notion, gcal, android],
       inject: [
         ObsidianMcpServer,
         NotionMcpConnector,
         GoogleCalendarMcpConnector,
+        AndroidBridgeMcpConnector,
       ],
     },
 
@@ -75,6 +81,8 @@ import { GoogleCalendarOAuthService } from './connectors/google-calendar/google-
     GoogleCalendarApiClient,
     GoogleCalendarMcpConnector,
     GoogleCalendarOAuthService,
+    AndroidBridgeApiClient,
+    AndroidBridgeMcpConnector,
     McpHttpTransport,
     McpSseTransport,
     MCP_SERVERS,

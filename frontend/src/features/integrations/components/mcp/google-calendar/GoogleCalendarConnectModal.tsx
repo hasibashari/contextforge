@@ -7,12 +7,12 @@ import {
   ModalFooter,
   IntegrationIconBox,
   Button,
-} from '@/shared/components'
-import { useWorkspace } from '@/shared/context'
+} from '@/shared'
+import { useWorkspace } from '@/shared'
 import { ecosystemApi } from '@/shared/api/ecosystemApi'
-import { McpToolsPreview } from './McpToolsPreview'
+import { McpToolsPreview } from '../common/McpToolsPreview'
 
-interface GoogleCalendarConnectModalProps {
+export interface GoogleCalendarConnectModalProps {
   integration: Integration
   isOpen: boolean
   onClose: () => void

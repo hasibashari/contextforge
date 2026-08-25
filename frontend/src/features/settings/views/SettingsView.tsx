@@ -11,8 +11,8 @@ import {
   FileCode,
   RotateCcw,
 } from 'lucide-react'
-import { useWorkspace } from '@/shared/context'
-import { MarkdownRenderer } from '@/shared/components'
+import { useWorkspace } from '@/shared'
+import { MarkdownRenderer } from '@/shared'
 
 export default function SettingsView() {
   const {

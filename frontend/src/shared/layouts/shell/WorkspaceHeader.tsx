@@ -3,19 +3,19 @@ import {
   PanelRightClose,
   PanelRightOpen,
 } from 'lucide-react'
-import { useWorkspace } from '@/shared/context'
+import { useWorkspace } from '@/shared'
 
-interface DashboardHeaderProps {
+interface WorkspaceHeaderProps {
   onOpenMobileMenu: () => void
   isAsideOpen?: boolean
   onToggleAside?: () => void
 }
 
-export default function DashboardHeader({
+export default function WorkspaceHeader({
   onOpenMobileMenu,
   isAsideOpen = true,
   onToggleAside,
-}: DashboardHeaderProps) {
+}: WorkspaceHeaderProps) {
   const { activeSession } = useWorkspace()
 
   return (

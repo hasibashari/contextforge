@@ -9,11 +9,11 @@ import {
   Button,
   Input,
   FormField,
-} from '@/shared/components'
-import { useWorkspace } from '@/shared/context'
-import { McpToolsPreview } from './McpToolsPreview'
+} from '@/shared'
+import { useWorkspace } from '@/shared'
+import { McpToolsPreview } from '../common/McpToolsPreview'
 
-interface GenericConnectModalProps {
+export interface GenericConnectModalProps {
   integration: Integration
   isOpen: boolean
   onClose: () => void

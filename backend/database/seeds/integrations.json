@@ -306,5 +306,97 @@
         "readOnly": true
       }
     ]
+  },
+  {
+    "id": "int-android-bridge-mcp",
+    "name": "Android Bridge & Digital Wellbeing MCP",
+    "category": "productivity",
+    "status": "connected",
+    "endpoint": "http://127.0.0.1:8080",
+    "version": "v1.0.0",
+    "transport": "streamable_http",
+    "auth_type": "none",
+    "auth_config": {
+      "deviceName": "Android Native MCP Device"
+    },
+    "description": "Model Context Protocol bridge for Android device telemetry, Digital Wellbeing analytics, app limits, blocking, and DND controls.",
+    "last_ping_ms": 18,
+    "latency_ms": 12,
+    "tools": [
+      {
+        "id": "t-android-1",
+        "name": "android_get_device_status",
+        "description": "Check whether the Android MCP Bridge server is active, accessible, and running on the connected mobile device",
+        "parametersSchema": {},
+        "readOnly": true
+      },
+      {
+        "id": "t-android-2",
+        "name": "android_get_usage",
+        "description": "Retrieve raw application usage metrics and foreground screen time durations recorded since 00:00 today",
+        "parametersSchema": {},
+        "readOnly": true
+      },
+      {
+        "id": "t-android-3",
+        "name": "android_get_usage_summary",
+        "description": "Fetch structured daily Digital Wellbeing telemetry including total screen time, breakdown of top used apps, and most distracting applications for AI analysis",
+        "parametersSchema": {},
+        "readOnly": true
+      },
+      {
+        "id": "t-android-4",
+        "name": "android_get_foreground_app",
+        "description": "Detect the package name of the application currently active on the device screen in real time",
+        "parametersSchema": {},
+        "readOnly": true
+      },
+      {
+        "id": "t-android-5",
+        "name": "android_set_app_limit",
+        "description": "Set a maximum daily usage time limit in minutes for a specific application package",
+        "parametersSchema": {
+          "packageName": "string",
+          "maxDailyMinutes": "number"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-android-6",
+        "name": "android_block_app",
+        "description": "Instantly block or unblock an application on the Android device",
+        "parametersSchema": {
+          "packageName": "string",
+          "block": "boolean"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-android-7",
+        "name": "android_get_active_restrictions",
+        "description": "Retrieve all configured daily time limits and the active list of currently blocked applications on the device",
+        "parametersSchema": {},
+        "readOnly": true
+      },
+      {
+        "id": "t-android-8",
+        "name": "android_set_dnd",
+        "description": "Toggle Do Not Disturb (DND) mode on the Android device to suppress notification alerts during focused work sessions",
+        "parametersSchema": {
+          "enable": "boolean"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-android-9",
+        "name": "android_send_notification",
+        "description": "Send a local push notification / alert banner to the Android device status bar",
+        "parametersSchema": {
+          "title": "string",
+          "message": "string"
+        },
+        "readOnly": false
+      }
+    ]
   }
 ]

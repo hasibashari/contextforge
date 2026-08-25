@@ -1,9 +1,9 @@
 import { FileText, Layers, BookOpen, ChevronRight } from 'lucide-react'
-import { useWorkspace } from '@/shared/context'
-import { Badge, EmptyState, IconBox } from '@/shared/components'
-import { ArtifactViewerAndEditor } from './ArtifactViewerAndEditor'
+import { useWorkspace } from '@/shared'
+import { Badge, EmptyState, IconBox } from '@/shared'
+import { ArtifactViewerAndEditor } from '@/features/chat/components/ArtifactViewerAndEditor'
 
-export default function DashboardContextAside() {
+export default function WorkspaceContextAside() {
   const {
     artifacts,
     activeArtifact,

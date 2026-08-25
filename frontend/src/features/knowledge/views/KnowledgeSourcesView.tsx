@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { FolderOpen, Sparkles, BookOpen, HardDrive, Plus } from 'lucide-react'
-import { useWorkspace } from '@/shared/context'
+import { useWorkspace } from '@/shared'
 import type { KnowledgeSource } from '@/shared/types/workspace'
 import {
   KnowledgeSourceCard,
   KnowledgeSourceDetailModal,
   AddSourceModal,
 } from '@/features/knowledge'
-import { IconBox, EmptyState, PageHeader, Button } from '@/shared/components'
+import { IconBox, EmptyState, PageHeader, Button } from '@/shared'
 
 export default function KnowledgeSourcesView() {
   const {

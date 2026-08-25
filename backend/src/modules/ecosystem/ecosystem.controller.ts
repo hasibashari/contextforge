@@ -13,6 +13,7 @@ import type { Response } from 'express';
 import { EcosystemService } from './ecosystem.service';
 import { NotionOAuthService } from '../../mcp/connectors/notion/notion-oauth.service';
 import { GoogleCalendarOAuthService } from '../../mcp/connectors/google-calendar/google-calendar-oauth.service';
+import { AndroidPairingService } from './services/android-pairing.service';
 import type {
   WorkspaceAgentRow,
   WorkspaceSkillRow,
@@ -25,6 +26,7 @@ export class EcosystemController {
     private readonly service: EcosystemService,
     private readonly notionOAuthService: NotionOAuthService,
     private readonly googleCalendarOAuthService: GoogleCalendarOAuthService,
+    private readonly androidPairingService: AndroidPairingService,
   ) {}
 
   // ==========================================
@@ -200,6 +202,19 @@ export class EcosystemController {
     };
   }
 
+  @Post('integrations/tools/execute')
+  async executeMcpTool(
+    @Body() body: { toolName: string; args?: Record<string, unknown> },
+  ) {
+    const res = await this.service.executeTool(body.toolName, body.args || {});
+    return {
+      success: res.success,
+      data: res.data as unknown,
+      summary: res.summary,
+      error: res.error,
+    };
+  }
+
   // ==========================================
   // NOTION OAUTH 2.0 ENDPOINTS (Delegated to McpModule)
   // ==========================================
@@ -332,6 +347,72 @@ export class EcosystemController {
       success: true,
       data,
       message: `Google Calendar connected successfully`,
+    };
+  }
+
+  // ==========================================
+  // ANDROID BRIDGE QR CODE PAIRING ENDPOINTS
+  // ==========================================
+
+  @Post('integrations/android/pair/session')
+  createAndroidPairingSession(@Body() body?: { customHost?: string }) {
+    const session = this.androidPairingService.createPairingSession(
+      body?.customHost,
+    );
+    return {
+      success: true,
+      data: session,
+      message: 'Pairing session initialized',
+    };
+  }
+
+  @Get('integrations/android/pair/status/:sessionId')
+  getAndroidPairingStatus(@Param('sessionId') sessionId: string) {
+    const session = this.androidPairingService.getSessionStatus(sessionId);
+    return {
+      success: true,
+      data: session,
+    };
+  }
+
+  @Post('integrations/android/pair/confirm')
+  async confirmAndroidPairing(
+    @Body()
+    body: {
+      sessionId: string;
+      deviceEndpoint: string;
+      pinCode?: string;
+      deviceName?: string;
+      androidVersion?: string;
+      batteryLevel?: number;
+    },
+  ) {
+    const res = await this.androidPairingService.confirmPairing(body);
+    return {
+      success: true,
+      data: res.session,
+      message: res.message,
+    };
+  }
+
+  @Post('integrations/android/pair/verify-pin')
+  async verifyAndroidPairingPin(
+    @Body()
+    body: {
+      pinCode: string;
+      deviceEndpoint: string;
+      deviceName?: string;
+    },
+  ) {
+    const res = await this.androidPairingService.verifyByPin(
+      body.pinCode,
+      body.deviceEndpoint,
+      body.deviceName,
+    );
+    return {
+      success: true,
+      data: res.session,
+      message: res.message,
     };
   }
 }

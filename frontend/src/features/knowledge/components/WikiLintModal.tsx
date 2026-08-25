@@ -9,7 +9,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import type { WikiLintReport } from '@/shared/types/wiki'
-import { Button } from '@/shared/components'
+import { Button } from '@/shared'
 
 interface WikiLintModalProps {
   isOpen: boolean

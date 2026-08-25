@@ -20,7 +20,7 @@ import {
   ConfirmDeleteModal,
   Button,
   Badge,
-} from '@/shared/components'
+} from '@/shared'
 
 interface KnowledgeSourceDetailModalProps {
   source: KnowledgeSource | null

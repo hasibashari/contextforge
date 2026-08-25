@@ -1,13 +1,15 @@
 import React from 'react'
 import { Sparkles, Terminal } from 'lucide-react'
 import type { McpTool } from '@/shared/types/workspace'
-import { Badge } from '@/shared/components'
+import { Badge } from '@/shared'
 
-interface McpToolsPreviewProps {
+export interface McpToolsPreviewProps {
   tools?: McpTool[]
 }
 
-export const McpToolsPreview: React.FC<McpToolsPreviewProps> = ({ tools = [] }) => {
+export const McpToolsPreview: React.FC<McpToolsPreviewProps> = ({
+  tools = [],
+}) => {
   if (!tools || tools.length === 0) return null
 
   return (

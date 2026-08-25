@@ -12,7 +12,7 @@ import {
   Bot,
 } from 'lucide-react'
 import type { Skill, Agent } from '@/shared/types/workspace'
-import { Badge } from '@/shared/components'
+import { Badge } from '@/shared'
 import { SlashCommandPopover } from './SlashCommandPopover'
 import { AgentMentionPopover } from './AgentMentionPopover'
 

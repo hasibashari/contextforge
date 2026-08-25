@@ -1,7 +1,7 @@
 import React from 'react'
 import { Cpu } from 'lucide-react'
 import type { Agent } from '@/shared/types/workspace'
-import { AgentIconBox } from '@/shared/components'
+import { AgentIconBox } from '@/shared'
 
 interface AgentMentionPopoverProps {
   agents: Agent[]

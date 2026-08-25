@@ -1,12 +1,11 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { WorkspaceProvider } from './shared/context'
-import { WorkspaceLayout } from './shared/layouts'
-
+import { WorkspaceProvider } from './shared'
+import { WorkspaceLayout } from './shared'
 
 // Lazy-loaded feature views for optimal code-splitting
 const HomeView = lazy(() => import('./features/home/views/HomeView'))
-const DashboardView = lazy(() => import('./features/dashboard/views/DashboardView'))
+const ChatView = lazy(() => import('./features/chat/views/ChatView'))
 const AgentsDirectoryView = lazy(() => import('./features/agents/views/AgentsDirectoryView'))
 const KnowledgeSourcesView = lazy(() => import('./features/knowledge/views/KnowledgeSourcesView'))
 const IntegrationsView = lazy(() => import('./features/integrations/views/IntegrationsView'))
@@ -39,7 +38,8 @@ function App() {
 
             {/* AI Agent Workspace Application */}
             <Route element={<WorkspaceLayout />}>
-              <Route path="/dashboard" element={<DashboardView />} />
+              <Route path="/dashboard" element={<ChatView />} />
+              <Route path="/chat" element={<ChatView />} />
               <Route path="/agents" element={<AgentsDirectoryView />} />
               <Route path="/knowledge" element={<KnowledgeSourcesView />} />
               <Route path="/integrations" element={<IntegrationsView />} />

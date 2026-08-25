@@ -331,4 +331,16 @@ export class IntegrationsService {
     }
     return true;
   }
+
+  async executeTool(
+    toolName: string,
+    args: Record<string, unknown> = {},
+  ): Promise<{
+    success: boolean;
+    data?: any;
+    summary: string;
+    error?: string;
+  }> {
+    return this.mcpGateway.callTool(toolName, args);
+  }
 }

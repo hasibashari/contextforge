@@ -87,6 +87,13 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
           </div>
         )}
 
+        {/* Connected Device Badge (Android Bridge) */}
+        {isConnected && (integration.id.includes('android') || integration.name.toLowerCase().includes('android')) && (
+          <div className="inline-flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md font-mono font-medium">
+            <span>Device: 📱 {integration.authConfig?.deviceName || 'Android Native MCP Device'}</span>
+          </div>
+        )}
+
         {/* Live Diagnostics Message if Disconnected or Alerting */}
         {(integration.health_message || integration.healthMessage) && (
           <div

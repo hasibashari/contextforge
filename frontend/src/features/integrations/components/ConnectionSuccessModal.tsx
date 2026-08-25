@@ -16,7 +16,7 @@ import {
   IntegrationIconBox,
   Button,
   Badge,
-} from '@/shared/components'
+} from '@/shared'
 
 interface ConnectionSuccessModalProps {
   integration: Integration | null

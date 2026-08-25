@@ -20,7 +20,7 @@ import {
   Input,
   FormField,
   Badge,
-} from '@/shared/components'
+} from '@/shared'
 
 interface AddSourceModalProps {
   isOpen: boolean

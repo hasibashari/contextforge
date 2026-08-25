@@ -18,7 +18,7 @@ import {
   SkillIconBox,
   Button,
   Badge,
-} from '@/shared/components'
+} from '@/shared'
 
 interface SkillDetailModalProps {
   skill: Skill | null

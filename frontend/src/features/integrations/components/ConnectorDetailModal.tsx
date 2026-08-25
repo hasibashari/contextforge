@@ -15,10 +15,12 @@ import {
   Folder,
   ExternalLink,
   RefreshCw,
+  Smartphone,
 } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
-import { useWorkspace } from '@/shared/context'
+import { useWorkspace } from '@/shared'
+import { AndroidBridgeDashboardModal } from './mcp/android-bridge/AndroidBridgeDashboardModal'
 import {
   Modal,
   ModalHeader,
@@ -31,7 +33,7 @@ import {
   Textarea,
   FormField,
   Badge,
-} from '@/shared/components'
+} from '@/shared'
 
 interface ConnectorDetailModalProps {
   integration: Integration | null
@@ -65,6 +67,7 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
 
   const [isEditing, setIsEditing] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [showAndroidDashboard, setShowAndroidDashboard] = useState(false)
 
   const [formData, setFormData] = useState({
     name: integration.name,
@@ -393,6 +396,37 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
             </div>
           )}
 
+          {/* Device Banner for Android Bridge */}
+          {integration.id.includes('android') && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/20 gap-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-500/20">
+                  <Smartphone size={14} />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-ink text-xs truncate">
+                    Device: 📱 {currentIntegration.authConfig?.deviceName || 'Android Native MCP Device'}
+                  </div>
+                  <div className="text-[11px] text-muted font-mono">
+                    Endpoint: {currentIntegration.endpoint || 'http://127.0.0.1:8080'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                <Button
+                  variant="primary"
+                  size="xs"
+                  onClick={() => setShowAndroidDashboard(true)}
+                  leftIcon={<Smartphone size={12} />}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-xs"
+                >
+                  Open Focus Dashboard
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Compact Connection Info Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 bg-canvas-soft rounded-xl border border-hairline font-mono text-[11px] text-muted">
             <div className="flex items-center gap-2 min-w-0">
@@ -476,6 +510,15 @@ const ConnectorDetailContent: React.FC<ConnectorDetailContentProps> = ({
             </Button>
           </ModalFooter>
         </div>
+      )}
+
+      {/* Dedicated Android Bridge Live Dashboard Modal */}
+      {showAndroidDashboard && (
+        <AndroidBridgeDashboardModal
+          integration={currentIntegration}
+          isOpen={showAndroidDashboard}
+          onClose={() => setShowAndroidDashboard(false)}
+        />
       )}
     </Modal>
   )

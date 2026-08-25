@@ -30,6 +30,7 @@ export class UniversalMcpToolHandler {
       toolName === 'dispatch_action_worker' ||
       toolName === 'dispatch_obsidian_worker';
     const isGoogleCalendar = toolName.startsWith('google_calendar_');
+    const isAndroid = toolName.startsWith('android_');
 
     const serverName =
       toolMeta?.serverName ||
@@ -37,7 +38,9 @@ export class UniversalMcpToolHandler {
         ? 'Obsidian MCP Server'
         : isGoogleCalendar
           ? 'Google Calendar MCP Server'
-          : 'Notion MCP Server');
+          : isAndroid
+            ? 'Android Bridge MCP Server'
+            : 'Notion MCP Server');
     const isReadOnly = toolMeta?.readOnly ?? !isObsidian;
 
     emit({
@@ -149,7 +152,9 @@ export class UniversalMcpToolHandler {
           ? 'obsidian'
           : isGoogleCalendar
             ? 'google_calendar'
-            : 'notion',
+            : isAndroid
+              ? 'android_bridge'
+              : 'notion',
         status: 'completed',
         summaryText: result.summary,
       },

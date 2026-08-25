@@ -403,4 +403,134 @@ export const ecosystemApi = {
       message?: string;
     }>(res);
   },
+
+  // ------------------------------------------
+  // MCP TOOL EXECUTION HELPER
+  // ------------------------------------------
+  async executeMcpTool(
+    toolName: string,
+    args: Record<string, unknown> = {},
+  ): Promise<{
+    success: boolean;
+    data?: unknown;
+    summary: string;
+    error?: string;
+  }> {
+    const res = await fetch(
+      `${API_BASE_URL}/ecosystem/integrations/tools/execute`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toolName, args }),
+      },
+    );
+    if (!res.ok) {
+      let msg = `HTTP Error ${res.status}`;
+      try {
+        const errJson = (await res.json()) as { message?: string };
+        if (errJson.message) msg = errJson.message;
+      } catch {
+        // ignore
+      }
+      return { success: false, summary: '', error: msg };
+    }
+    return (await res.json()) as {
+      success: boolean;
+      data?: unknown;
+      summary: string;
+      error?: string;
+    };
+  },
+
+  // ------------------------------------------
+  // ANDROID BRIDGE QR CODE PAIRING
+  // ------------------------------------------
+  async createAndroidPairingSession(customHost?: string): Promise<{
+    sessionId: string;
+    pinCode: string;
+    formattedPin: string;
+    createdAt: number;
+    expiresAt: number;
+    status: 'waiting' | 'confirmed' | 'expired';
+    desktopHost: string;
+    desktopPort: number;
+    confirmUrl: string;
+    qrPayloadJson: string;
+  }> {
+    const res = await fetch(
+      `${API_BASE_URL}/ecosystem/integrations/android/pair/session`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customHost }),
+      },
+    );
+    return handleApiResponse(res);
+  },
+
+  async checkAndroidPairingStatus(sessionId: string): Promise<{
+    sessionId: string;
+    pinCode: string;
+    formattedPin: string;
+    status: 'waiting' | 'confirmed' | 'expired';
+    deviceInfo?: {
+      deviceName: string;
+      deviceEndpoint: string;
+      androidVersion?: string;
+      batteryLevel?: number;
+      pairedAt: number;
+    };
+  }> {
+    const res = await fetch(
+      `${API_BASE_URL}/ecosystem/integrations/android/pair/status/${encodeURIComponent(sessionId)}`,
+    );
+    return handleApiResponse(res);
+  },
+
+  async confirmAndroidPairing(payload: {
+    sessionId: string;
+    deviceEndpoint: string;
+    deviceName?: string;
+    androidVersion?: string;
+  }): Promise<{
+    sessionId: string;
+    status: string;
+    deviceInfo?: {
+      deviceName: string;
+      deviceEndpoint: string;
+    };
+  }> {
+    const res = await fetch(
+      `${API_BASE_URL}/ecosystem/integrations/android/pair/confirm`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+    );
+    return handleApiResponse(res);
+  },
+
+  async verifyAndroidPairingPin(payload: {
+    pinCode: string;
+    deviceEndpoint: string;
+    deviceName?: string;
+  }): Promise<{
+    sessionId: string;
+    status: string;
+    deviceInfo?: {
+      deviceName: string;
+      deviceEndpoint: string;
+    };
+  }> {
+    const res = await fetch(
+      `${API_BASE_URL}/ecosystem/integrations/android/pair/verify-pin`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+    );
+    return handleApiResponse(res);
+  },
 };

@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Plus, Zap } from 'lucide-react'
-import { useWorkspace } from '@/shared/context'
+import { useWorkspace } from '@/shared'
 import {
   PageHeader,
   Button,
   ConfirmDeleteModal,
-} from '@/shared/components'
+} from '@/shared'
 import type { AutomationWorkflow } from '@/shared/types/workspace'
 import { AutomationCard } from '../components/AutomationCard'
 import { AutomationModal } from '../components/AutomationModal'

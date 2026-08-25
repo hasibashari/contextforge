@@ -16,8 +16,8 @@ import type {
   WikiLintReport,
   WikiIngestResult,
 } from '@/shared/types/wiki'
-import { useWorkspace } from '@/shared/context'
-import { Button } from '@/shared/components'
+import { useWorkspace } from '@/shared'
+import { Button } from '@/shared'
 import { WikiDocumentViewer } from './WikiDocumentViewer'
 import { WikiGraphView } from './WikiGraphView'
 import { WikiLintModal } from './WikiLintModal'

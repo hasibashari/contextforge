@@ -10,8 +10,9 @@ import {
   Image as ImageIcon,
   Trash2,
   HardDrive,
+  Smartphone,
 } from 'lucide-react'
-import { MarkdownRenderer } from '@/shared/components'
+import { MarkdownRenderer } from '@/shared'
 import type { Artifact, ToastType } from '@/shared/types/workspace'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
 
@@ -36,7 +37,9 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerProps> = ({
   }
 
   const handleDownload = () => {
-    const blob = new Blob([artifact.content], { type: 'text/markdown' })
+    const blob = new Blob([artifact.content], {
+      type: 'text/markdown;charset=utf-8;',
+    })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -53,6 +56,14 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerProps> = ({
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-primary/10 text-primary font-semibold">
             <BookOpen size={10} />
             <span>Obsidian Vault</span>
+          </span>
+        )
+      case 'android':
+      case 'android_bridge':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">
+            <Smartphone size={10} />
+            <span>Android Digital Wellbeing</span>
           </span>
         )
       case 'web':

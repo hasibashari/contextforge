@@ -10,12 +10,12 @@ import {
   Input,
   FormField,
   Badge,
-} from '@/shared/components'
-import { useWorkspace } from '@/shared/context'
+} from '@/shared'
+import { useWorkspace } from '@/shared'
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service'
-import { McpToolsPreview } from './McpToolsPreview'
+import { McpToolsPreview } from '../common/McpToolsPreview'
 
-interface ObsidianConnectModalProps {
+export interface ObsidianConnectModalProps {
   integration: Integration
   isOpen: boolean
   onClose: () => void

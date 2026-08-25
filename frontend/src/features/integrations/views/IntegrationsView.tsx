@@ -4,7 +4,7 @@ import {
   Search,
   RotateCcw,
 } from 'lucide-react'
-import { useWorkspace } from '@/shared/context'
+import { useWorkspace } from '@/shared'
 import {
   IntegrationCard,
   ConnectorDetailModal,
@@ -15,7 +15,7 @@ import {
   EmptyState,
   IconBox,
   PageHeader,
-} from '@/shared/components'
+} from '@/shared'
 
 export default function IntegrationsView() {
   const {

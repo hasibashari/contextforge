@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import { useWorkspace } from '@/shared/context'
+import { useWorkspace } from '@/shared'
 import { ChatInputBar } from './ChatInputBar'
 import { ChatMessageItem } from './ChatMessageItem'
 import type { ChatMessage, Artifact } from '@/shared/types/workspace'
@@ -24,7 +24,7 @@ function getGreetingForSession(sessionId?: string): string {
   return DYNAMIC_GREETINGS[index]
 }
 
-export default function DashboardChatCanvas() {
+export default function ChatCanvas() {
   const {
     activeSession,
     isGeneratingResponse,

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Zap } from 'lucide-react'
-import { MarkdownRenderer } from '@/shared/components'
+import { MarkdownRenderer } from '@/shared'
 import { CompactArtifactPill } from './CompactArtifactPill'
 import { ThinkingIndicator } from './ThinkingIndicator'
 import type { ChatMessage, Artifact } from '@/shared/types/workspace'

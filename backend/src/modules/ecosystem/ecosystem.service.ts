@@ -115,4 +115,16 @@ export class EcosystemService {
   async deleteIntegration(id: string): Promise<boolean> {
     return this.integrationsService.deleteIntegration(id);
   }
+
+  async executeTool(
+    toolName: string,
+    args: Record<string, unknown> = {},
+  ): Promise<{
+    success: boolean;
+    data?: any;
+    summary: string;
+    error?: string;
+  }> {
+    return this.integrationsService.executeTool(toolName, args);
+  }
 }

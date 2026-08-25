@@ -1,4 +1,4 @@
-import { HomeLayout } from '@/shared/layouts'
+import { HomeLayout } from '@/shared'
 import {
   HeroSection,
   SourcesBentoSection,

@@ -64,8 +64,13 @@ export interface WorkspaceIntegrationRow {
     botId?: string;
     vaultName?: string;
     vaultPath?: string;
+    deviceName?: string;
+    androidVersion?: string;
+    pairedAt?: number;
+    pairedVia?: string;
     headers?: Record<string, string>;
     env?: Record<string, string>;
+    [key: string]: unknown;
   };
   description: string;
   tools: any[];

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Bot, Sparkles, Search, RotateCcw, Settings, Plus } from 'lucide-react'
-import { useWorkspace } from '@/shared/context'
+import { useWorkspace } from '@/shared'
 import {
   PageHeader,
   EcosystemCard,
@@ -8,7 +8,7 @@ import {
   SkillIconBox,
   EmptyState,
   IconBox,
-} from '@/shared/components'
+} from '@/shared'
 import { AgentInspectorModal } from '@/features/agents'
 import { SkillDetailModal } from '@/features/integrations'
 

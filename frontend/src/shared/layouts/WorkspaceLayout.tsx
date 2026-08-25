@@ -1,41 +1,34 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import DashboardLayout from '@/shared/layouts/DashboardLayout'
-import DashboardSidebar from '@/features/dashboard/components/DashboardSidebar'
-import DashboardHeader from '@/features/dashboard/components/DashboardHeader'
-import DashboardContextAside from '@/features/dashboard/components/DashboardContextAside'
-// import { GlobalToast } from '@/shared/components'
-import { useWorkspace } from '@/shared/context'
-
+import WorkspaceSidebar from '@/shared/layouts/shell/WorkspaceSidebar'
+import WorkspaceHeader from '@/shared/layouts/shell/WorkspaceHeader'
+import WorkspaceContextAside from '@/shared/layouts/shell/WorkspaceContextAside'
+import { useWorkspace } from '@/shared'
 
 export default function WorkspaceLayout() {
   const { isAsideOpen, toggleAside } = useWorkspace()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   return (
-    <>
-      {/* Global Toast System (Disabled temporarily, component preserved in GlobalToast.tsx) */}
-      {/* <GlobalToast toasts={toasts} onDismiss={dismissToast} /> */}
-
-      <DashboardLayout
-        sidebar={
-          <DashboardSidebar
-            isMobileOpen={isMobileMenuOpen}
-            onCloseMobile={() => setIsMobileMenuOpen(false)}
-          />
-        }
-        header={
-          <DashboardHeader
-            onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-            isAsideOpen={isAsideOpen}
-            onToggleAside={toggleAside}
-          />
-        }
-        aside={<DashboardContextAside />}
-        isAsideOpen={isAsideOpen}
-      >
-        <Outlet />
-      </DashboardLayout>
-    </>
+    <DashboardLayout
+      sidebar={
+        <WorkspaceSidebar
+          isMobileOpen={isMobileMenuOpen}
+          onCloseMobile={() => setIsMobileMenuOpen(false)}
+        />
+      }
+      header={
+        <WorkspaceHeader
+          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+          isAsideOpen={isAsideOpen}
+          onToggleAside={toggleAside}
+        />
+      }
+      aside={<WorkspaceContextAside />}
+      isAsideOpen={isAsideOpen}
+    >
+      <Outlet />
+    </DashboardLayout>
   )
 }

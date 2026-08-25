@@ -8,7 +8,7 @@ import {
   Input,
   Textarea,
   Select,
-} from '@/shared/components'
+} from '@/shared'
 import type {
   AutomationWorkflow,
   AutomationTriggerType,
@@ -215,6 +215,20 @@ function AutomationFormContent({
         'obsidian_create_daily_note',
         'obsidian_write_note',
         'obsidian_read_note',
+      ])
+    } else if (newServerId === 'int-google-calendar-mcp') {
+      setSelectedTools([
+        'google_calendar_list_events',
+        'google_calendar_create_event',
+        'google_calendar_check_availability',
+      ])
+    } else if (newServerId === 'int-android-bridge-mcp') {
+      setSelectedTools([
+        'android_get_usage_summary',
+        'android_get_foreground_app',
+        'android_set_app_limit',
+        'android_set_dnd',
+        'android_send_notification',
       ])
     } else {
       setSelectedTools([])
@@ -470,6 +484,12 @@ function AutomationFormContent({
               </option>
               <option value="int-notion-mcp">
                 📑 Notion Workspace MCP Server
+              </option>
+              <option value="int-google-calendar-mcp">
+                📅 Google Calendar MCP Server (Events & Availability)
+              </option>
+              <option value="int-android-bridge-mcp">
+                📱 Android Bridge & Digital Wellbeing MCP (Screen Time & Focus)
               </option>
               <option value="">⚙️ Internal Sandboxed Agent Tools</option>
             </Select>

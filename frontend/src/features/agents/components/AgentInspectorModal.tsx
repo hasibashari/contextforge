@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import { Terminal, Sparkles, Check, Settings2, RotateCcw, Layers, ShieldCheck } from 'lucide-react'
 import type { Agent } from '@/shared/types/workspace'
-import { useWorkspace } from '@/shared/context'
+import { useWorkspace } from '@/shared'
 import {
   Modal,
   ModalHeader,
   ModalFooter,
   Button,
   AgentIconBox,
-} from '@/shared/components'
+} from '@/shared'
 
 interface AgentInspectorModalProps {
   agent: Agent | null

@@ -24,6 +24,7 @@ import {
   SiGithub,
   SiGoogledrive,
   SiGmail,
+  SiAndroid,
 } from 'react-icons/si'
 import type { Integration, KnowledgeSource, Skill, Agent } from '@/shared/types/workspace'
 
@@ -89,6 +90,9 @@ export const IntegrationIconBox: React.FC<{
   const name = (integration?.name || '').toLowerCase()
   const iconPx = size === 'sm' ? 17 : 20
 
+  if (id.includes('android') || name.includes('android')) {
+    return <IconBox size={size} variant="success" icon={<SiAndroid size={iconPx} />} />
+  }
   if (id.includes('notion') || name.includes('notion')) {
     return <IconBox size={size} variant="neutral" icon={<SiNotion size={iconPx} />} />
   }

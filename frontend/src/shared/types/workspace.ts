@@ -216,6 +216,7 @@ export interface Integration {
     vaultName?: string
     vaultPath?: string
     vaultId?: string
+    deviceName?: string
     headers?: Record<string, string>
     env?: Record<string, string>
   }

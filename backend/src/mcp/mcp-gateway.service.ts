@@ -13,6 +13,7 @@ import { DatabaseService } from '../common/database/database.service';
 import { EncryptionService } from '../common/security/encryption.service';
 import { NotionMcpConnector } from './connectors/notion/notion-mcp.connector';
 import { GoogleCalendarMcpConnector } from './connectors/google-calendar/google-calendar-mcp.connector';
+import { AndroidBridgeMcpConnector } from './connectors/android-bridge/android-bridge-mcp.connector';
 
 @Injectable()
 export class McpGatewayService implements OnModuleInit {
@@ -32,7 +33,7 @@ export class McpGatewayService implements OnModuleInit {
   }
 
   /**
-   * 🔐 Preload credentials for core built-in MCP connectors (Google Calendar, Notion) from PostgreSQL
+   * 🔐 Preload credentials & endpoints for core built-in MCP connectors (Google Calendar, Notion, Android Bridge) from PostgreSQL
    */
   async initCoreConnectorsFromDb(): Promise<void> {
     try {
@@ -44,12 +45,13 @@ export class McpGatewayService implements OnModuleInit {
           apiKey?: string;
           refreshToken?: string;
           workspaceName?: string;
+          deviceName?: string;
         };
         status: string;
       }>(
         `SELECT id, endpoint, auth_config, status 
          FROM workspace_integrations 
-         WHERE id IN ('int-google-calendar-mcp', 'int-notion-mcp');`,
+         WHERE id IN ('int-google-calendar-mcp', 'int-notion-mcp', 'int-android-bridge-mcp');`,
       );
 
       for (const row of res.rows) {
@@ -91,6 +93,23 @@ export class McpGatewayService implements OnModuleInit {
               `🔑 Loaded Notion MCP credentials from PostgreSQL (status: ${row.status})`,
             );
           }
+        } else if (row.id === 'int-android-bridge-mcp') {
+          const server = this.registry.getServer('int-android-bridge-mcp');
+          if (server instanceof AndroidBridgeMcpConnector) {
+            const rawToken = row.auth_config?.token || row.auth_config?.apiKey;
+            const decryptedToken = rawToken
+              ? this.encryption.decrypt(rawToken)
+              : undefined;
+
+            server.configure({
+              endpoint: row.endpoint,
+              authToken: decryptedToken,
+              deviceName: row.auth_config?.deviceName,
+            });
+            this.logger.log(
+              `📱 Loaded Android MCP Bridge endpoint from PostgreSQL: ${row.endpoint} (status: ${row.status})`,
+            );
+          }
         }
       }
     } catch (err: unknown) {
@@ -116,7 +135,7 @@ export class McpGatewayService implements OnModuleInit {
       }>(
         `SELECT id, name, category, endpoint, transport, auth_config, tools 
          FROM workspace_integrations 
-         WHERE id NOT IN ('int-obsidian-vault-mcp', 'int-notion-mcp', 'int-google-calendar-mcp') 
+         WHERE id NOT IN ('int-obsidian-vault-mcp', 'int-notion-mcp', 'int-google-calendar-mcp', 'int-android-bridge-mcp') 
            AND status = 'connected';`,
       );
 
@@ -319,6 +338,39 @@ export class McpGatewayService implements OnModuleInit {
             endpoint: row.endpoint,
             token: decryptedToken,
             refreshToken: decryptedRefreshToken,
+          });
+        }
+      } catch {
+        // Continue with existing in-memory config
+      }
+    } else if (
+      serverId === 'int-android-bridge-mcp' ||
+      serverId.includes('android')
+    ) {
+      try {
+        const res = await this.db.query<{
+          endpoint: string;
+          auth_config: {
+            token?: string;
+            apiKey?: string;
+            deviceName?: string;
+          };
+        }>(
+          `SELECT endpoint, auth_config FROM workspace_integrations WHERE id = 'int-android-bridge-mcp' LIMIT 1;`,
+        );
+        if (
+          res.rows.length > 0 &&
+          server instanceof AndroidBridgeMcpConnector
+        ) {
+          const row = res.rows[0];
+          const rawToken = row.auth_config?.token || row.auth_config?.apiKey;
+          const decryptedToken = rawToken
+            ? this.encryption.decrypt(rawToken)
+            : undefined;
+          server.configure({
+            endpoint: row.endpoint,
+            authToken: decryptedToken,
+            deviceName: row.auth_config?.deviceName,
           });
         }
       } catch {

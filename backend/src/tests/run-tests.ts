@@ -1,6 +1,7 @@
 import { runGoogleCalendarTests } from './google-calendar-mcp.spec';
 import { runMcpRegistryTests } from './mcp-registry.spec';
 import { runNotionAndObsidianTests } from './notion-obsidian-mcp.spec';
+import { runAndroidBridgeTests } from './android-bridge-mcp.spec';
 
 async function main() {
   console.log('🚀 Running ContextForge MCP Test Suites...');
@@ -8,6 +9,7 @@ async function main() {
     await runMcpRegistryTests();
     await runNotionAndObsidianTests();
     await runGoogleCalendarTests();
+    await runAndroidBridgeTests();
     console.log('✨ All test suites completed successfully!');
     process.exit(0);
   } catch (err) {

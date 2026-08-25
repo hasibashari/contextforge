@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import {
   Play,
   Clock,
@@ -17,6 +17,8 @@ import {
   Globe,
   GitBranch,
   Plug,
+  Smartphone,
+  Calendar,
 } from 'lucide-react'
 import type { AutomationWorkflow } from '@/shared/types/workspace'
 
@@ -73,7 +75,39 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
     })
   }
 
-  // 3. Web Grounding / Internet Search
+  // 3. Android Bridge & Digital Wellbeing
+  if (
+    serverId.includes('android') ||
+    tools.some((t) => t.includes('android')) ||
+    name.includes('android') ||
+    desc.includes('android') ||
+    name.includes('screen time') ||
+    desc.includes('wellbeing')
+  ) {
+    tags.push({
+      id: 'android',
+      label: 'Android Bridge',
+      icon: <Smartphone size={11} />,
+      colorClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    })
+  }
+
+  // 4. Google Calendar
+  if (
+    serverId.includes('calendar') ||
+    tools.some((t) => t.includes('calendar')) ||
+    name.includes('calendar') ||
+    desc.includes('calendar')
+  ) {
+    tags.push({
+      id: 'calendar',
+      label: 'Google Calendar',
+      icon: <Calendar size={11} />,
+      colorClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    })
+  }
+
+  // 5. Web Grounding / Internet Search
   if (
     tools.some((t) => t.includes('web_search') || t.includes('search')) ||
     name.includes('berita') ||
@@ -89,7 +123,7 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
     })
   }
 
-  // 4. GitHub / Git
+  // 6. GitHub / Git
   if (
     serverId.includes('github') ||
     tools.some((t) => t.includes('git')) ||
@@ -104,7 +138,7 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
     })
   }
 
-  // 5. Generic Custom MCP Connector
+  // 7. Generic Custom MCP Connector
   if (
     tags.length === 0 &&
     (workflow.mcpServerId || (workflow.mcpTools && workflow.mcpTools.length > 0))
