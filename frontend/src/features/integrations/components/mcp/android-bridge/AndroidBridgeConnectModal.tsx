@@ -192,18 +192,26 @@ export const AndroidBridgeConnectModal: FC<
     }
   }, [isOpen, showToast])
 
-  // 2. One-shot timeout on session expiration (Zero polling)
+  // 2. Live 1-second interval countdown timer for QR session expiration
   useEffect(() => {
     if (!isOpen || !session || session.status !== 'waiting') return
 
-    const timeUntilExpiry = Math.max(0, session.expiresAt - Date.now())
-    const timer = setTimeout(() => {
-      setSession((prev) => (prev ? { ...prev, status: 'expired' } : null))
-      setSecondsRemaining(0)
-    }, timeUntilExpiry)
+    const updateCountdown = () => {
+      const left = Math.max(
+        0,
+        Math.floor((session.expiresAt - Date.now()) / 1000),
+      )
+      setSecondsRemaining(left)
+      if (left <= 0) {
+        setSession((prev) => (prev ? { ...prev, status: 'expired' } : null))
+      }
+    }
+
+    updateCountdown()
+    const interval = setInterval(updateCountdown, 1000)
 
     return () => {
-      clearTimeout(timer)
+      clearInterval(interval)
     }
   }, [isOpen, session])
 

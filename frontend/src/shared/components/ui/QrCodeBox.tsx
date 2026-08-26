@@ -47,7 +47,7 @@ export const QrCodeBox: React.FC<QrCodeBoxProps> = ({
       <div className="relative p-3.5 bg-white rounded-2xl border-2 border-emerald-500/30 shadow-lg group hover:border-emerald-500/60 transition-all">
         {/* Animated Scanner Beam (when active) */}
         {!isExpired && (
-          <div className="absolute inset-x-3.5 top-3.5 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent animate-[scan_2.5s_ease-in-out_infinite] pointer-events-none z-10 opacity-75" />
+          <div className="absolute inset-x-3.5 top-3.5 h-0.5 bg-linear-to-r from-transparent via-emerald-500 to-transparent animate-[scan_2.5s_ease-in-out_infinite] pointer-events-none z-10 opacity-75" />
         )}
 
         <div className="relative flex items-center justify-center">
