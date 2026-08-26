@@ -12,26 +12,30 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ChatService } from './chat.service';
+import { GuestId } from '../../common/decorators/guest-id.decorator';
 
 @Controller('api/chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Get('sessions')
-  async getSessions() {
-    const data = await this.chatService.getAllSessions();
+  async getSessions(@GuestId() guestId?: string) {
+    const data = await this.chatService.getAllSessions(guestId);
     return { success: true, data };
   }
 
   @Post('sessions')
-  async createSession(@Body('title') title?: string) {
-    const data = await this.chatService.createSession(title);
+  async createSession(
+    @Body('title') title?: string,
+    @GuestId() guestId?: string,
+  ) {
+    const data = await this.chatService.createSession(title, guestId);
     return { success: true, data };
   }
 
   @Get('sessions/:id')
-  async getSessionById(@Param('id') id: string) {
-    const data = await this.chatService.getSessionById(id);
+  async getSessionById(@Param('id') id: string, @GuestId() guestId?: string) {
+    const data = await this.chatService.getSessionById(id, guestId);
     return { success: true, data };
   }
 
@@ -42,8 +46,8 @@ export class ChatController {
   }
 
   @Delete('sessions/:id')
-  async deleteSession(@Param('id') id: string) {
-    const data = await this.chatService.deleteSession(id);
+  async deleteSession(@Param('id') id: string, @GuestId() guestId?: string) {
+    const data = await this.chatService.deleteSession(id, guestId);
     return { success: true, data };
   }
 
@@ -54,9 +58,16 @@ export class ChatController {
     @Body('agentId') agentId: string | undefined,
     @Query('stream') stream: string,
     @Res() res: Response,
+    @GuestId() guestId?: string,
   ) {
     if (stream === 'true' || stream === '1') {
-      return this.chatService.sendMessageStream(id, prompt, res, agentId);
+      return this.chatService.sendMessageStream(
+        id,
+        prompt,
+        res,
+        agentId,
+        guestId,
+      );
     }
 
     let responseData: Record<string, unknown> | null = null;

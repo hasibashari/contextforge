@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Delete, Param, Body } from '@nestjs/common';
 import { PersonalHubService } from './personal-hub.service';
+import { GuestId } from '../../common/decorators/guest-id.decorator';
 
 @Controller('api/personal-hub')
 export class PersonalHubController {
@@ -7,14 +8,14 @@ export class PersonalHubController {
 
   // Memories
   @Get('memories')
-  async getUserMemories() {
-    const data = await this.service.getUserMemories();
+  async getUserMemories(@GuestId() guestId?: string) {
+    const data = await this.service.getUserMemories(guestId);
     return { success: true, data };
   }
 
   @Get('memory-summary')
-  async getMemorySummary() {
-    const summary = await this.service.getMemorySummaryMarkdown();
+  async getMemorySummary(@GuestId() guestId?: string) {
+    const summary = await this.service.getMemorySummaryMarkdown(guestId);
     return { success: true, data: { summary } };
   }
 
@@ -26,14 +27,15 @@ export class PersonalHubController {
       key: string;
       value: string;
     },
+    @GuestId() guestId?: string,
   ) {
-    const data = await this.service.createUserMemory(body);
+    const data = await this.service.createUserMemory({ ...body, guestId });
     return { success: true, data };
   }
 
   @Delete('memories')
-  async clearAllMemories() {
-    const data = await this.service.clearAllMemories();
+  async clearAllMemories(@GuestId() guestId?: string) {
+    const data = await this.service.clearAllMemories(guestId);
     return { success: true, data };
   }
 

@@ -1,4 +1,4 @@
-import { API_BASE_URL, handleApiResponse } from './config';
+import { API_BASE_URL, handleApiResponse, getApiHeaders } from './config';
 import type { UserMemoryItem } from '@/shared/types/workspace';
 
 export interface BackendUserMemory {
@@ -13,7 +13,9 @@ export interface BackendUserMemory {
 export const personalHubApi = {
   // Memories
   async getUserMemories(): Promise<UserMemoryItem[]> {
-    const res = await fetch(`${API_BASE_URL}/personal-hub/memories`);
+    const res = await fetch(`${API_BASE_URL}/personal-hub/memories`, {
+      headers: getApiHeaders(),
+    });
     const data = await handleApiResponse<BackendUserMemory[]>(res);
     return data.map((m) => ({
       id: m.id,
@@ -31,7 +33,7 @@ export const personalHubApi = {
   }): Promise<UserMemoryItem> {
     const res = await fetch(`${API_BASE_URL}/personal-hub/memories`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getApiHeaders(),
       body: JSON.stringify(memory),
     });
     const m = await handleApiResponse<BackendUserMemory>(res);
@@ -45,7 +47,9 @@ export const personalHubApi = {
   },
 
   async getMemorySummary(): Promise<string> {
-    const res = await fetch(`${API_BASE_URL}/personal-hub/memory-summary`);
+    const res = await fetch(`${API_BASE_URL}/personal-hub/memory-summary`, {
+      headers: getApiHeaders(),
+    });
     const data = await handleApiResponse<{ summary: string }>(res);
     return data.summary || '';
   },
@@ -53,12 +57,16 @@ export const personalHubApi = {
   async clearAllMemories(): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/personal-hub/memories`, {
       method: 'DELETE',
+      headers: getApiHeaders(),
     });
     await handleApiResponse<{ success: boolean }>(res);
   },
 
   async deleteUserMemory(id: string): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/personal-hub/memories/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE_URL}/personal-hub/memories/${id}`, {
+      method: 'DELETE',
+      headers: getApiHeaders(),
+    });
     await handleApiResponse<{ success: boolean }>(res);
   },
 };

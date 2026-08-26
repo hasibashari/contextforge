@@ -17,12 +17,12 @@ export class PersonalHubService {
 
   constructor(private readonly repo: PersonalHubRepository) {}
 
-  async getUserMemories(): Promise<UserMemoryRow[]> {
-    return this.repo.getUserMemories();
+  async getUserMemories(guestId?: string): Promise<UserMemoryRow[]> {
+    return this.repo.getUserMemories(guestId);
   }
 
-  async getMemorySummaryMarkdown(): Promise<string> {
-    const memories = await this.repo.getUserMemories();
+  async getMemorySummaryMarkdown(guestId?: string): Promise<string> {
+    const memories = await this.repo.getUserMemories(guestId);
     if (!memories || memories.length === 0) {
       const emptyPlaceholder =
         '# Memory Summary\n\n_No memories recorded yet. The AI assistant will automatically learn and record your preferences, workflow habits, and project context as you converse._\n';
@@ -45,9 +45,13 @@ export class PersonalHubService {
     category: 'profile' | 'preference' | 'project' | 'workflow';
     key: string;
     value: string;
+    guestId?: string;
   }): Promise<UserMemoryRow> {
-    const row = await this.repo.createUserMemory(data);
-    await this.getMemorySummaryMarkdown();
+    const row = await this.repo.createUserMemory({
+      ...data,
+      userId: data.guestId,
+    });
+    await this.getMemorySummaryMarkdown(data.guestId);
     return row;
   }
 
@@ -57,8 +61,8 @@ export class PersonalHubService {
     return { success: true };
   }
 
-  async clearAllMemories(): Promise<{ success: boolean }> {
-    await this.repo.clearAll();
+  async clearAllMemories(guestId?: string): Promise<{ success: boolean }> {
+    await this.repo.clearAll(guestId);
     const emptyPlaceholder =
       '# Memory Summary\n\n_No memories recorded yet. The AI assistant will automatically learn and record your preferences, workflow habits, and project context as you converse._\n';
     await this.syncDiskFile(emptyPlaceholder);

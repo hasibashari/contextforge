@@ -11,6 +11,7 @@ import type {
 import { chatApi } from '@/shared/api/chatApi';
 import { artifactsApi } from '@/shared/api/artifactsApi';
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service';
+import { resetGuestSession } from '@/shared/utils/guestSession';
 import { generateGeneralReasoningOutput } from '../generators/responseGenerators';
 
 export function useChatEngine(
@@ -130,6 +131,40 @@ export function useChatEngine(
       setActiveArtifact(null);
       showToast('✨ New chat session started (local)');
       return newSessionId;
+    }
+  }, [showToast]);
+
+  const resetDemoSession = useCallback(async () => {
+    try {
+      resetGuestSession();
+      setArtifacts([]);
+      setActiveArtifact(null);
+      setIsGeneratingResponse(false);
+      setLiveReasoningState({
+        isThinking: false,
+        stageLabel: 'Analyzing Goal & Planning Actions...',
+        steps: [],
+      });
+
+      const firstSession = await chatApi.createSession('New Investigation');
+      setChatSessions([firstSession]);
+      setActiveSessionId(firstSession.id);
+      showToast('⚡ Demo session reset! Fresh workspace ready.');
+    } catch {
+      const fallbackId =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `session-${Date.now()}`;
+      setChatSessions([
+        {
+          id: fallbackId,
+          title: 'New Investigation',
+          createdAt: 'Just now',
+          messages: [],
+        },
+      ]);
+      setActiveSessionId(fallbackId);
+      showToast('⚡ Demo session reset! Fresh workspace ready.');
     }
   }, [showToast]);
 
@@ -790,6 +825,7 @@ export function useChatEngine(
     triggerMorningBriefing,
     sendChatMessage,
     createNewChatSession,
+    resetDemoSession,
     switchChatSession,
     renameChatSession,
     deleteChatSession,

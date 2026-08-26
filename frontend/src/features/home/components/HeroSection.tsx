@@ -186,73 +186,73 @@ export default function HeroSection() {
                   </div>
 
                   {/* Column 2: Center Mockup Primary Workspace */}
-                  <div className="col-span-12 md:col-span-8 lg:col-span-6 p-3.5 sm:p-4.5 space-y-4 bg-canvas flex flex-col justify-between">
-                    <div className="space-y-3.5">
+                  <div className="col-span-12 md:col-span-8 lg:col-span-6 p-3.5 sm:p-4.5 space-y-4 bg-canvas flex flex-col justify-between min-w-0 overflow-hidden">
+                    <div className="space-y-3.5 min-w-0">
                       {/* Top Stats Row */}
                       <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-surface-card p-2.5 rounded-lg border border-hairline">
+                        <div className="bg-surface-card p-2.5 rounded-lg border border-hairline min-w-0">
                           <div className="text-[9px] text-muted font-mono uppercase tracking-caption">Agent</div>
                           <div className="text-xs font-bold text-ink mt-0.5 truncate">ExecutiveAssist</div>
                         </div>
-                        <div className="bg-surface-card p-2.5 rounded-lg border border-hairline">
-                          <div className="text-[9px] text-muted font-mono uppercase tracking-caption">Connected Sources</div>
+                        <div className="bg-surface-card p-2.5 rounded-lg border border-hairline min-w-0">
+                          <div className="text-[9px] text-muted font-mono uppercase tracking-caption truncate">Connected Sources</div>
                           <div className="text-xs font-bold text-primary font-mono mt-0.5 truncate">4 MCP Protocols</div>
                         </div>
-                        <div className="bg-surface-card p-2.5 rounded-lg border border-hairline">
+                        <div className="bg-surface-card p-2.5 rounded-lg border border-hairline min-w-0">
                           <div className="text-[9px] text-muted font-mono uppercase tracking-caption">Safety Gate</div>
                           <div className="text-xs font-bold text-semantic-success font-mono mt-0.5 truncate">Verified (HITL)</div>
                         </div>
                       </div>
 
                       {/* Terminal / Live Step Feed Preview */}
-                      <div className="bg-ink text-canvas rounded-xl p-3.5 font-mono text-[10px] sm:text-[11px] space-y-2 border border-hairline shadow-xs">
-                        <div className="flex items-center justify-between text-muted-soft text-[9px] sm:text-[10px] border-b border-white/10 pb-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse" />
-                            <span>Workflow Runner — BRIEFING-DAILY</span>
+                      <div className="bg-ink text-canvas rounded-xl p-3.5 font-mono text-[10px] sm:text-[11px] space-y-2 border border-hairline shadow-xs overflow-hidden">
+                        <div className="flex items-center justify-between text-muted-soft text-[9px] sm:text-[10px] border-b border-white/10 pb-1.5 gap-2">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse shrink-0" />
+                            <span className="truncate">Workflow Runner — BRIEFING-DAILY</span>
                           </div>
-                          <span>cron:07:00</span>
+                          <span className="shrink-0 font-mono">cron:07:00</span>
                         </div>
 
                         <div className="space-y-1 text-hairline-soft pt-0.5">
-                          <div className="text-timeline-thinking">
+                          <div className="text-timeline-thinking truncate">
                             &gt; [01/CALENDAR] Fetched 4 meetings & 1 keynote for today
                           </div>
-                          <div className="text-timeline-grep">
+                          <div className="text-timeline-grep truncate">
                             &gt; [02/ANDROID] Retrieved Screen Time (4h 12m) & Battery (89%)
                           </div>
-                          <div className="text-timeline-edit">
+                          <div className="text-timeline-edit truncate">
                             &gt; [03/OBSIDIAN] Synthesized daily note with frontmatter & backlinks
                           </div>
-                          <div className="text-semantic-success flex items-center gap-1 pt-0.5">
+                          <div className="text-semantic-success flex items-center gap-1 pt-0.5 min-w-0">
                             <CheckCircle2 size={12} className="shrink-0" />
-                            <span>✓ Saved to local vault: `2026-08-26-daily-briefing.md`</span>
+                            <span className="truncate">✓ Saved to vault: `2026-08-26-daily-briefing.md`</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Action Plan Deliverable Preview Cards */}
-                      <div className="space-y-2">
+                      <div className="space-y-2 min-w-0">
                         <div className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
                           Generated Obsidian Note Artifact
                         </div>
 
-                        <div className="bg-surface-card p-3 rounded-xl border border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] font-mono font-bold text-primary">NOTE-2026-08-26</span>
-                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-semantic-success/15 text-semantic-success font-semibold">
+                        <div className="bg-surface-card p-3 rounded-xl border border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs overflow-hidden min-w-0">
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[11px] font-mono font-bold text-primary shrink-0">NOTE-2026-08-26</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-semantic-success/15 text-semantic-success font-semibold shrink-0">
                                 Synced to Vault
                               </span>
                             </div>
-                            <div className="text-xs font-medium text-ink truncate">
+                            <div className="text-xs font-medium text-ink truncate max-w-full" title="Executive Daily Note & Habit Tracker (+4 meetings / +2 habits)">
                               Executive Daily Note & Habit Tracker (+4 meetings / +2 habits)
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="px-2.5 py-1.5 rounded-lg bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20 text-[11px] font-medium inline-flex items-center gap-1 shadow-2xs">
-                              <Layers size={12} />
+                          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                            <div className="px-2.5 py-1.5 rounded-lg bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20 text-[11px] font-medium inline-flex items-center gap-1 shadow-2xs whitespace-nowrap">
+                              <Layers size={12} className="shrink-0" />
                               <span>Open in Obsidian</span>
                             </div>
                           </div>
@@ -261,9 +261,9 @@ export default function HeroSection() {
                     </div>
 
                     {/* Bottom Status bar inside preview */}
-                    <div className="pt-2.5 border-t border-hairline flex items-center justify-between text-[10px] text-muted font-mono">
-                      <span className="truncate">Active Protocols: Obsidian, Android MCP, Calendar, Notion</span>
-                      <span className="text-semantic-success shrink-0">● 100% Operational</span>
+                    <div className="pt-2.5 border-t border-hairline flex items-center justify-between gap-2 text-[10px] text-muted font-mono min-w-0">
+                      <span className="truncate min-w-0">Active Protocols: Obsidian, Android MCP, Calendar, Notion</span>
+                      <span className="text-semantic-success shrink-0 whitespace-nowrap">● 100% Operational</span>
                     </div>
                   </div>
 

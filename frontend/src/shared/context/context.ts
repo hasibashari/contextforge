@@ -104,6 +104,7 @@ export interface WorkspaceContextType {
     customOptions?: { agentId?: string; sources?: string[] }
   ) => Promise<void>
   createNewChatSession: () => Promise<string> | string
+  resetDemoSession: () => Promise<void>
   switchChatSession: (sessionId: string) => void
   renameChatSession: (sessionId: string, newTitle: string) => Promise<void>
   deleteChatSession: (sessionId: string) => Promise<void>

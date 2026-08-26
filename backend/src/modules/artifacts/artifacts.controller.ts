@@ -1,13 +1,14 @@
 import { Controller, Get, Put, Delete, Param, Body } from '@nestjs/common';
 import { ArtifactsService } from './artifacts.service';
+import { GuestId } from '../../common/decorators/guest-id.decorator';
 
 @Controller('api/artifacts')
 export class ArtifactsController {
   constructor(private readonly service: ArtifactsService) {}
 
   @Get()
-  async getAll() {
-    const data = await this.service.getAll();
+  async getAll(@GuestId() guestId?: string) {
+    const data = await this.service.getAll(guestId);
     return { success: true, data };
   }
 

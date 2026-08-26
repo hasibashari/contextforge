@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Terminal,
   MessageSquare,
@@ -32,7 +33,12 @@ export default function WorkspaceSidebar({
   const location = useLocation()
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
-  const [openMenuSessionId, setOpenMenuSessionId] = useState<string | null>(null)
+  const [menuAnchor, setMenuAnchor] = useState<{
+    top: number
+    right: number
+    sessionId: string
+    sessionTitle: string
+  } | null>(null)
 
   const {
     agents,
@@ -168,9 +174,8 @@ export default function WorkspaceSidebar({
 
           {/* Recent Chat History */}
           <div className="space-y-1 pt-2 border-t border-hairline">
-            <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-caption text-muted flex items-center justify-between">
-              <span>Chat Sessions</span>
-              <span className="text-[10px] font-mono text-muted">{chatSessions.length}</span>
+            <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
+              Chat Sessions
             </div>
 
             <div className="space-y-1 max-h-52 overflow-y-auto pr-0.5">
@@ -248,70 +253,37 @@ export default function WorkspaceSidebar({
                           <span className="truncate">{session.title || 'Untitled Chat'}</span>
                         </Link>
 
-                        {/* Context Menu Button */}
-                        <div className="relative">
+                        {/* Context Menu Button (Three Dots) */}
+                        <div className="relative shrink-0">
                           <button
                             type="button"
-                            title="Chat options"
+                            title="Chat options (Rename, Delete)"
                             onClick={(e) => {
                               e.preventDefault()
                               e.stopPropagation()
-                              setOpenMenuSessionId(
-                                openMenuSessionId === session.id
-                                  ? null
-                                  : session.id,
-                              )
+                              if (menuAnchor?.sessionId === session.id) {
+                                setMenuAnchor(null)
+                              } else {
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                setMenuAnchor({
+                                  top: rect.bottom + 4,
+                                  right: window.innerWidth - rect.right,
+                                  sessionId: session.id,
+                                  sessionTitle: session.title,
+                                })
+                              }
                             }}
-                            className={`p-1 rounded text-muted hover:text-ink hover:bg-surface-strong transition-all shrink-0 cursor-pointer ${
-                              openMenuSessionId === session.id
-                                ? 'opacity-100 bg-surface-strong text-ink'
-                                : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
+                            className={`p-1 rounded-md transition-all cursor-pointer ${
+                              menuAnchor?.sessionId === session.id
+                                ? 'opacity-100 bg-surface-strong text-ink shadow-2xs'
+                                : isCurrent
+                                  ? 'opacity-80 hover:opacity-100 text-ink hover:bg-surface-card'
+                                  : 'opacity-40 hover:opacity-100 group-hover:opacity-80 text-muted hover:text-ink hover:bg-surface-strong'
                             }`}
+                            aria-label="Chat session options"
                           >
                             <MoreVertical size={13} />
                           </button>
-
-                          {openMenuSessionId === session.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-20"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  setOpenMenuSessionId(null)
-                                }}
-                              />
-                              <div className="absolute right-0 top-full mt-1 w-36 rounded-lg bg-surface-card border border-hairline shadow-md py-1 z-30 space-y-0.5">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    setEditingSessionId(session.id)
-                                    setEditingTitle(session.title)
-                                    setOpenMenuSessionId(null)
-                                  }}
-                                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-body hover:text-ink hover:bg-surface-strong text-left cursor-pointer"
-                                >
-                                  <Edit2 size={12} className="text-muted" />
-                                  <span>Rename</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    setOpenMenuSessionId(null)
-                                    deleteChatSession(session.id)
-                                  }}
-                                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-semantic-error hover:bg-semantic-error/10 text-left cursor-pointer"
-                                >
-                                  <Trash2 size={12} />
-                                  <span>Delete</span>
-                                </button>
-                              </div>
-                            </>
-                          )}
                         </div>
                       </>
                     )}
@@ -357,6 +329,60 @@ export default function WorkspaceSidebar({
           </div>
         </div>
       </aside>
+
+      {/* Global Three-Dots Floating Dropdown Portal (Guaranteed No Clipping) */}
+      {menuAnchor &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-9998 bg-transparent"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setMenuAnchor(null)
+              }}
+            />
+            <div
+              style={{
+                position: 'fixed',
+                top: `${menuAnchor.top}px`,
+                right: `${menuAnchor.right}px`,
+              }}
+              className="w-36 rounded-lg bg-surface-card border border-hairline shadow-2xl py-1 z-9999 space-y-0.5 animate-in fade-in zoom-in-95 duration-100 backdrop-blur-md"
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setEditingSessionId(menuAnchor.sessionId)
+                  setEditingTitle(menuAnchor.sessionTitle)
+                  setMenuAnchor(null)
+                }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-ink hover:bg-surface-strong text-left cursor-pointer transition-colors"
+              >
+                <Edit2 size={12} className="text-muted" />
+                <span>Rename</span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  const targetId = menuAnchor.sessionId
+                  setMenuAnchor(null)
+                  void deleteChatSession(targetId)
+                }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-semantic-error hover:bg-semantic-error/15 text-left cursor-pointer transition-colors"
+              >
+                <Trash2 size={12} />
+                <span>Delete</span>
+              </button>
+            </div>
+          </>,
+          document.body,
+        )}
     </>
   )
 }

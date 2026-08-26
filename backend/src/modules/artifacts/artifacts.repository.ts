@@ -21,7 +21,17 @@ export interface ArtifactRow {
 export class ArtifactsRepository {
   constructor(private readonly db: DatabaseService) {}
 
-  async getAll(): Promise<ArtifactRow[]> {
+  async getAll(userId?: string): Promise<ArtifactRow[]> {
+    if (userId) {
+      const res = await this.db.query<ArtifactRow>(
+        `SELECT a.* FROM artifacts a
+         LEFT JOIN chat_sessions s ON a.session_id = s.id
+         WHERE s.user_id = $1 OR a.session_id IS NULL
+         ORDER BY a.updated_at DESC;`,
+        [userId],
+      );
+      return res.rows;
+    }
     const res = await this.db.query<ArtifactRow>(
       `SELECT * FROM artifacts ORDER BY updated_at DESC;`,
     );

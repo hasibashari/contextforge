@@ -5,8 +5,8 @@ import { ArtifactsRepository, ArtifactRow } from './artifacts.repository';
 export class ArtifactsService {
   constructor(private readonly repo: ArtifactsRepository) {}
 
-  async getAll(): Promise<ArtifactRow[]> {
-    return this.repo.getAll();
+  async getAll(guestId?: string): Promise<ArtifactRow[]> {
+    return this.repo.getAll(guestId);
   }
 
   async getById(id: string): Promise<ArtifactRow> {

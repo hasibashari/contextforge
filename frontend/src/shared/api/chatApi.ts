@@ -1,4 +1,4 @@
-import { API_BASE_URL, handleApiResponse } from './config';
+import { API_BASE_URL, handleApiResponse, getApiHeaders } from './config';
 import { consumeSseStream } from './sseClient';
 import type { SseEventHandlers } from './sseClient';
 import type { ChatSession, ChatMessage } from '@/shared/types/workspace';
@@ -41,7 +41,9 @@ export function mapBackendMessageToFrontend(m: BackendChatMessage): ChatMessage 
 
 export const chatApi = {
   async getSessions(): Promise<ChatSession[]> {
-    const res = await fetch(`${API_BASE_URL}/chat/sessions`);
+    const res = await fetch(`${API_BASE_URL}/chat/sessions`, {
+      headers: getApiHeaders(),
+    });
     const sessions = await handleApiResponse<BackendChatSession[]>(res);
     return sessions.map((s) => ({
       id: s.id,
@@ -53,7 +55,9 @@ export const chatApi = {
   },
 
   async getSessionDetails(id: string): Promise<{ session: ChatSession; messages: ChatMessage[] }> {
-    const res = await fetch(`${API_BASE_URL}/chat/sessions/${id}`);
+    const res = await fetch(`${API_BASE_URL}/chat/sessions/${id}`, {
+      headers: getApiHeaders(),
+    });
     const data = await handleApiResponse<{ session: BackendChatSession; messages: BackendChatMessage[] }>(res);
     const messages = data.messages.map(mapBackendMessageToFrontend);
     const session: ChatSession = {
@@ -69,7 +73,7 @@ export const chatApi = {
   async createSession(title?: string): Promise<ChatSession> {
     const res = await fetch(`${API_BASE_URL}/chat/sessions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getApiHeaders(),
       body: JSON.stringify({ title }),
     });
     const s = await handleApiResponse<BackendChatSession>(res);
@@ -85,7 +89,7 @@ export const chatApi = {
   async updateSessionTitle(id: string, title: string): Promise<ChatSession> {
     const res = await fetch(`${API_BASE_URL}/chat/sessions/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getApiHeaders(),
       body: JSON.stringify({ title }),
     });
     const s = await handleApiResponse<BackendChatSession>(res);
@@ -99,7 +103,10 @@ export const chatApi = {
   },
 
   async deleteSession(id: string): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/chat/sessions/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE_URL}/chat/sessions/${id}`, {
+      method: 'DELETE',
+      headers: getApiHeaders(),
+    });
     await handleApiResponse<{ success: boolean }>(res);
   },
 

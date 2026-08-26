@@ -1,4 +1,4 @@
-import { API_BASE_URL, handleApiResponse } from './config';
+import { API_BASE_URL, handleApiResponse, getApiHeaders } from './config';
 import type { Artifact } from '@/shared/types/workspace';
 
 export interface BackendArtifact {
@@ -36,13 +36,17 @@ export function mapBackendArtifact(a: BackendArtifact): Artifact {
 
 export const artifactsApi = {
   async getAll(): Promise<Artifact[]> {
-    const res = await fetch(`${API_BASE_URL}/artifacts`);
+    const res = await fetch(`${API_BASE_URL}/artifacts`, {
+      headers: getApiHeaders(),
+    });
     const data = await handleApiResponse<BackendArtifact[]>(res);
     return data.map(mapBackendArtifact);
   },
 
   async getById(id: string): Promise<Artifact> {
-    const res = await fetch(`${API_BASE_URL}/artifacts/${id}`);
+    const res = await fetch(`${API_BASE_URL}/artifacts/${id}`, {
+      headers: getApiHeaders(),
+    });
     const data = await handleApiResponse<BackendArtifact>(res);
     return mapBackendArtifact(data);
   },
@@ -50,7 +54,7 @@ export const artifactsApi = {
   async updateContent(id: string, content: string): Promise<Artifact> {
     const res = await fetch(`${API_BASE_URL}/artifacts/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getApiHeaders(),
       body: JSON.stringify({ content }),
     });
     const data = await handleApiResponse<BackendArtifact>(res);
@@ -58,7 +62,10 @@ export const artifactsApi = {
   },
 
   async delete(id: string): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/artifacts/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE_URL}/artifacts/${id}`, {
+      method: 'DELETE',
+      headers: getApiHeaders(),
+    });
     await handleApiResponse<{ success: boolean }>(res);
   },
 };

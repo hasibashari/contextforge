@@ -114,6 +114,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Conversational Actions
         sendChatMessage: chatEngine.sendChatMessage,
         createNewChatSession: chatEngine.createNewChatSession,
+        resetDemoSession: chatEngine.resetDemoSession,
         switchChatSession: chatEngine.switchChatSession,
         renameChatSession: chatEngine.renameChatSession,
         deleteChatSession: chatEngine.deleteChatSession,

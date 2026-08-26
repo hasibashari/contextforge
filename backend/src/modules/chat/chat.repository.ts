@@ -27,14 +27,31 @@ export interface ChatMessageRow {
 export class ChatRepository {
   constructor(private readonly db: DatabaseService) {}
 
-  async getSessions(): Promise<ChatSessionRow[]> {
+  async getSessions(userId?: string): Promise<ChatSessionRow[]> {
+    if (userId) {
+      const res = await this.db.query<ChatSessionRow>(
+        `SELECT * FROM chat_sessions WHERE user_id = $1 ORDER BY updated_at DESC;`,
+        [userId],
+      );
+      return res.rows;
+    }
     const res = await this.db.query<ChatSessionRow>(
-      `SELECT * FROM chat_sessions ORDER BY updated_at DESC;`,
+      `SELECT * FROM chat_sessions WHERE user_id IS NULL ORDER BY updated_at DESC;`,
     );
     return res.rows;
   }
 
-  async getSessionById(id: string): Promise<ChatSessionRow | null> {
+  async getSessionById(
+    id: string,
+    userId?: string,
+  ): Promise<ChatSessionRow | null> {
+    if (userId) {
+      const res = await this.db.query<ChatSessionRow>(
+        `SELECT * FROM chat_sessions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL);`,
+        [id, userId],
+      );
+      return res.rows[0] || null;
+    }
     const res = await this.db.query<ChatSessionRow>(
       `SELECT * FROM chat_sessions WHERE id = $1;`,
       [id],
@@ -42,10 +59,13 @@ export class ChatRepository {
     return res.rows[0] || null;
   }
 
-  async createSession(title = 'New Investigation'): Promise<ChatSessionRow> {
+  async createSession(
+    title = 'New Investigation',
+    userId?: string,
+  ): Promise<ChatSessionRow> {
     const res = await this.db.query<ChatSessionRow>(
-      `INSERT INTO chat_sessions (title) VALUES ($1) RETURNING *;`,
-      [title],
+      `INSERT INTO chat_sessions (title, user_id) VALUES ($1, $2) RETURNING *;`,
+      [title, userId || null],
     );
     return res.rows[0];
   }
@@ -67,8 +87,15 @@ export class ChatRepository {
     );
   }
 
-  async deleteSession(id: string): Promise<void> {
-    await this.db.query(`DELETE FROM chat_sessions WHERE id = $1;`, [id]);
+  async deleteSession(id: string, userId?: string): Promise<void> {
+    if (userId) {
+      await this.db.query(
+        `DELETE FROM chat_sessions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL);`,
+        [id, userId],
+      );
+    } else {
+      await this.db.query(`DELETE FROM chat_sessions WHERE id = $1;`, [id]);
+    }
   }
 
   async getMessagesBySessionId(sessionId: string): Promise<ChatMessageRow[]> {

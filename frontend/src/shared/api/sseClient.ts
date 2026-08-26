@@ -1,4 +1,5 @@
 import type { Artifact, ChatMessage, AutomationWorkflow } from '@/shared/types/workspace';
+import { getApiHeaders } from './config';
 
 export interface SseEventHandlers {
   onSessionCreated?: (data: { id: string; title: string; previousId?: string }) => void;
@@ -25,10 +26,9 @@ export async function consumeSseStream(
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: getApiHeaders({
         Accept: 'text/event-stream',
-      },
+      }),
       body: JSON.stringify(body),
     });
 

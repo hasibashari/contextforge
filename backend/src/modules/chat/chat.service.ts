@@ -34,14 +34,15 @@ export class ChatService {
     @Inject(GEMINI_CLIENT) private readonly ai: GoogleGenAI,
   ) {}
 
-  async getAllSessions(): Promise<ChatSessionRow[]> {
-    return this.chatRepo.getSessions();
+  async getAllSessions(guestId?: string): Promise<ChatSessionRow[]> {
+    return this.chatRepo.getSessions(guestId);
   }
 
   async getSessionById(
     id: string,
+    guestId?: string,
   ): Promise<{ session: ChatSessionRow; messages: ChatMessageRow[] }> {
-    const session = await this.chatRepo.getSessionById(id);
+    const session = await this.chatRepo.getSessionById(id, guestId);
     if (!session) {
       throw new NotFoundException(`Chat session ${id} not found`);
     }
@@ -49,8 +50,11 @@ export class ChatService {
     return { session, messages };
   }
 
-  async createSession(title?: string): Promise<ChatSessionRow> {
-    return this.chatRepo.createSession(title || 'New Investigation');
+  async createSession(
+    title?: string,
+    guestId?: string,
+  ): Promise<ChatSessionRow> {
+    return this.chatRepo.createSession(title || 'New Investigation', guestId);
   }
 
   async updateSessionTitle(id: string, title: string): Promise<ChatSessionRow> {
@@ -66,8 +70,11 @@ export class ChatService {
     return session;
   }
 
-  async deleteSession(id: string): Promise<{ success: boolean }> {
-    await this.chatRepo.deleteSession(id);
+  async deleteSession(
+    id: string,
+    guestId?: string,
+  ): Promise<{ success: boolean }> {
+    await this.chatRepo.deleteSession(id, guestId);
     return { success: true };
   }
 
@@ -79,6 +86,7 @@ export class ChatService {
     prompt: string,
     res: Response,
     agentId?: string,
+    guestId?: string,
   ): Promise<void> {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -94,13 +102,19 @@ export class ChatService {
       let targetSessionId = sessionId;
       let existingSession: ChatSessionRow | null = null;
       if (sessionId) {
-        existingSession = await this.chatRepo.getSessionById(sessionId);
+        existingSession = await this.chatRepo.getSessionById(
+          sessionId,
+          guestId,
+        );
       }
 
       if (!existingSession) {
         const autoTitle =
           prompt.length > 35 ? prompt.slice(0, 35) + '...' : prompt;
-        const newSession = await this.chatRepo.createSession(autoTitle);
+        const newSession = await this.chatRepo.createSession(
+          autoTitle,
+          guestId,
+        );
         targetSessionId = newSession.id;
         sendSse('session_created', {
           id: newSession.id,

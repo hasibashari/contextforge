@@ -42,7 +42,14 @@ export class PersonalHubRepository implements OnModuleInit {
   }
 
   // Memory queries
-  async getUserMemories(): Promise<UserMemoryRow[]> {
+  async getUserMemories(userId?: string): Promise<UserMemoryRow[]> {
+    if (userId) {
+      const res = await this.db.query<UserMemoryRow>(
+        `SELECT * FROM user_memories WHERE user_id = $1 OR user_id IS NULL ORDER BY updated_at DESC;`,
+        [userId],
+      );
+      return res.rows;
+    }
     const res = await this.db.query<UserMemoryRow>(
       `SELECT * FROM user_memories ORDER BY updated_at DESC;`,
     );
@@ -53,12 +60,13 @@ export class PersonalHubRepository implements OnModuleInit {
     category: 'profile' | 'preference' | 'project' | 'workflow';
     key: string;
     value: string;
+    userId?: string;
   }): Promise<UserMemoryRow> {
     const res = await this.db.query<UserMemoryRow>(
-      `INSERT INTO user_memories (category, key, value)
-       VALUES ($1, $2, $3)
+      `INSERT INTO user_memories (category, key, value, user_id)
+       VALUES ($1, $2, $3, $4)
        RETURNING *;`,
-      [data.category, data.key, data.value],
+      [data.category, data.key, data.value, data.userId || null],
     );
     return res.rows[0];
   }
@@ -67,7 +75,13 @@ export class PersonalHubRepository implements OnModuleInit {
     await this.db.query(`DELETE FROM user_memories WHERE id = $1;`, [id]);
   }
 
-  async clearAll(): Promise<void> {
-    await this.db.query(`DELETE FROM user_memories;`);
+  async clearAll(userId?: string): Promise<void> {
+    if (userId) {
+      await this.db.query(`DELETE FROM user_memories WHERE user_id = $1;`, [
+        userId,
+      ]);
+    } else {
+      await this.db.query(`DELETE FROM user_memories;`);
+    }
   }
 }
