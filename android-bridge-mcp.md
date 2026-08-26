@@ -506,31 +506,44 @@ class McpWebSocketBridgeClient(
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
         }
         val startTime = cal.timeInMillis
         val endTime = System.currentTimeMillis()
 
-        val stats = usm?.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime) ?: emptyList()
+        val aggregatedStats = usm?.queryAndAggregateUsageStats(startTime, endTime) ?: emptyMap()
         var totalMs = 0L
         var mostUsedPkg = ""
         var maxMs = 0L
         val appsArray = JSONArray()
 
-        stats.filter { it.totalTimeInForeground > 60000 }.sortedByDescending { it.totalTimeInForeground }.forEach { stat ->
-            totalMs += stat.totalTimeInForeground
-            if (stat.totalTimeInForeground > maxMs) {
-                maxMs = stat.totalTimeInForeground
+        val sortedList = aggregatedStats.values
+            .filter { it.totalTimeInForeground > 0 && it.lastTimeUsed >= startTime }
+            .sortedByDescending { it.totalTimeInForeground }
+
+        sortedList.forEach { stat ->
+            val durationMs = stat.totalTimeInForeground
+            totalMs += durationMs
+
+            if (durationMs > maxMs) {
+                maxMs = durationMs
                 mostUsedPkg = stat.packageName
             }
-            appsArray.put(JSONObject().apply {
-                put("packageName", stat.packageName)
-                put("totalTimeInForegroundMs", stat.totalTimeInForeground)
-                put("lastTimeUsed", stat.lastTimeUsed)
-            })
+
+            if (durationMs >= 10_000) {
+                appsArray.put(JSONObject().apply {
+                    put("packageName", stat.packageName)
+                    put("friendlyName", getAppLabel(stat.packageName))
+                    put("totalTimeInForegroundMs", durationMs)
+                    put("lastTimeUsed", stat.lastTimeUsed)
+                })
+            }
         }
 
         return JSONObject().apply {
             put("date", String.format("%tF", cal))
+            put("startTimeMs", startTime)
+            put("endTimeMs", endTime)
             put("totalScreenTimeMs", totalMs)
             put("mostUsedApp", mostUsedPkg)
             put("apps", appsArray)
@@ -539,16 +552,29 @@ class McpWebSocketBridgeClient(
 
     private fun getRawUsageStats(): JSONArray {
         val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
-        val startTime = System.currentTimeMillis() - 24 * 60 * 60 * 1000
-        val stats = usm?.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, System.currentTimeMillis()) ?: emptyList()
-        val array = JSONArray()
-        stats.filter { it.totalTimeInForeground > 0 }.forEach {
-            array.put(JSONObject().apply {
-                put("packageName", it.packageName)
-                put("totalTimeInForegroundMs", it.totalTimeInForeground)
-                put("lastTimeUsed", it.lastTimeUsed)
-            })
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
         }
+        val startTime = cal.timeInMillis
+        val endTime = System.currentTimeMillis()
+
+        val aggregatedStats = usm?.queryAndAggregateUsageStats(startTime, endTime) ?: emptyMap()
+        val array = JSONArray()
+
+        aggregatedStats.values
+            .filter { it.totalTimeInForeground > 0 && it.lastTimeUsed >= startTime }
+            .sortedByDescending { it.totalTimeInForeground }
+            .forEach { stat ->
+                array.put(JSONObject().apply {
+                    put("packageName", stat.packageName)
+                    put("friendlyName", getAppLabel(stat.packageName))
+                    put("totalTimeInForegroundMs", stat.totalTimeInForeground)
+                    put("lastTimeUsed", stat.lastTimeUsed)
+                })
+            }
         return array
     }
 
@@ -605,7 +631,523 @@ class McpWebSocketBridgeClient(
 
 ---
 
-### 7.3 Background Foreground Service: `McpBridgeForegroundService.kt`
+### 7.2 Kelas Event-Driven: `NetworkStateMonitor.kt` (Deteksi Jaringan Zero-Polling)
+
+Simpan di package `com.contextforge.bridge.network`:
+
+```kotlin
+package com.contextforge.bridge.network
+
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.util.Log
+
+/**
+ * Event-Driven Network State Monitor menggunakan ConnectivityManager.NetworkCallback.
+ * 100% Bebas Polling (0% CPU/Battery overhead).
+ * Terpanggil secara instan oleh OS saat Wi-Fi menyala, mati, atau berganti access point.
+ */
+class NetworkStateMonitor(
+    context: Context,
+    private val onNetworkAvailable: () -> Unit,
+    private val onNetworkLost: () -> Unit
+) {
+    private val TAG = "NetworkStateMonitor"
+    private val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            Log.d(TAG, "🌐 Jaringan aktif kembali (Wi-Fi/Cellular). Memicu koneksi ulang instan...")
+            onNetworkAvailable()
+        }
+
+        override fun onLost(network: Network) {
+            Log.w(TAG, "📵 Jaringan terputus / Wi-Fi mati.")
+            onNetworkLost()
+        }
+
+        override fun onCapabilitiesChanged(
+            network: Network,
+            networkCapabilities: NetworkCapabilities
+        ) {
+            val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            val isValidated = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            if (hasInternet && isValidated) {
+                onNetworkAvailable()
+            }
+        }
+    }
+
+    fun startMonitoring() {
+        try {
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            connectivityManager.registerNetworkCallback(request, networkCallback)
+            Log.d(TAG, "✅ NetworkCallback terdaftar.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Gagal mendaftarkan NetworkCallback: ${e.message}")
+        }
+    }
+
+    fun stopMonitoring() {
+        try {
+            connectivityManager.unregisterNetworkCallback(networkCallback)
+        } catch (_: Exception) {}
+    }
+
+    fun isCurrentlyConnected(): Boolean {
+        val activeNet = connectivityManager.activeNetwork ?: return false
+        val caps = connectivityManager.getNetworkCapabilities(activeNet) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+}
+```
+
+---
+
+### 7.3 Kelas WebSocket: `McpWebSocketBridgeClient.kt`
+
+Simpan di package `com.contextforge.bridge.websocket`:
+
+```kotlin
+package com.contextforge.bridge.websocket
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.usage.UsageStatsManager
+import android.content.Context
+import android.os.BatteryManager
+import android.os.Build
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import com.contextforge.bridge.network.NetworkStateMonitor
+import okhttp3.*
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
+import kotlin.math.min
+import kotlin.math.pow
+
+class McpWebSocketBridgeClient(
+    private val context: Context,
+    private val wsUrl: String = "ws://192.168.1.8:3001/api/android-bridge/ws"
+) {
+    private val TAG = "McpBridgeClient"
+    
+    // OkHttp Client dengan RFC 6455 Keepalive Ping (15 detik)
+    private val okHttpClient = OkHttpClient.Builder()
+        .readTimeout(0, TimeUnit.MILLISECONDS)
+        .pingInterval(15, TimeUnit.SECONDS) // Mencegah NAT router timeout & mendeteksi putus jaringan
+        .retryOnConnectionFailure(false)    // Kita kontrol retry dengan Exponential Backoff kita sendiri
+        .build()
+
+    private var webSocket: WebSocket? = null
+    var isConnected = false
+        private set
+
+    // Callback saat Desktop secara eksplisit memutus koneksi (misal tombol Disconnect ditekan di UI Desktop)
+    var onServerExplicitDisconnect: ((reason: String) -> Unit)? = null
+    var onConnectionStateChanged: ((connected: Boolean) -> Unit)? = null
+
+    // Handler & Exponential Backoff Reconnection
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var isManualDisconnect = false
+    private var retryAttempt = 0
+    private val MAX_BACKOFF_MS = 30_000L // Maksimal delay 30 detik
+
+    // Network State Monitor (Event-Driven)
+    private val networkMonitor = NetworkStateMonitor(
+        context = context,
+        onNetworkAvailable = {
+            if (!isConnected && !isManualDisconnect) {
+                Log.d(TAG, "⚡ Event Network Available diterima: Menyambung ulang seketika...")
+                retryAttempt = 0
+                mainHandler.removeCallbacksAndMessages(null)
+                connect()
+            }
+        },
+        onNetworkLost = {
+            // Hentikan timer retry saat jaringan offline agar hemat baterai
+            mainHandler.removeCallbacksAndMessages(null)
+        }
+    )
+
+    // In-memory blacklist dan limits
+    private val blockedPackages = mutableSetOf<String>()
+    private val appLimitsMinutes = mutableMapOf<String, Int>()
+
+    init {
+        networkMonitor.startMonitoring()
+    }
+
+    fun connect() {
+        if (isConnected || isManualDisconnect) return
+        if (!networkMonitor.isCurrentlyConnected()) {
+            Log.w(TAG, "Jaringan offline, menunda koneksi hingga Wi-Fi/Internet aktif...")
+            return
+        }
+
+        Log.d(TAG, "🔌 Menghubungkan ke ContextForge WebSocket Gateway: $wsUrl")
+        val request = Request.Builder().url(wsUrl).build()
+
+        webSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(ws: WebSocket, response: Response) {
+                isConnected = true
+                retryAttempt = 0
+                mainHandler.removeCallbacksAndMessages(null)
+                Log.d(TAG, "✅ Terhubung ke ContextForge WebSocket Gateway!")
+                onConnectionStateChanged?.invoke(true)
+
+                // 1. Kirim Handshake Registrasi Perangkat
+                val batteryLevel = getBatteryPercentage()
+                val handshake = JSONObject().apply {
+                    put("type", "android_handshake")
+                    put("deviceName", "${Build.MANUFACTURER} ${Build.MODEL}")
+                    put("androidVersion", Build.VERSION.RELEASE)
+                    put("batteryLevel", batteryLevel)
+                    put("timestamp", System.currentTimeMillis())
+                }
+                ws.send(handshake.toString())
+            }
+
+            override fun onMessage(ws: WebSocket, text: String) {
+                try {
+                    val json = JSONObject(text)
+                    val type = json.optString("type")
+
+                    if (type == "handshake_ack") {
+                        Log.d(TAG, "🎉 Handshake diterima oleh ContextForge Desktop!")
+                    } else if (type == "server_disconnect") {
+                        // Permintaan Disconnect Eksplisit dari Desktop UI
+                        val reason = json.optString("reason", "Desktop disconnected")
+                        Log.d(TAG, "🔌 Server Disconnect: $reason")
+                        isManualDisconnect = true
+                        onServerExplicitDisconnect?.invoke(reason)
+                        disconnect()
+                    } else if (type == "mcp_bridge_request") {
+                        val reqId = json.getString("id")
+                        val action = json.getString("action")
+                        val payload = json.optJSONObject("payload") ?: JSONObject()
+                        handleToolExecution(ws, reqId, action, payload)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Gagal memproses pesan: ${e.message}", e)
+                }
+            }
+
+            override fun onClosed(ws: WebSocket, code: Int, reason: String) {
+                isConnected = false
+                onConnectionStateChanged?.invoke(false)
+                Log.d(TAG, "🔌 WebSocket ditutup: $reason ($code)")
+                if (isManualDisconnect || (code == 1000 && reason.contains("User disconnected", ignoreCase = true))) {
+                    onServerExplicitDisconnect?.invoke(reason)
+                } else {
+                    scheduleExponentialReconnect()
+                }
+            }
+
+            override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
+                isConnected = false
+                onConnectionStateChanged?.invoke(false)
+                Log.w(TAG, "⚠️ WebSocket terputus (${t.message}). Menjadwalkan auto-reconnect...")
+                if (!isManualDisconnect) {
+                    scheduleExponentialReconnect()
+                }
+            }
+        })
+    }
+
+    /**
+     * Exponential Backoff dengan Jitter (1s -> 2s -> 4s -> 8s -> 16s -> 30s)
+     */
+    private fun scheduleExponentialReconnect() {
+        if (isManualDisconnect || !networkMonitor.isCurrentlyConnected()) return
+
+        retryAttempt++
+        val baseDelay = (2.0.pow(min(retryAttempt, 5).toDouble()) * 1000).toLong()
+        val jitter = (Math.random() * 1000).toLong()
+        val delayMs = min(baseDelay + jitter, MAX_BACKOFF_MS)
+
+        Log.d(TAG, "🔄 Auto-reconnect percobaan ke-$retryAttempt dalam ${delayMs / 1000}s...")
+        mainHandler.removeCallbacksAndMessages(null)
+        mainHandler.postDelayed({
+            if (!isConnected && !isManualDisconnect) {
+                connect()
+            }
+        }, delayMs)
+    }
+
+    fun disconnect() {
+        isManualDisconnect = true
+        mainHandler.removeCallbacksAndMessages(null)
+        networkMonitor.stopMonitoring()
+        try {
+            // Kirim pesan salam penutup bersih ke server sebelum socket ditutup
+            webSocket?.send(JSONObject().apply {
+                put("type", "android_disconnect")
+                put("reason", "User closed from Android app")
+            }.toString())
+            webSocket?.close(1000, "User closed session")
+            webSocket = null
+        } catch (_: Exception) {}
+        isConnected = false
+        onConnectionStateChanged?.invoke(false)
+    }
+
+    private fun handleToolExecution(ws: WebSocket, reqId: String, action: String, payload: JSONObject) {
+        val responseData = JSONObject()
+        var isSuccess = true
+        var errorMessage: String? = null
+
+        try {
+            when (action) {
+                "get_device_status" -> {
+                    responseData.put("status", "ok")
+                    responseData.put("device", "${Build.MANUFACTURER} ${Build.MODEL}")
+                    responseData.put("androidVersion", Build.VERSION.RELEASE)
+                    responseData.put("batteryLevel", getBatteryPercentage())
+                }
+
+                "get_foreground_app" -> {
+                    val currentApp = getForegroundAppPackageName()
+                    responseData.put("currentForegroundApp", currentApp)
+                    responseData.put("friendlyName", getAppLabel(currentApp))
+                }
+
+                "get_usage_summary" -> {
+                    val summary = getDailyUsageSummary()
+                    responseData.put("date", summary.optString("date"))
+                    responseData.put("totalScreenTimeMs", summary.optLong("totalScreenTimeMs"))
+                    responseData.put("mostUsedApp", summary.optString("mostUsedApp"))
+                    responseData.put("apps", summary.optJSONArray("apps"))
+                }
+
+                "get_usage" -> {
+                    val usageList = getRawUsageStats()
+                    responseData.put("apps", usageList)
+                }
+
+                "set_app_limit" -> {
+                    val pkg = payload.getString("packageName")
+                    val limit = payload.getInt("maxDailyMinutes")
+                    appLimitsMinutes[pkg] = limit
+                    responseData.put("status", "success")
+                    responseData.put("message", "Limit of $limit minutes set for $pkg")
+                }
+
+                "block_app" -> {
+                    val pkg = payload.getString("packageName")
+                    val block = payload.getBoolean("block")
+                    if (block) blockedPackages.add(pkg) else blockedPackages.remove(pkg)
+                    responseData.put("status", "success")
+                    responseData.put("message", "App $pkg block state set to $block")
+                }
+
+                "get_active_restrictions" -> {
+                    val limitsArray = JSONArray()
+                    appLimitsMinutes.forEach { (pkg, limit) ->
+                        limitsArray.put(JSONObject().apply {
+                            put("packageName", pkg)
+                            put("maxDailyMinutes", limit)
+                            put("isBlocked", blockedPackages.contains(pkg))
+                        })
+                    }
+                    val blockedArray = JSONArray(blockedPackages.toList())
+                    responseData.put("limits", limitsArray)
+                    responseData.put("blockedApps", blockedArray)
+                }
+
+                "set_dnd" -> {
+                    val enable = payload.getBoolean("enable")
+                    setDoNotDisturb(enable)
+                    responseData.put("status", "success")
+                    responseData.put("dndActive", enable)
+                }
+
+                "send_notification" -> {
+                    val title = payload.optString("title", "ContextForge AI Alert")
+                    val message = payload.optString("message", "")
+                    showStatusBarNotification(title, message)
+                    responseData.put("status", "success")
+                    responseData.put("notificationSent", true)
+                }
+
+                else -> {
+                    isSuccess = false
+                    errorMessage = "Action '$action' not implemented."
+                }
+            }
+        } catch (e: Exception) {
+            isSuccess = false
+            errorMessage = e.message ?: "Unknown error"
+        }
+
+        val responseJson = JSONObject().apply {
+            put("id", reqId)
+            put("type", "mcp_bridge_response")
+            put("success", isSuccess)
+            if (isSuccess) put("data", responseData) else put("error", errorMessage)
+            put("timestamp", System.currentTimeMillis())
+        }
+
+        ws.send(responseJson.toString())
+    }
+
+    private fun getForegroundAppPackageName(): String {
+        val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+        val endTime = System.currentTimeMillis()
+        val startTime = endTime - 1000 * 60 // 1 menit terakhir
+        val usageEvents = usm?.queryEvents(startTime, endTime) ?: return ""
+        val event = android.app.usage.UsageEvents.Event()
+        var lastForegroundApp = ""
+
+        while (usageEvents.hasNextEvent()) {
+            usageEvents.getNextEvent(event)
+            if (event.eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED) {
+                lastForegroundApp = event.packageName
+            }
+        }
+        return lastForegroundApp
+    }
+
+    /**
+     * Menghitung total screen time dan rincian penggunaan aplikasi HARI INI secara akurat (Real-Time).
+     * Menggunakan queryAndAggregateUsageStats(startOfDay, now) agar data yang diambil adalah detik demi detik
+     * sejak jam 00:00:00.000 HARI INI, bukan bucket kemarin.
+     */
+    private fun getDailyUsageSummary(): JSONObject {
+        val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val startTime = cal.timeInMillis
+        val endTime = System.currentTimeMillis()
+
+        // queryAndAggregateUsageStats menggabungkan event secara tepat dalam rentang [startTime, endTime]
+        val aggregatedStats = usm?.queryAndAggregateUsageStats(startTime, endTime) ?: emptyMap()
+        var totalMs = 0L
+        var mostUsedPkg = ""
+        var maxMs = 0L
+        val appsArray = JSONArray()
+
+        val sortedList = aggregatedStats.values
+            .filter { it.totalTimeInForeground > 0 && it.lastTimeUsed >= startTime }
+            .sortedByDescending { it.totalTimeInForeground }
+
+        sortedList.forEach { stat ->
+            val durationMs = stat.totalTimeInForeground
+            totalMs += durationMs
+
+            if (durationMs > maxMs) {
+                maxMs = durationMs
+                mostUsedPkg = stat.packageName
+            }
+
+            if (durationMs >= 10_000) { // Sertakan aplikasi yang digunakan >= 10 detik
+                appsArray.put(JSONObject().apply {
+                    put("packageName", stat.packageName)
+                    put("friendlyName", getAppLabel(stat.packageName))
+                    put("totalTimeInForegroundMs", durationMs)
+                    put("lastTimeUsed", stat.lastTimeUsed)
+                })
+            }
+        }
+
+        return JSONObject().apply {
+            put("date", String.format("%tF", cal))
+            put("startTimeMs", startTime)
+            put("endTimeMs", endTime)
+            put("totalScreenTimeMs", totalMs)
+            put("mostUsedApp", mostUsedPkg)
+            put("apps", appsArray)
+        }
+    }
+
+    private fun getRawUsageStats(): JSONArray {
+        val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val startTime = cal.timeInMillis
+        val endTime = System.currentTimeMillis()
+
+        val aggregatedStats = usm?.queryAndAggregateUsageStats(startTime, endTime) ?: emptyMap()
+        val array = JSONArray()
+
+        aggregatedStats.values
+            .filter { it.totalTimeInForeground > 0 && it.lastTimeUsed >= startTime }
+            .sortedByDescending { it.totalTimeInForeground }
+            .forEach { stat ->
+                array.put(JSONObject().apply {
+                    put("packageName", stat.packageName)
+                    put("friendlyName", getAppLabel(stat.packageName))
+                    put("totalTimeInForegroundMs", stat.totalTimeInForeground)
+                    put("lastTimeUsed", stat.lastTimeUsed)
+                })
+            }
+        return array
+    }
+
+    private fun setDoNotDisturb(enable: Boolean) {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && nm != null && nm.isNotificationPolicyAccessGranted) {
+            val filter = if (enable) NotificationManager.INTERRUPTION_FILTER_PRIORITY else NotificationManager.INTERRUPTION_FILTER_ALL
+            nm.setInterruptionFilter(filter)
+        }
+    }
+
+    private fun showStatusBarNotification(title: String, message: String) {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        val channelId = "contextforge_mcp_channel"
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, "ContextForge AI Alerts", NotificationManager.IMPORTANCE_HIGH)
+            nm.createNotificationChannel(channel)
+        }
+
+        val notif = NotificationCompat.Builder(context, channelId)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
+        nm.notify(System.currentTimeMillis().toInt(), notif)
+    }
+
+    private fun getBatteryPercentage(): Int {
+        val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+        return bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 100
+    }
+
+    private fun getAppLabel(packageName: String): String {
+        return try {
+            val pm = context.packageManager
+            val info = pm.getApplicationInfo(packageName, 0)
+            pm.getApplicationLabel(info).toString()
+        } catch (_: Exception) {
+            packageName
+        }
+    }
+}
+```
+
+---
+
+### 7.4 Foreground Service Persisten: `McpBridgeForegroundService.kt`
 
 Simpan di package `com.contextforge.bridge.service`:
 
@@ -615,6 +1157,7 @@ package com.contextforge.bridge.service
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -623,51 +1166,78 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.contextforge.bridge.websocket.McpWebSocketBridgeClient
 
+/**
+ * Foreground Service yang MENJAMIN WebSocket tetap menyala:
+ * - START_STICKY: OS akan me-restart service jika terbunuh karena low memory.
+ * - onTaskRemoved(): Mencegah pemutusan koneksi saat aplikasi di-clear/swipe dari Recent Apps.
+ * - Ongoing Notification: Memberitahu sistem bahwa proses ini memiliki prioritas tinggi.
+ */
 class McpBridgeForegroundService : Service() {
 
     private var bridgeClient: McpWebSocketBridgeClient? = null
+    private var currentWsUrl: String = ""
+
+    companion object {
+        const val ACTION_STOP_SERVICE = "com.contextforge.bridge.ACTION_STOP"
+        const val NOTIFICATION_ID = 1001
+        const val CHANNEL_ID = "mcp_bridge_foreground_channel"
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val wsUrl = intent?.getStringExtra("WS_URL") ?: "ws://192.168.1.8:3001/api/android-bridge/ws"
-
-        // Buat Notification Channel untuk Foreground Service
-        val channelId = "mcp_bridge_service_channel"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "ContextForge Bridge Active",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
+        if (intent?.action == ACTION_STOP_SERVICE) {
+            stopBridgeAndSelf()
+            return START_NOT_STICKY
         }
 
-        val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("ContextForge AI Bridge Active")
-            .setContentText("Connected to desktop via WebSocket")
-            .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .build()
+        currentWsUrl = intent?.getStringExtra("WS_URL") ?: currentWsUrl
+        if (currentWsUrl.isEmpty()) {
+            currentWsUrl = "ws://192.168.1.8:3001/api/android-bridge/ws"
+        }
 
-        startForeground(1001, notification)
+        createNotificationChannel()
+        val notification = buildOngoingNotification("Connecting to ContextForge Desktop...")
+        startForeground(NOTIFICATION_ID, notification)
 
-        // Inisialisasi dan hubungkan WebSocket
-        bridgeClient?.disconnect()
-        bridgeClient = McpWebSocketBridgeClient(applicationContext, wsUrl).apply {
-            // 🛑 Matikan Foreground Service HANYA jika Desktop secara eksplisit meminta Disconnect
-            onServerExplicitDisconnect = { reason ->
-                android.util.Log.d("McpBridgeService", "🛑 Desktop requested disconnect: $reason")
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    stopForeground(STOP_FOREGROUND_REMOVE)
-                } else {
-                    @Suppress("DEPRECATION")
-                    stopForeground(true)
+        // Inisialisasi WebSocket Bridge Client
+        if (bridgeClient == null) {
+            bridgeClient = McpWebSocketBridgeClient(applicationContext, currentWsUrl).apply {
+                onConnectionStateChanged = { isConnected ->
+                    val statusText = if (isConnected) "Active & Synced with Desktop" else "Reconnecting..."
+                    updateNotification(statusText)
                 }
-                stopSelf()
+
+                // Matikan Foreground Service HANYA jika Desktop secara eksplisit meminta Disconnect
+                onServerExplicitDisconnect = { reason ->
+                    android.util.Log.d("McpBridgeService", "🛑 Desktop requested disconnect: $reason")
+                    stopBridgeAndSelf()
+                }
             }
+            bridgeClient?.connect()
         }
-        bridgeClient?.connect()
 
         return START_STICKY
+    }
+
+    /**
+     * KUNCI UTAMA: Ditengahi saat pengguna men-swipe aplikasi dari Recent Apps.
+     * Kita TIDAK mematikan service di sini agar bridge tetap terhubung di background!
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        android.util.Log.d("McpBridgeService", "📱 App swiped from Recent Apps. Service remains alive in background.")
+        // Jangan panggil stopSelf(). Biarkan Foreground Service tetap hidup di status bar.
+        super.onTaskRemoved(rootIntent)
+    }
+
+    private fun stopBridgeAndSelf() {
+        bridgeClient?.disconnect()
+        bridgeClient = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        stopSelf()
     }
 
     override fun onDestroy() {
@@ -676,26 +1246,76 @@ class McpBridgeForegroundService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "ContextForge Bridge Status",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Notifikasi status koneksi WebSocket ContextForge"
+                setShowBadge(false)
+            }
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(channel)
+        }
+    }
+
+    private fun buildOngoingNotification(statusText: String): Notification {
+        val stopIntent = Intent(this, McpBridgeForegroundService::class.java).apply {
+            action = ACTION_STOP_SERVICE
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            0,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+        )
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("ContextForge AI Bridge")
+            .setContentText(statusText)
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setOngoing(true) // Menjadikan notifikasi tidak bisa di-swipe sembarangan
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Disconnect", stopPendingIntent)
+            .build()
+    }
+
+    private fun updateNotification(statusText: String) {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(NOTIFICATION_ID, buildOngoingNotification(statusText))
+    }
 }
 ```
 
 ---
 
-### 7.4 Cara Memulai Service dari Activity / QR Scanner:
+### 7.5 Pengaturan Battery Optimization di `MainActivity.kt`
+
+Agar koneksi tidak di-freeze oleh sistem Android Doze Mode saat HP terkunci / layar mati dalam waktu lama, tambahkan dialog pengecualian baterai:
 
 ```kotlin
-// Setelah membaca hasil QR Code:
-val qrJson = JSONObject(scannedResult)
-val wsUrl = qrJson.optString("wsUrl", "ws://192.168.1.8:3001/api/android-bridge/ws")
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 
-val serviceIntent = Intent(this, McpBridgeForegroundService::class.java).apply {
-    putExtra("WS_URL", wsUrl)
-}
-
-if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-    startForegroundService(serviceIntent)
-} else {
-    startService(serviceIntent)
+fun requestBatteryOptimizationExemption(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
+            @SuppressLint("BatteryLife")
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:${context.packageName}")
+            }
+            context.startActivity(intent)
+        }
+    }
 }
 ```
 

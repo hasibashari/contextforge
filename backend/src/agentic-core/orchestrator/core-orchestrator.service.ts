@@ -432,7 +432,7 @@ export class CoreOrchestratorService {
       case 'search_knowledge_vault':
         return this.knowledgeHandler.handle(prompt, args, emit);
 
-      // Universal MCP Tool Invocation (Notion, Obsidian, Google Calendar)
+      // Universal MCP Tool Invocation (Notion, Obsidian, Google Calendar, Android Bridge)
       case 'query_notion_workspace':
       case 'notion_list_workspace_resources':
       case 'notion_get_tasks':
@@ -454,6 +454,15 @@ export class CoreOrchestratorService {
       case 'obsidian_vault_writer':
       case 'obsidian_vault_reader':
       case 'obsidian_create_daily_note':
+      case 'android_get_device_status':
+      case 'android_get_usage':
+      case 'android_get_usage_summary':
+      case 'android_get_foreground_app':
+      case 'android_set_app_limit':
+      case 'android_block_app':
+      case 'android_get_active_restrictions':
+      case 'android_set_dnd':
+      case 'android_send_notification':
         return this.mcpHandler.execute(toolName, prompt, args, emit);
 
       default:
@@ -461,7 +470,8 @@ export class CoreOrchestratorService {
         if (
           toolName.startsWith('obsidian_') ||
           toolName.startsWith('notion_') ||
-          toolName.startsWith('google_calendar_')
+          toolName.startsWith('google_calendar_') ||
+          toolName.startsWith('android_')
         ) {
           return this.mcpHandler.execute(toolName, prompt, args, emit);
         }

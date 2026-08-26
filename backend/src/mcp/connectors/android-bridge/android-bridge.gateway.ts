@@ -34,6 +34,10 @@ export interface AndroidBridgeResponseMessage {
   timestamp: number;
 }
 
+interface ExtendedWsClient extends WsClient {
+  isAlive?: boolean;
+}
+
 interface PendingRpcRequest {
   resolve: (value: unknown) => void;
   reject: (reason: Error) => void;
@@ -49,6 +53,8 @@ export class AndroidBridgeGatewayService
   private wss: WebSocketServer | null = null;
   private activeClients: Set<WsClient> = new Set();
   private pendingRequests: Map<string, PendingRpcRequest> = new Map();
+  private heartbeatTimer: NodeJS.Timeout | null = null;
+  private readonly HEARTBEAT_INTERVAL_MS = 15000;
 
   private activeDeviceInfo: AndroidDeviceInfo = {
     connected: false,
@@ -157,6 +163,9 @@ export class AndroidBridgeGatewayService
 
       this.wss.on('connection', (ws: WsClient, req) => {
         const clientIp = req.socket.remoteAddress || 'unknown';
+        const extWs = ws as ExtendedWsClient;
+        extWs.isAlive = true;
+
         this.logger.log(
           `📱 [Android WebSocket Bridge] Device connected from ${clientIp}`,
         );
@@ -170,7 +179,13 @@ export class AndroidBridgeGatewayService
           lastPingAt: Date.now(),
         };
 
+        ws.on('pong', () => {
+          extWs.isAlive = true;
+          this.activeDeviceInfo.lastPingAt = Date.now();
+        });
+
         ws.on('message', (rawData: RawData) => {
+          extWs.isAlive = true;
           this.handleClientMessage(ws, rawData);
         });
 
@@ -210,6 +225,8 @@ export class AndroidBridgeGatewayService
         });
       });
 
+      this.startHeartbeatDaemon();
+
       this.logger.log(
         '🚀 [Android Bridge Gateway] WebSocket server listening on path: /api/android-bridge/ws',
       );
@@ -219,6 +236,46 @@ export class AndroidBridgeGatewayService
         `Failed to initialize Android WebSocket Bridge server: ${msg}`,
       );
     }
+  }
+
+  /**
+   * Proactively pings active clients every 15s to detect dead peer sockets (e.g. phone died, wifi lost, sleep)
+   */
+  private startHeartbeatDaemon() {
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = setInterval(() => {
+      for (const ws of this.activeClients) {
+        const extWs = ws as ExtendedWsClient;
+        if (extWs.isAlive === false) {
+          this.logger.warn(
+            '🔌 [Android Bridge Gateway] Dead peer detected (missed heartbeat pong). Terminating socket...',
+          );
+          this.activeClients.delete(ws);
+          try {
+            ws.terminate();
+          } catch {
+            // Ignore
+          }
+          if (
+            this.activeClients.size === 0 &&
+            this.activeDeviceInfo.connected
+          ) {
+            this.activeDeviceInfo.connected = false;
+            this.notifyDisconnected();
+          }
+          continue;
+        }
+
+        extWs.isAlive = false;
+        try {
+          if (ws.readyState === WsClient.OPEN) {
+            ws.ping();
+          }
+        } catch {
+          this.activeClients.delete(ws);
+        }
+      }
+    }, this.HEARTBEAT_INTERVAL_MS);
   }
 
   private handleClientMessage(ws: WsClient, rawData: RawData) {
@@ -421,6 +478,11 @@ export class AndroidBridgeGatewayService
   }
 
   private cleanup() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+
     for (const pending of this.pendingRequests.values()) {
       clearTimeout(pending.timer);
       pending.reject(new Error('Android Bridge Gateway is shutting down.'));
