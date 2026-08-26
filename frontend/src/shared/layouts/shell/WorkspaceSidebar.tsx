@@ -4,6 +4,7 @@ import {
   Terminal,
   MessageSquare,
   Bot,
+  Target,
   Cpu,
   Zap,
   Settings,
@@ -55,6 +56,13 @@ export default function WorkspaceSidebar({
 
   const NAV_ITEMS = [
     { path: '/dashboard', label: 'Workspace Chat', icon: MessageSquare },
+    {
+      path: '/goals',
+      label: 'Goals & Habits',
+      icon: Target,
+      badge: 'Active',
+      badgeColor: 'bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20',
+    },
     {
       path: '/agents',
       label: 'Agents & Skills',

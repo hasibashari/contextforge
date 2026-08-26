@@ -94,7 +94,7 @@ export const QrCodeBox: React.FC<QrCodeBoxProps> = ({
       </div>
 
       {/* Countdown & Refresh Bar */}
-      <div className="flex items-center justify-between w-full max-w-[260px] text-xs font-mono">
+      <div className="flex items-center justify-between w-full max-w-65 text-xs font-mono">
         <div className="flex items-center gap-1.5 text-muted">
           <span
             className={`w-2 h-2 rounded-full ${
@@ -131,7 +131,7 @@ export const QrCodeBox: React.FC<QrCodeBoxProps> = ({
 
       {/* Fallback 6-Digit PIN Code Box */}
       {formattedPin && (
-        <div className="w-full max-w-[260px] p-2.5 rounded-xl bg-canvas-soft border border-hairline flex items-center justify-between">
+        <div className="w-full max-w-65 p-2.5 rounded-xl bg-canvas-soft border border-hairline flex items-center justify-between">
           <div className="min-w-0">
             <div className="text-[10px] uppercase font-mono tracking-caption text-muted">
               Manual Pairing PIN

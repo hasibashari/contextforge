@@ -277,8 +277,61 @@ CREATE TABLE IF NOT EXISTS automation_runs (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 12. Entitas Goal-Oriented AI Agent (Goals, Sub-Tasks & Closed-Loop Evaluations)
+CREATE TABLE IF NOT EXISTS goals (
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    user_id UUID,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(50) NOT NULL DEFAULT 'productivity' CHECK (category IN ('productivity', 'learning', 'health', 'finance', 'custom')),
+    status VARCHAR(30) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed', 'abandoned')),
+    target_metrics JSONB DEFAULT '{}',
+    current_progress_pct NUMERIC(5,2) DEFAULT 0.0,
+    streak_days INTEGER DEFAULT 0,
+    cron_evaluation VARCHAR(100) DEFAULT '0 21 * * *',
+    linked_mcp_servers TEXT[] DEFAULT '{"android-bridge", "google-calendar", "notion"}',
+    notion_parent_page_id VARCHAR(100),
+    notion_database_id VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS goal_tasks (
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    goal_id VARCHAR(100) NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    scheduled_start TIMESTAMPTZ,
+    scheduled_end TIMESTAMPTZ,
+    mcp_target VARCHAR(50),
+    mcp_resource_id VARCHAR(255),
+    status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'verified_completed', 'incomplete', 'unverified')),
+    verification_evidence JSONB DEFAULT '{}',
+    verification_notes TEXT,
+    risk_level VARCHAR(20) DEFAULT 'low_risk' CHECK (risk_level IN ('low_risk', 'medium_risk', 'high_risk')),
+    requires_user_approval BOOLEAN DEFAULT false,
+    user_approval_status VARCHAR(20) DEFAULT 'none' CHECK (user_approval_status IN ('none', 'approved', 'rejected')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS goal_evaluations (
+    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    goal_id VARCHAR(100) NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+    evaluation_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    score_pct NUMERIC(5,2) NOT NULL DEFAULT 0.0,
+    summary TEXT NOT NULL,
+    tasks_completed INTEGER DEFAULT 0,
+    tasks_incomplete INTEGER DEFAULT 0,
+    tasks_unverified INTEGER DEFAULT 0,
+    insights JSONB DEFAULT '[]',
+    adaptations_proposed JSONB DEFAULT '[]',
+    notion_page_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- =====================================================================
--- 12. Performance Indexing
+-- 13. Performance Indexing
 -- =====================================================================
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at ASC);
@@ -291,3 +344,6 @@ CREATE INDEX IF NOT EXISTS idx_workspace_skills_category ON workspace_skills(cat
 CREATE INDEX IF NOT EXISTS idx_workspace_integrations_status ON workspace_integrations(status);
 CREATE INDEX IF NOT EXISTS idx_automations_active ON automations(is_active, trigger_type);
 CREATE INDEX IF NOT EXISTS idx_automation_runs_workflow ON automation_runs(workflow_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status, category);
+CREATE INDEX IF NOT EXISTS idx_goal_tasks_goal ON goal_tasks(goal_id, status);
+CREATE INDEX IF NOT EXISTS idx_goal_evaluations_goal ON goal_evaluations(goal_id, evaluation_date DESC);

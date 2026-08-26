@@ -14,6 +14,7 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { EcosystemModule } from './modules/ecosystem/ecosystem.module';
 import { AutomationModule } from './modules/automation/automation.module';
+import { GoalsModule } from './modules/goals/goals.module';
 import { WikiModule } from './modules/wiki/wiki.module';
 import { AppController } from './app.controller';
 
@@ -35,6 +36,7 @@ import { AppController } from './app.controller';
     ActivityModule,
     EcosystemModule,
     AutomationModule,
+    GoalsModule,
     WikiModule,
   ],
   controllers: [AppController],

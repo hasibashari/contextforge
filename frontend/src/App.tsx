@@ -11,6 +11,7 @@ const KnowledgeSourcesView = lazy(() => import('./features/knowledge/views/Knowl
 const IntegrationsView = lazy(() => import('./features/integrations/views/IntegrationsView'))
 const OAuthCallbackView = lazy(() => import('./features/integrations/views/OAuthCallbackView'))
 const AutomationView = lazy(() => import('./features/automation/views/AutomationView'))
+const GoalsView = lazy(() => import('./features/goals/views/GoalsView'))
 const SettingsView = lazy(() => import('./features/settings/views/SettingsView'))
 
 function PageFallback() {
@@ -41,6 +42,7 @@ function App() {
               <Route path="/dashboard" element={<ChatView />} />
               <Route path="/chat" element={<ChatView />} />
               <Route path="/agents" element={<AgentsDirectoryView />} />
+              <Route path="/goals" element={<GoalsView />} />
               <Route path="/knowledge" element={<KnowledgeSourcesView />} />
               <Route path="/integrations" element={<IntegrationsView />} />
               <Route path="/automation" element={<AutomationView />} />

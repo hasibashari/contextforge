@@ -9,12 +9,19 @@ import { UniversalMcpToolHandler } from './handlers/universal-mcp-tool.handler';
 import { WebSearchToolHandler } from './handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from './handlers/knowledge-tool.handler';
 import { AutomationToolHandler } from './handlers/automation-tool.handler';
+import { GoalToolHandler } from './handlers/goal-tool.handler';
 import { DatabaseModule } from '../common/database/database.module';
 import { AutomationModule } from '../modules/automation/automation.module';
+import { GoalsModule } from '../modules/goals/goals.module';
 import { McpModule } from '../mcp/mcp.module';
 
 @Module({
-  imports: [DatabaseModule, forwardRef(() => AutomationModule), McpModule],
+  imports: [
+    DatabaseModule,
+    forwardRef(() => AutomationModule),
+    forwardRef(() => GoalsModule),
+    McpModule,
+  ],
   providers: [
     GeminiClientProvider,
     CoreOrchestratorService,
@@ -26,6 +33,7 @@ import { McpModule } from '../mcp/mcp.module';
     WebSearchToolHandler,
     KnowledgeToolHandler,
     AutomationToolHandler,
+    GoalToolHandler,
   ],
   exports: [
     GeminiClientProvider,
@@ -38,6 +46,7 @@ import { McpModule } from '../mcp/mcp.module';
     WebSearchToolHandler,
     KnowledgeToolHandler,
     AutomationToolHandler,
+    GoalToolHandler,
     McpModule,
   ],
 })

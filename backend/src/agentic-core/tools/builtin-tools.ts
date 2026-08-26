@@ -220,6 +220,90 @@ export const NATIVE_AGENTIC_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
       required: ['name', 'schedule_cron', 'mcp_server_id'],
     },
   },
+  {
+    name: 'create_goal',
+    description:
+      'Goal Management: Registers a new high-level user goal (e.g. "Increase productivity", "Learn TypeScript", "Reduce screen time") with target metrics and cron evaluation schedule.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        title: strProp('Descriptive title of the goal'),
+        description: strProp('Detailed explanation and success criteria'),
+        category: strProp(
+          'Category: "productivity" | "learning" | "health" | "finance" | "custom"',
+        ),
+        cron_evaluation: strProp(
+          'Evaluation schedule cron expression, defaults to "0 21 * * *"',
+        ),
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'list_goals',
+    description:
+      'Goal Management: Lists all current active user goals, progress rates, streaks, and target metrics.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {},
+    },
+  },
+  {
+    name: 'decompose_goal_into_tasks',
+    description:
+      'Goal Planner: Autonomously decomposes a high-level goal into actionable SMART sub-tasks grounded in MCP tools (Google Calendar, Notion, Android Bridge).',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        goal_id: strProp('ID of the target goal to decompose'),
+        additional_context: strProp(
+          'Optional user preferences or schedule constraints',
+        ),
+      },
+      required: ['goal_id'],
+    },
+  },
+  {
+    name: 'verify_task_completion',
+    description:
+      'Evidence Verification (Epistemic Rigor): Validates whether a specific goal task is completed based on telemetry from Notion (status Done), Google Calendar, or marks it as "unverified" if evidence is absent (Zero-Assumption Policy).',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        task_id: strProp('ID of the task to verify'),
+      },
+      required: ['task_id'],
+    },
+  },
+  {
+    name: 'record_goal_evaluation',
+    description:
+      'Closed-Loop Reflection: Executes daily evaluation for a goal, computes compliance score, generates adaptive recommendations, and writes reflection journal to Notion Workspace.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        goal_id: strProp('ID of the goal to evaluate'),
+      },
+      required: ['goal_id'],
+    },
+  },
+  {
+    name: 'manage_automation_lifecycle',
+    description:
+      'Self-Adaptive Automation Lifecycle: Dynamically pauses, updates, or deletes background automations when a goal evolves or priority changes.',
+    parameters: {
+      type: 'OBJECT' as unknown as Type,
+      properties: {
+        automation_id: strProp('ID of the automation workflow'),
+        action: strProp(
+          'Action to perform: "pause" | "resume" | "update" | "delete"',
+        ),
+        new_cron: strProp('Optional updated cron schedule expression'),
+        new_prompt: strProp('Optional updated instruction prompt template'),
+      },
+      required: ['automation_id', 'action'],
+    },
+  },
 ];
 
 /**
@@ -269,6 +353,50 @@ export const TOOL_CATALOG: Record<string, ToolMetadata> = {
     serverName: 'ContextForge Automation Scheduler',
     description:
       'Registers a background automation workflow triggered by cron schedule.',
+  },
+  create_goal: {
+    name: 'create_goal',
+    category: 'automation',
+    readOnly: false,
+    serverName: 'Goal-Oriented AI Engine',
+    description: 'Registers a new long-term goal with target metrics.',
+  },
+  list_goals: {
+    name: 'list_goals',
+    category: 'automation',
+    readOnly: true,
+    serverName: 'Goal-Oriented AI Engine',
+    description: 'Lists all current active goals and their progress.',
+  },
+  decompose_goal_into_tasks: {
+    name: 'decompose_goal_into_tasks',
+    category: 'automation',
+    readOnly: false,
+    serverName: 'Goal-Oriented AI Engine',
+    description: 'Decomposes goals into actionable MCP tasks.',
+  },
+  verify_task_completion: {
+    name: 'verify_task_completion',
+    category: 'automation',
+    readOnly: false,
+    serverName: 'Goal-Oriented AI Engine',
+    description:
+      'Verifies task completion against telemetry without assumption.',
+  },
+  record_goal_evaluation: {
+    name: 'record_goal_evaluation',
+    category: 'automation',
+    readOnly: false,
+    serverName: 'Goal-Oriented AI Engine',
+    description:
+      'Performs closed-loop daily reflection and Notion journal creation.',
+  },
+  manage_automation_lifecycle: {
+    name: 'manage_automation_lifecycle',
+    category: 'automation',
+    readOnly: false,
+    serverName: 'ContextForge Automation Scheduler',
+    description: 'Manages dynamic lifecycle of background automations.',
   },
 
   // 2. Obsidian MCP Tools (Mapped dynamically)

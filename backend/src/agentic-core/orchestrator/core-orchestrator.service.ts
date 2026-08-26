@@ -13,6 +13,7 @@ import { UniversalMcpToolHandler } from '../handlers/universal-mcp-tool.handler'
 import { WebSearchToolHandler } from '../handlers/web-search-tool.handler';
 import { KnowledgeToolHandler } from '../handlers/knowledge-tool.handler';
 import { AutomationToolHandler } from '../handlers/automation-tool.handler';
+import { GoalToolHandler } from '../handlers/goal-tool.handler';
 import { ObsidianVaultService } from '../../mcp/connectors/obsidian/obsidian-vault.service';
 
 export type { StreamEvent, OrchestrationResult };
@@ -33,6 +34,7 @@ export class CoreOrchestratorService {
     private readonly webSearchHandler: WebSearchToolHandler,
     private readonly knowledgeHandler: KnowledgeToolHandler,
     private readonly automationHandler: AutomationToolHandler,
+    private readonly goalHandler: GoalToolHandler,
     private readonly obsidianVaultService: ObsidianVaultService,
   ) {}
 
@@ -425,6 +427,17 @@ export class CoreOrchestratorService {
 
       case 'create_scheduled_automation':
         return this.automationHandler.execute(prompt, args, emit);
+
+      case 'manage_automation_lifecycle':
+        return this.automationHandler.execute(prompt, args, emit);
+
+      // Goal-Oriented AI Tools
+      case 'create_goal':
+      case 'list_goals':
+      case 'decompose_goal_into_tasks':
+      case 'verify_task_completion':
+      case 'record_goal_evaluation':
+        return this.goalHandler.execute(toolName, prompt, args, emit);
 
       case 'web_search':
         return this.webSearchHandler.execute(prompt, args, emit);
