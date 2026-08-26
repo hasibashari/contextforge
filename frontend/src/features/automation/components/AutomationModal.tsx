@@ -576,11 +576,25 @@ function AutomationFormContent({
         </div>
 
         {/* Prompt Instructions Template */}
-        <FormField
-          label="Workflow Prompt Template"
-          hint="Instructions sent to the agent when triggered. Variables like {{today}}, {{workspace}}, and {{backlog}} are auto-resolved."
-          required
-        >
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-ink font-sans">
+              Workflow Prompt Template <span className="text-semantic-error">*</span>
+            </label>
+            <div className="flex items-center gap-1 text-[10px] font-mono text-muted">
+              <span>Insert:</span>
+              {['{{today}}', '{{now}}', '{{workspace}}'].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setPromptTemplate((prev) => prev + ' ' + v)}
+                  className="px-1.5 py-0.5 rounded bg-canvas-soft border border-hairline hover:border-primary/40 text-primary cursor-pointer transition-colors"
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
           <Textarea
             rows={4}
             value={promptTemplate}
@@ -589,22 +603,25 @@ function AutomationFormContent({
             required
             className="text-xs font-mono"
           />
-        </FormField>
+          <p className="text-[11px] text-muted font-sans">
+            Instructions sent to the agent when triggered. Variables like &#123;&#123;today&#125;&#125; and &#123;&#123;workspace&#125;&#125; are auto-resolved at runtime.
+          </p>
+        </div>
 
         {/* Guardrails / Safety Policy */}
-        <div className="pt-2.5 border-t border-hairline space-y-2">
+        <div className="pt-3 border-t border-hairline space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-ink flex items-center gap-1.5">
               <ShieldCheck size={14} className="text-semantic-success" />
               <span>Safety & Human-in-the-Loop (HITL) Gate</span>
             </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-card text-muted border border-hairline flex items-center gap-1">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-canvas-soft text-muted border border-hairline flex items-center gap-1">
               <span className={`w-1.5 h-1.5 rounded-full ${masterHitlEnabled ? 'bg-semantic-success' : 'bg-muted'}`} />
               <span>Master Policy: {masterHitlEnabled ? 'Enforced' : 'Relaxed'}</span>
             </span>
           </div>
 
-          <label className="flex items-start gap-2.5 p-3 rounded-lg bg-surface-strong/30 border border-hairline hover:border-hairline-strong transition-colors cursor-pointer select-none">
+          <label className="flex items-start gap-2.5 p-3 rounded-xl bg-canvas-soft border border-hairline hover:border-hairline-strong transition-colors cursor-pointer select-none">
             <input
               type="checkbox"
               checked={guardrailStrictHITL}
@@ -626,9 +643,9 @@ function AutomationFormContent({
       </div>
 
       {/* Action Buttons */}
-      <ModalFooter>
+      <ModalFooter className="justify-end pt-3">
         <div className="flex items-center justify-end gap-2 w-full">
-          <Button variant="secondary" size="sm" onClick={onClose} type="button">
+          <Button variant="ghost" size="sm" onClick={onClose} type="button">
             Cancel
           </Button>
           <Button variant="primary" size="sm" type="submit">
@@ -654,7 +671,7 @@ export function AutomationModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      size="2xl"
+      size="3xl"
     >
       <AutomationFormContent
         key={initialWorkflow?.id || 'new'}

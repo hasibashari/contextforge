@@ -79,7 +79,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
   const renderActions = () => {
     if (isCoreOrchestrator) {
       return (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary font-mono text-[11px] font-medium shadow-2xs">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary-soft border border-primary-subtle text-primary font-mono text-[11px] font-medium shadow-2xs">
           <ShieldCheck size={13} />
           <span>Core System (Built-in)</span>
         </div>
@@ -90,7 +90,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
       <Button
         variant={isEditing ? 'secondary' : 'outline'}
         size="xs"
-        leftIcon={isEditing ? <RotateCcw size={13} /> : <Settings2 size={13} />}
+        leftIcon={isEditing ? <RotateCcw size={12} /> : <Settings2 size={12} />}
         onClick={isEditing ? handleCancelEdit : handleStartEdit}
       >
         {isEditing ? 'Cancel Edit' : 'Edit Capabilities'}
@@ -108,53 +108,59 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
         actions={renderActions()}
       />
 
-      <div className="space-y-3 text-xs font-sans">
-        {/* Model & Config Bar */}
-        <div className="grid grid-cols-3 gap-2 p-2.5 bg-canvas-soft rounded-lg border border-hairline font-mono text-[11px]">
-          <div>
-            <div className="text-muted text-[10px] uppercase">Base LLM</div>
-            <div className="font-semibold text-ink truncate">{agent.model}</div>
+      <div className="space-y-4 text-xs font-sans">
+        {/* Model & Metrics Tiles */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <div className="p-3 bg-canvas-soft rounded-xl border border-hairline flex flex-col justify-between">
+            <div className="text-muted text-[10px] uppercase font-mono tracking-caption">Base LLM</div>
+            <div className="font-semibold text-ink font-mono text-xs mt-1 truncate" title={agent.model}>
+              {agent.model}
+            </div>
           </div>
-          <div>
-            <div className="text-muted text-[10px] uppercase">Tasks Done</div>
-            <div className="font-semibold text-ink">{agent.totalTasksCompleted}</div>
+          <div className="p-3 bg-canvas-soft rounded-xl border border-hairline flex flex-col justify-between">
+            <div className="text-muted text-[10px] uppercase font-mono tracking-caption">Tasks Completed</div>
+            <div className="font-semibold text-ink font-mono text-xs mt-1">
+              {agent.totalTasksCompleted} tasks
+            </div>
           </div>
-          <div>
-            <div className="text-muted text-[10px] uppercase">Success Rate</div>
-            <div className="font-semibold text-semantic-success">
-              {agent.successRatePct}%
+          <div className="p-3 bg-canvas-soft rounded-xl border border-hairline flex flex-col justify-between">
+            <div className="text-muted text-[10px] uppercase font-mono tracking-caption">Success Rate</div>
+            <div className="font-semibold text-semantic-success font-mono text-xs mt-1 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse" />
+              <span>{agent.successRatePct}%</span>
             </div>
           </div>
         </div>
 
-        {/* System Prompt */}
-        <div className="space-y-1">
-          <div className="text-[11px] font-mono uppercase tracking-caption text-muted">
-            System Prompt &amp; Guardrails:
+        {/* System Prompt & Guardrails */}
+        <div className="space-y-1.5">
+          <div className="text-[11px] font-mono uppercase tracking-caption text-muted flex items-center gap-1.5">
+            <Terminal size={11} className="text-primary" />
+            <span>System Prompt &amp; Guardrails</span>
           </div>
-          <pre className="p-2.5 bg-canvas text-ink font-mono text-xs rounded-lg whitespace-pre-wrap leading-relaxed border border-hairline max-h-24 overflow-y-auto">
+          <div className="p-3 bg-canvas-soft text-ink font-mono text-xs rounded-xl whitespace-pre-wrap leading-relaxed border border-hairline max-h-24 overflow-y-auto">
             {agent.systemPrompt}
-          </pre>
+          </div>
         </div>
 
         {/* Core Agent Capabilities */}
         {agent.capabilities && agent.capabilities.length > 0 && (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="text-[11px] font-mono uppercase tracking-caption text-ink font-semibold flex items-center gap-1.5">
               <Layers size={12} className="text-primary" />
-              <span>Core Capabilities (What this agent does):</span>
+              <span>Core Capabilities</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {agent.capabilities.map((cap) => (
                 <div
                   key={cap.id}
-                  className="p-2.5 rounded-lg bg-canvas border border-hairline flex flex-col justify-between space-y-1"
+                  className="p-3 rounded-xl bg-canvas-soft border border-hairline flex flex-col justify-between space-y-1"
                 >
-                  <div className="font-semibold text-ink text-[11px] flex items-center gap-1.5">
+                  <div className="font-semibold text-ink text-xs font-sans flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                     <span className="truncate">{cap.name}</span>
                   </div>
-                  <p className="text-[10px] text-muted leading-relaxed">
+                  <p className="text-[11px] text-muted font-sans leading-relaxed">
                     {cap.description}
                   </p>
                 </div>
@@ -164,8 +170,8 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
         )}
 
         {/* Assigned Skills Section */}
-        <div className="space-y-1.5">
-          <div className="text-[11px] font-mono uppercase tracking-caption text-primary flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="text-[11px] font-mono uppercase tracking-caption text-purple-600 dark:text-purple-400 font-semibold flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Sparkles size={12} />
               <span>
@@ -175,7 +181,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
               </span>
             </span>
             {isEditing && !isCoreOrchestrator && (
-              <span className="text-[10px] text-muted lowercase">click to toggle</span>
+              <span className="text-[10px] text-muted normal-case font-normal">click card to toggle</span>
             )}
           </div>
 
@@ -188,23 +194,23 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
                       key={skill.id}
                       type="button"
                       onClick={() => handleToggleSkill(skill.id)}
-                      className={`p-2.5 rounded-lg border text-left flex items-start justify-between gap-2 transition-colors cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-left flex items-start justify-between gap-2 transition-all cursor-pointer ${
                         isChecked
-                          ? 'bg-primary/10 border-primary/40 text-ink'
-                          : 'bg-canvas border-hairline text-muted hover:text-ink'
+                          ? 'bg-purple-500/10 border-purple-500/40 text-ink shadow-2xs'
+                          : 'bg-canvas-soft border-hairline text-muted hover:text-ink hover:border-hairline-strong'
                       }`}
                     >
                       <div className="min-w-0">
-                        <div className="font-semibold text-ink text-[11px] leading-tight truncate">
+                        <div className="font-semibold text-ink text-xs font-sans leading-tight truncate">
                           {skill.name}
                         </div>
-                        <div className="text-[10px] text-muted mt-0.5 capitalize">
+                        <div className="text-[10px] text-muted mt-0.5 capitalize font-mono">
                           {skill.category.replace('_', ' ')}
                         </div>
                       </div>
                       <span
-                        className={`w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                          isChecked ? 'bg-primary text-canvas' : 'border border-hairline'
+                        className={`w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors ${
+                          isChecked ? 'bg-purple-600 text-white' : 'border border-hairline bg-surface-card'
                         }`}
                       >
                         {isChecked && <Check size={11} />}
@@ -217,9 +223,9 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
                   return (
                     <div
                       key={skillId}
-                      className="p-2 rounded bg-canvas border border-hairline flex items-center gap-2 text-ink"
+                      className="p-2.5 rounded-xl bg-canvas-soft border border-hairline flex items-center gap-2 text-ink"
                     >
-                      <Sparkles size={12} className="text-primary shrink-0" />
+                      <Sparkles size={12} className="text-purple-600 dark:text-purple-400 shrink-0" />
                       <span className="truncate font-medium text-xs font-sans">
                         {s?.name || skillId}
                       </span>
@@ -230,8 +236,8 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
         </div>
 
         {/* Assigned Tools Section */}
-        <div className="space-y-1.5">
-          <div className="text-[11px] font-mono uppercase tracking-caption text-muted flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="text-[11px] font-mono uppercase tracking-caption text-ink font-semibold flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Terminal size={12} className="text-primary" />
               <span>
@@ -241,7 +247,7 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
               </span>
             </span>
             {isEditing && !isCoreOrchestrator && (
-              <span className="text-[10px] text-muted lowercase">click to toggle</span>
+              <span className="text-[10px] text-muted normal-case font-normal">click card to toggle</span>
             )}
           </div>
 
@@ -254,23 +260,23 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
                       key={tool.name}
                       type="button"
                       onClick={() => handleToggleTool(tool.name)}
-                      className={`p-2.5 rounded-lg border text-left flex items-start justify-between gap-2 transition-colors cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-left flex items-start justify-between gap-2 transition-all cursor-pointer ${
                         isChecked
-                          ? 'bg-canvas-soft border-primary/40 text-ink'
-                          : 'bg-canvas border-hairline text-muted hover:text-ink'
+                          ? 'bg-primary-soft border-primary-subtle text-ink shadow-2xs'
+                          : 'bg-canvas-soft border-hairline text-muted hover:text-ink hover:border-hairline-strong'
                       }`}
                     >
                       <div className="min-w-0">
-                        <div className="font-semibold text-ink text-[11px] leading-tight truncate">
+                        <div className="font-semibold text-ink text-xs font-mono leading-tight truncate">
                           {tool.name}
                         </div>
-                        <div className="text-[10px] text-muted mt-0.5">
+                        <div className="text-[10px] text-muted mt-0.5 truncate font-sans">
                           {tool.integrationName}
                         </div>
                       </div>
                       <span
-                        className={`w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                          isChecked ? 'bg-primary text-canvas' : 'border border-hairline'
+                        className={`w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors ${
+                          isChecked ? 'bg-primary text-on-primary' : 'border border-hairline bg-surface-card'
                         }`}
                       >
                         {isChecked && <Check size={11} />}
@@ -281,17 +287,17 @@ export const AgentInspectorModal: React.FC<AgentInspectorModalProps> = ({
               : (agent.assignedTools || []).map((t) => (
                   <div
                     key={t}
-                    className="p-2 rounded bg-canvas border border-hairline flex items-center gap-2 text-ink"
+                    className="p-2.5 rounded-xl bg-canvas-soft border border-hairline flex items-center gap-2 text-ink"
                   >
                     <Terminal size={12} className="text-primary shrink-0" />
-                    <span className="truncate text-xs">{t}</span>
+                    <span className="truncate text-xs font-mono">{t}</span>
                   </div>
                 ))}
           </div>
         </div>
 
         {/* Footer Actions */}
-        <ModalFooter className="justify-end">
+        <ModalFooter className="justify-end pt-3">
           {isEditing ? (
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="xs" onClick={handleCancelEdit}>

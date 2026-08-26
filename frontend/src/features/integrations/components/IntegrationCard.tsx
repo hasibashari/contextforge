@@ -3,6 +3,7 @@ import { Settings, Zap, Terminal, Globe } from 'lucide-react'
 import type { Integration } from '@/shared/types/workspace'
 import { IntegrationIconBox } from '@/shared/components/ui/IconBox'
 import { StatusPill } from '@/shared/components/ui/StatusPill'
+import { Button } from '@/shared/components/ui/Button'
 
 interface IntegrationCardProps {
   integration: Integration
@@ -33,13 +34,13 @@ export const IntegrationCard: FC<IntegrationCardProps> = ({
       {/* Top Header: Icon, Name & Status */}
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <IntegrationIconBox integration={integration} size="md" />
-            <div>
-              <h3 className="text-sm font-semibold text-ink group-hover:text-primary transition-colors flex items-center gap-1.5 font-mono">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-ink group-hover:text-primary transition-colors flex items-center gap-1.5 font-sans truncate">
                 <span>{integration.name}</span>
               </h3>
-              <div className="flex items-center gap-1.5 text-[11px] text-muted font-mono mt-0.5">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted font-mono mt-0.5 flex-wrap">
                 {isRemote ? (
                   <span className="flex items-center gap-1">
                     <Globe size={11} className="text-primary" />
@@ -48,7 +49,7 @@ export const IntegrationCard: FC<IntegrationCardProps> = ({
                 ) : (
                   <span className="flex items-center gap-1">
                     <Terminal size={11} className="text-[#7c3aed]" />
-                    <span>stdio (Local Action Bridge)</span>
+                    <span>stdio (Local Bridge)</span>
                   </span>
                 )}
                 <span>·</span>
@@ -116,19 +117,19 @@ export const IntegrationCard: FC<IntegrationCardProps> = ({
       </div>
 
       {/* Bottom Meta & Action */}
-      <div className="pt-4 mt-4 border-t border-hairline/60 flex items-center justify-between gap-2">
-        <div className="text-[11px] font-mono text-muted flex items-center gap-2">
+      <div className="pt-4 mt-4 border-t border-hairline/60 flex items-center justify-between gap-2 flex-wrap">
+        <div className="text-[11px] font-mono text-muted flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-ink">
-            {integration.tools.length} Action Tools
+            {integration.tools.length} Tools
           </span>
           <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-sans font-medium">
-            Read & Write Engine
+            Action Engine
           </span>
           {isConnected && integration.latencyMs > 0 && (
             <>
               <span>·</span>
               <span className="text-semantic-success">
-                {integration.latencyMs}ms latency
+                {integration.latencyMs}ms
               </span>
             </>
           )}
@@ -136,30 +137,32 @@ export const IntegrationCard: FC<IntegrationCardProps> = ({
 
         <div>
           {isConnected ? (
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="xs"
+              leftIcon={<Settings size={12} />}
               onClick={(e) => {
                 e.stopPropagation()
                 onOpenDetail()
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-ink bg-canvas-soft hover:bg-canvas border border-hairline rounded-xl transition-colors cursor-pointer"
             >
-              <Settings size={12} className="text-muted group-hover:text-ink" />
-              <span>Manage & Sync</span>
-            </button>
+              Manage & Sync
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="xs"
+              leftIcon={<Zap size={12} />}
               onClick={(e) => {
                 e.stopPropagation()
                 if (onConnect) onConnect()
                 else onOpenDetail()
               }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-on-primary bg-primary hover:bg-primary-active rounded-xl shadow-xs transition-colors cursor-pointer"
             >
-              <Zap size={12} />
-              <span>Connect</span>
-            </button>
+              Connect
+            </Button>
           )}
         </div>
       </div>

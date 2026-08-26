@@ -401,7 +401,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
       {/* Single Unified Adaptive Form */}
       <form
         onSubmit={handleSend}
-        className={`w-full bg-surface-card hover:bg-surface-card/90 focus-within:border-primary/60 border border-hairline-strong rounded-2xl sm:rounded-3xl shadow-md transition-all duration-200 flex flex-col justify-between ${
+        className={`w-full bg-surface-card hover:bg-surface-card focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 border border-hairline rounded-2xl sm:rounded-3xl shadow-md transition-all duration-200 flex flex-col justify-between ${
           shouldShowMultiline
             ? 'pt-2.5 pb-2 px-3 sm:px-3.5 gap-2'
             : 'min-h-11 px-3.5 py-1.5 sm:py-2 justify-center'

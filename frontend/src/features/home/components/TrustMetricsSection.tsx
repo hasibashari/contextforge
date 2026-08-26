@@ -2,41 +2,41 @@ import { motion } from 'motion/react'
 
 const METRICS = [
   {
-    value: '10x',
-    label: 'Faster Workflow Execution',
-    description: 'Autonomous research, AST parsing, and action plan delivery in minutes.',
-  },
-  {
-    value: '99.4%',
-    label: 'Grounded Context Recall',
-    description: 'Zero hallucinated APIs through verified repository and documentation indexing.',
-  },
-  {
-    value: '50+',
-    label: 'Popular App Connectors',
-    description: 'Connect GitHub, Notion, Linear, Confluence, Slack, and team databases.',
-  },
-  {
     value: '100%',
-    label: 'Human Approval Gates',
-    description: 'No code commits or actions are dispatched without explicit human sign-off.',
+    label: 'Local-First Data Privacy',
+    description: 'Obsidian notes & device telemetry stay strictly on your local machine.',
+  },
+  {
+    value: '5+',
+    label: 'Official MCP Connectors',
+    description: 'Obsidian Protocol, Android Bridge, Google Calendar, Notion, & Web Search.',
+  },
+  {
+    value: 'Strict',
+    label: 'Human-In-The-Loop Gate',
+    description: 'Zero unauthorized vault writes or tool mutations without explicit sign-off.',
+  },
+  {
+    value: 'Real-time',
+    label: 'Mobile Telemetry Sync',
+    description: 'Continuous Screen Time, battery health, and push notifications via Termux/ADB.',
   },
 ]
 
 const TESTIMONIALS = [
   {
     quote:
-      'ContextForge transformed how our platform team handles architectural migrations. Instead of spending 2 weeks manually checking 80 microservices, an agent synthesized the entire migration action plan in 15 minutes.',
-    author: 'Alexandre R.',
-    role: 'Principal Staff Engineer',
-    company: 'CloudScale Infrastructure',
+      'ContextForge bridges the gap between my mobile life and daily Obsidian journaling. It automatically grabs my Google Calendar agenda and screen time habits, creating atomic daily notes with frontmatter every single morning.',
+    author: 'Ryan K.',
+    role: 'Knowledge Architect',
+    company: 'Personal PKM Vault',
   },
   {
     quote:
-      'The multi-source ingestion is unmatched. The agent read our internal Notion security RFCs alongside our GitHub pull requests and caught three subtle race conditions before code review.',
-    author: 'Elena V.',
-    role: 'Head of Developer Productivity',
-    company: 'Fintech Core Labs',
+      'The Model Context Protocol (MCP) integration with Android Termux is brilliant. My AI assistant can check battery health, audit running background apps, and notify me directly on my smartphone when scheduled automations finish.',
+    author: 'Maya T.',
+    role: 'Systems Engineer',
+    company: 'Context Engine Labs',
   },
 ]
 

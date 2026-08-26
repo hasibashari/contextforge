@@ -39,10 +39,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         ref={ref}
         disabled={disabled}
         className={cn(
-          'w-full bg-canvas border border-hairline text-ink focus:outline-none focus:border-primary transition-colors cursor-pointer disabled:opacity-50 disabled:bg-canvas-soft shadow-2xs',
+          'w-full bg-canvas border border-hairline text-ink focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:opacity-50 disabled:bg-canvas-soft shadow-2xs',
           variant === 'mono' ? 'font-mono' : 'font-sans',
           sizeClasses[selectSize],
-          error ? 'border-semantic-error focus:border-semantic-error' : '',
+          error ? 'border-semantic-error focus:border-semantic-error focus:ring-semantic-error/20' : '',
           className,
         )}
         {...props}

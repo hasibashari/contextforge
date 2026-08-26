@@ -54,28 +54,28 @@ export default function WorkspaceSidebar({
       label: 'Agents & Skills',
       icon: Bot,
       badge: `${agents.length}`,
-      badgeColor: 'bg-surface-strong text-body',
+      badgeColor: 'bg-canvas-soft text-muted border border-hairline',
     },
     {
       path: '/knowledge',
       label: 'Knowledge Base (RAG)',
       icon: BookOpen,
       badge: `${knowledgeSources.length}`,
-      badgeColor: 'bg-surface-strong text-body',
+      badgeColor: 'bg-canvas-soft text-muted border border-hairline',
     },
     {
       path: '/integrations',
       label: 'MCP Protocol Servers',
       icon: Cpu,
       badge: `${integrations.length}`,
-      badgeColor: 'bg-primary/10 text-primary font-semibold',
+      badgeColor: 'bg-primary-soft text-primary font-semibold border border-primary-subtle',
     },
     {
       path: '/automation',
       label: 'Automations & Tasks',
       icon: Zap,
       badge: `${activeAutomationsCount}`,
-      badgeColor: 'bg-primary/10 text-primary font-semibold',
+      badgeColor: 'bg-primary-soft text-primary font-semibold border border-primary-subtle',
     },
     { path: '/settings', label: 'Settings & Memory', icon: Settings },
   ]
@@ -102,22 +102,23 @@ export default function WorkspaceSidebar({
               <div className="w-7 h-7 rounded-md bg-ink flex items-center justify-center text-canvas group-hover:bg-primary transition-colors">
                 <Terminal size={15} strokeWidth={2.2} />
               </div>
-              <span className="text-sm font-semibold tracking-tight text-ink">
+              <span className="text-sm font-semibold tracking-tight text-ink font-sans">
                 Context<span className="text-primary">Forge</span>
               </span>
             </Link>
-            <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface-strong text-muted">
+            <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface-card text-muted border border-hairline">
               AI OS
             </span>
           </div>
 
           {/* New Chat Primary Button */}
           <button
+            type="button"
             onClick={() => {
               createNewChatSession()
               onCloseMobile?.()
             }}
-            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <Plus size={14} />
             <span>New Chat</span>
@@ -128,7 +129,7 @@ export default function WorkspaceSidebar({
         <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
           {/* Main Navigation */}
           <div className="space-y-1">
-            <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-caption text-muted">
+            <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
               Workspace Nav
             </div>
 
@@ -141,10 +142,10 @@ export default function WorkspaceSidebar({
                   key={item.path}
                   to={item.path}
                   onClick={onCloseMobile}
-                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all ${
                     isActive
-                      ? 'bg-ink text-canvas shadow-xs font-semibold'
-                      : 'text-body hover:text-ink hover:bg-surface-card'
+                      ? 'bg-primary-soft text-primary shadow-2xs font-semibold border border-primary-subtle'
+                      : 'text-body hover:text-ink hover:bg-surface-card border border-transparent font-medium'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">

@@ -1,74 +1,85 @@
 import { motion } from 'motion/react'
 import {
   Terminal,
-  Shield,
   Sparkles,
   Copy,
   Check,
   CheckCircle2,
   Layers,
-  Database,
-  MessageSquare,
+  Smartphone,
+  Calendar,
   FileSpreadsheet,
-  CheckSquare,
   Globe2,
+  ShieldCheck,
 } from 'lucide-react'
 import { useState } from 'react'
 
 const INTEGRATIONS = [
   {
-    name: 'GitHub & GitLab',
-    category: 'Code & Repositories',
-    desc: 'Reads file hierarchies, commit history, and opens verified Pull Requests automatically.',
-    icon: Terminal,
+    name: 'Obsidian Vault Protocol',
+    category: 'Personal Knowledge Base',
+    desc: 'Reads daily notes, bi-directional backlinks, frontmatter, and opens notes in Obsidian app via custom URI.',
+    icon: Layers,
     status: '1-Click Active',
+    accent: 'text-[#7c3aed]',
   },
   {
-    name: 'Notion & Confluence',
-    category: 'Team Documentation',
-    desc: 'Ingests company SOPs, architecture guidelines, and team wikis instantly.',
+    name: 'Android Mobile MCP',
+    category: 'Device Telemetry & ADB',
+    desc: 'Reads Screen Time, battery health, running background apps, and triggers device push notifications.',
+    icon: Smartphone,
+    status: '1-Click Active',
+    accent: 'text-[#10b981]',
+  },
+  {
+    name: 'Google Calendar MCP',
+    category: 'Schedule & Meetings',
+    desc: 'Synchronizes daily events, generates meeting preparation briefings, and detects agenda conflicts.',
+    icon: Calendar,
+    status: '1-Click Active',
+    accent: 'text-[#0284c7]',
+  },
+  {
+    name: 'Notion Database MCP',
+    category: 'Team Wiki & Tasks',
+    desc: 'Retrieves sprint task backlogs, syncs project docs, and writes structured database entries.',
     icon: FileSpreadsheet,
     status: '1-Click Active',
+    accent: 'text-[#3b82f6]',
   },
   {
-    name: 'Linear & Jira',
-    category: 'Task Management',
-    desc: 'Generates sub-tasks and actionable tickets directly on your sprint board.',
-    icon: CheckSquare,
-    status: '1-Click Active',
-  },
-  {
-    name: 'Slack & Discord',
-    category: 'Communication',
-    desc: 'Dispatches action plan executive summaries to team channels for fast review.',
-    icon: MessageSquare,
-    status: '1-Click Active',
-  },
-  {
-    name: 'Databases & Cloud',
-    category: 'Data & Infrastructure',
-    desc: 'Accesses Postgres, Redis, or AWS S3 with air-gapped, read-only permissions.',
-    icon: Database,
-    status: 'MCP Native',
-  },
-  {
-    name: 'Live Web & APIs',
-    category: 'Online Research',
-    desc: 'Crawls external developer documentation and validates real-time industry RFCs.',
+    name: 'Live Web Grounding',
+    category: 'Real-Time Research',
+    desc: 'Searches official developer documentation, package registries, and RFC specs via Tavily API.',
     icon: Globe2,
     status: 'Automated',
+    accent: 'text-[#14b8a6]',
+  },
+  {
+    name: 'Custom MCP Servers',
+    category: 'Extensibility Standard',
+    desc: 'Connect any Model Context Protocol compliant server via Stdio or SSE transport channels.',
+    icon: Terminal,
+    status: 'MCP Native',
+    accent: 'text-primary',
   },
 ]
 
-const CODE_EXAMPLE = `// Connect ContextForge to internal enterprise tools & MCP servers
-import { defineAgent, defineTool } from '@contextforge/sdk'
+const CODE_EXAMPLE = `// Define autonomous workflow with Obsidian & Android MCP tools
+import { defineAutomation, mcp } from '@contextforge/sdk'
 
-export const securityAgent = defineAgent({
-  name: 'SecurityAndDocsAgent',
-  // Ingest team knowledge sources
-  sources: ['github:my-org/project', 'notion:security-policies'],
-  // Deliverable format
-  outputFormat: 'action-plan',
+export const dailyBriefingWorkflow = defineAutomation({
+  name: 'Executive Morning Briefing',
+  trigger: {
+    type: 'schedule',
+    cron: '0 7 * * 1-5', // Mon-Fri at 07:00 AM
+  },
+  agent: 'ExecutiveAssist',
+  mcpServers: ['obsidian-bridge', 'android-bridge', 'google-calendar'],
+  prompt: 'Ingest today calendar events, yesterday Android screen time, and synthesize daily note to Obsidian.',
+  guardrails: {
+    requireHumanApprovalForWrites: true,
+  },
 })`
 
 export default function ExtensibilitySection() {
@@ -209,7 +220,7 @@ export default function ExtensibilitySection() {
                 <span>Automated Schema Validation</span>
               </div>
               <div className="flex items-center gap-2 text-ink">
-                <Shield size={14} className="text-semantic-success shrink-0" />
+                <ShieldCheck size={14} className="text-semantic-success shrink-0" />
                 <span>Air-Gapped & Secure Execution</span>
               </div>
               <div className="flex items-center gap-2 text-ink">

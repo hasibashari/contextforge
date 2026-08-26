@@ -21,6 +21,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import type { AutomationWorkflow } from '@/shared/types/workspace'
+import { Button } from '@/shared/components/ui/Button'
 
 interface AutomationCardProps {
   workflow: AutomationWorkflow
@@ -103,7 +104,7 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
       id: 'calendar',
       label: 'Google Calendar',
       icon: <Calendar size={11} />,
-      colorClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+      colorClass: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
     })
   }
 
@@ -119,7 +120,7 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
       id: 'web-search',
       label: 'Web Grounding',
       icon: <Globe size={11} />,
-      colorClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+      colorClass: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20',
     })
   }
 
@@ -147,7 +148,7 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
       id: 'custom-mcp',
       label: workflow.mcpServerId ? 'MCP Server' : 'MCP Tools',
       icon: <Plug size={11} />,
-      colorClass: 'bg-surface-strong text-muted border-hairline',
+      colorClass: 'bg-canvas-soft text-muted border-hairline',
     })
   }
 
@@ -173,31 +174,31 @@ export function AutomationCard({
 
   return (
     <div
-      className={`relative rounded-xl border transition-all duration-200 bg-surface-card p-5 flex flex-col justify-between gap-4 ${
+      className={`relative rounded-2xl border transition-all duration-200 bg-surface-card p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-2xs hover:shadow-md ${
         isRunning
-          ? 'border-primary/60 shadow-md ring-1 ring-primary/20 bg-primary/5'
+          ? 'border-primary/60 shadow-md ring-1 ring-primary/20 bg-primary-soft'
           : workflow.isActive
-          ? 'border-hairline hover:border-hairline-strong hover:shadow-xs'
-          : 'border-hairline/60 opacity-75 bg-canvas-soft'
+          ? 'border-hairline hover:border-primary/40'
+          : 'border-dashed border-hairline/80 opacity-80 bg-canvas/40'
       }`}
     >
       {/* Top Header: Trigger Badge, Service Tags, Guardrails, Menu & Toggle */}
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {/* Trigger Badge */}
             {workflow.triggerType === 'schedule' ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium bg-primary/10 text-primary border border-primary/20">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-primary-soft text-primary border border-primary-subtle">
                 <Clock size={12} />
                 <span>{workflow.scheduleLabel || workflow.scheduleCron}</span>
               </span>
             ) : workflow.triggerType === 'event' ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                 <Zap size={12} />
                 <span>{workflow.scheduleLabel || 'Event Watcher'}</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium bg-surface-strong text-muted border border-hairline">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-canvas-soft text-muted border border-hairline">
                 <Play size={12} />
                 <span>Manual Trigger</span>
               </span>
@@ -230,7 +231,7 @@ export function AutomationCard({
               type="button"
               onClick={() => onToggleActive(workflow.id)}
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                workflow.isActive ? 'bg-primary' : 'bg-surface-strong'
+                workflow.isActive ? 'bg-primary' : 'bg-canvas-soft border-hairline'
               }`}
               title={workflow.isActive ? 'Pause automation' : 'Activate automation'}
             >
@@ -246,7 +247,7 @@ export function AutomationCard({
               <button
                 type="button"
                 onClick={() => setShowMenu((prev) => !prev)}
-                className="p-1 rounded-md text-muted hover:text-ink hover:bg-surface-strong transition-colors"
+                className="p-1 rounded-lg text-muted hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer"
               >
                 <MoreVertical size={15} />
               </button>
@@ -257,13 +258,13 @@ export function AutomationCard({
                     className="fixed inset-0 z-20"
                     onClick={() => setShowMenu(false)}
                   />
-                  <div className="absolute right-0 mt-1 w-36 rounded-lg bg-surface-card border border-hairline shadow-md py-1 z-30 space-y-0.5">
+                  <div className="absolute right-0 mt-1 w-36 rounded-xl bg-surface-card border border-hairline shadow-lg py-1 z-30 space-y-0.5">
                     <button
                       onClick={() => {
                         setShowMenu(false)
                         onEdit(workflow)
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-body hover:text-ink hover:bg-surface-strong text-left"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-body hover:text-ink hover:bg-canvas-soft text-left cursor-pointer"
                     >
                       <Edit2 size={13} />
                       <span>Edit Rules</span>
@@ -273,7 +274,7 @@ export function AutomationCard({
                         setShowMenu(false)
                         onDelete(workflow.id)
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-semantic-error hover:bg-semantic-error/10 text-left"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-semantic-error hover:bg-semantic-error/10 text-left cursor-pointer"
                     >
                       <Trash2 size={13} />
                       <span>Delete</span>
@@ -287,30 +288,30 @@ export function AutomationCard({
 
         {/* Title & Description */}
         <div>
-          <h3 className="text-sm font-semibold text-ink tracking-tight flex items-center gap-2">
+          <h3 className="text-sm sm:text-base font-semibold text-ink tracking-tight font-sans flex items-center gap-2">
             {workflow.name}
           </h3>
-          <p className="text-xs text-muted mt-1 line-clamp-2 leading-relaxed">
+          <p className="text-xs text-body font-sans mt-1 line-clamp-2 leading-relaxed">
             {workflow.description}
           </p>
         </div>
 
         {/* Agent & MCP Tools Assignment */}
-        <div className="space-y-1.5 pt-2 border-t border-hairline-soft">
-          <div className="flex items-center gap-2 text-xs text-body">
-            <Bot size={13} className="text-muted shrink-0" />
-            <span className="truncate font-medium">
+        <div className="space-y-1.5 pt-2 border-t border-hairline/60">
+          <div className="flex items-center gap-2 text-xs text-body font-sans">
+            <Bot size={13} className="text-primary shrink-0" />
+            <span className="truncate font-medium text-ink">
               {workflow.agentName || workflow.agentId}
             </span>
           </div>
 
           {workflow.mcpTools && workflow.mcpTools.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
-              <Cpu size={13} className="text-muted shrink-0" />
+              <Cpu size={12} className="text-muted shrink-0" />
               {workflow.mcpTools.map((tool) => (
                 <span
                   key={tool}
-                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-strong text-muted border border-hairline"
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-canvas-soft text-muted border border-hairline"
                 >
                   {tool}
                 </span>
@@ -321,8 +322,8 @@ export function AutomationCard({
       </div>
 
       {/* Bottom Footer: Last Run Status & Run Now CTA */}
-      <div className="pt-3 border-t border-hairline flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-xs text-muted">
+      <div className="pt-3 border-t border-hairline/60 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 text-xs text-muted font-mono">
           {isRunning ? (
             <div className="flex items-center gap-1.5 text-primary font-medium">
               <Loader2 size={13} className="animate-spin" />
@@ -344,30 +345,17 @@ export function AutomationCard({
         </div>
 
         {/* Action Button: Run Now */}
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="xs"
           disabled={isRunning || !workflow.isActive}
+          isLoading={isRunning}
+          leftIcon={<Play size={11} className="fill-current" />}
           onClick={() => onRunNow(workflow.id)}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer ${
-            isRunning
-              ? 'bg-primary/20 text-primary cursor-wait'
-              : !workflow.isActive
-              ? 'bg-surface-strong text-muted cursor-not-allowed'
-              : 'bg-primary hover:bg-primary-active text-on-primary'
-          }`}
         >
-          {isRunning ? (
-            <>
-              <Loader2 size={13} className="animate-spin" />
-              <span>Running...</span>
-            </>
-          ) : (
-            <>
-              <Play size={12} className="fill-current" />
-              <span>Run Now</span>
-            </>
-          )}
-        </button>
+          Run Now
+        </Button>
       </div>
     </div>
   )

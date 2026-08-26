@@ -24,8 +24,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     return (
       <div className="flex justify-end w-full animate-in fade-in duration-150">
         <div className="max-w-[85%] sm:max-w-[75%] space-y-1 text-right">
-          <div className="inline-block p-3.5 sm:p-4 rounded-2xl rounded-tr-xs bg-canvas-soft border border-hairline text-ink text-xs sm:text-sm leading-relaxed shadow-2xs font-normal text-left">
-            <div className="whitespace-pre-wrap">{msg.content}</div>
+          <div className="inline-block p-3.5 sm:p-4 rounded-2xl rounded-tr-xs bg-surface-card border border-hairline text-ink text-xs sm:text-sm leading-relaxed shadow-2xs font-normal text-left">
+            <div className="whitespace-pre-wrap font-sans">{msg.content}</div>
           </div>
           <div className="text-[10px] font-mono text-muted pr-1">
             {msg.timestamp}
@@ -50,7 +50,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
       {/* Assistant Rich Markdown Content */}
       {msg.content && (
-        <div className="relative leading-relaxed text-ink transition-opacity duration-300 ease-out animate-in fade-in">
+        <div className="relative leading-relaxed text-ink font-sans transition-opacity duration-300 ease-out animate-in fade-in">
           <MarkdownRenderer content={msg.content} />
         </div>
       )}
@@ -70,7 +70,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         <div className="pt-0.5 flex items-center gap-1.5 text-[11px] font-mono text-muted">
           <Zap size={11} className="text-primary" />
           <span>Action:</span>
-          <span className="px-1.5 py-0.2 rounded bg-canvas-soft border border-hairline text-ink font-semibold">
+          <span className="px-2 py-0.5 rounded-md bg-primary-soft border border-primary-subtle text-primary font-mono text-[10px] font-medium">
             {msg.intent.toolName || msg.intent.service}
           </span>
         </div>

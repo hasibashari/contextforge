@@ -91,78 +91,78 @@ export default function ActionPlanShowcaseSection() {
               </div>
 
               {/* Action Plan Summary Card */}
-              <div className="bg-canvas-soft rounded-md border border-hairline p-4 mb-4 text-xs">
-                <div className="flex items-center justify-between text-[11px] text-muted pb-2 mb-3 border-b border-hairline">
+              <div className="bg-canvas-soft rounded-xl border border-hairline p-4 mb-4 text-xs">
+                <div className="flex items-center justify-between text-[11px] text-muted pb-2 mb-3 border-b border-hairline font-sans">
                   <span className="flex items-center gap-1.5 font-medium text-ink">
                     <FileText size={13} className="text-primary" />
-                    <span>Deliverable: Security Migration Action Plan</span>
+                    <span>Deliverable: `2026-08-26-daily-briefing.md`</span>
                   </span>
                   <span className="text-semantic-success flex items-center gap-1 font-mono text-[10px]">
                     <ShieldCheck size={12} />
-                    <span>14 Tests Passed</span>
+                    <span>Synced to Vault</span>
                   </span>
                 </div>
 
                 {/* Structured Checkpoints */}
                 <div className="space-y-2 text-ink">
-                  <div className="flex items-start gap-2 bg-surface-card p-2 rounded border border-hairline">
+                  <div className="flex items-start gap-2 bg-surface-card p-2.5 rounded-xl border border-hairline shadow-2xs">
                     <CheckCircle2 size={14} className="text-semantic-success shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-xs text-ink">Step 1: Upgrade Auth Middleware</div>
-                      <div className="text-[11px] text-body">3 files updated to enforce OAuth 2.1 PKCE standards.</div>
+                      <div className="font-semibold text-xs text-ink font-sans">1. Google Calendar Agenda Ingested</div>
+                      <div className="text-[11px] text-body font-sans">4 events scheduled with direct prep notes and attendee context.</div>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2 bg-surface-card p-2 rounded border border-hairline">
+                  <div className="flex items-start gap-2 bg-surface-card p-2.5 rounded-xl border border-hairline shadow-2xs">
                     <CheckCircle2 size={14} className="text-semantic-success shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-xs text-ink">Step 2: Sync with Team Security SOP</div>
-                      <div className="text-[11px] text-body">Verified against internal guidelines in Notion workspace.</div>
+                      <div className="font-semibold text-xs text-ink font-sans">2. Android Screen Time & App Telemetry</div>
+                      <div className="text-[11px] text-body font-sans">Captured 4h 12m usage & battery health (89%) via Termux Bridge.</div>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2 bg-surface-card p-2 rounded border border-hairline">
+                  <div className="flex items-start gap-2 bg-surface-card p-2.5 rounded-xl border border-hairline shadow-2xs">
                     <CheckCircle2 size={14} className="text-semantic-success shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-xs text-ink">Step 3: Run Automated Regression Suite</div>
-                      <div className="text-[11px] text-body">Zero broken dependencies across all connected services.</div>
+                      <div className="font-semibold text-xs text-ink font-sans">3. Atomic Obsidian Note with Frontmatter</div>
+                      <div className="text-[11px] text-body font-sans">Structured tags, bidirectional backlinks (`[[Habits]]`, `[[Projects]]`), and action tasks.</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between text-[11px] text-muted pt-2 border-t border-hairline">
-                  <span className="flex items-center gap-1">
+                <div className="mt-3 flex items-center justify-between text-[11px] text-muted pt-2 border-t border-hairline font-sans">
+                  <span className="flex items-center gap-1 font-mono text-[10px]">
                     <Clock size={12} />
-                    <span>Execution Time: 4.8s</span>
+                    <span>Execution Time: 3.2s</span>
                   </span>
-                  <span className="text-semantic-success font-medium">100% Ready for Human Sign-Off</span>
+                  <span className="text-[#7c3aed] font-medium font-mono text-[10px]">Direct Obsidian Launcher Ready</span>
                 </div>
               </div>
 
-              <ul className="space-y-2 text-xs text-ink font-medium">
+              <ul className="space-y-2 text-xs text-ink font-medium font-sans">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 size={14} className="text-semantic-success shrink-0" />
-                  <span>Grounded in real context from code, docs, and live web</span>
+                  <span>Grounded in real context across your phone, calendar, and notes</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 size={14} className="text-semantic-success shrink-0" />
-                  <span>Structured action items with clear ownership and estimates</span>
+                  <span>Structured Markdown with frontmatter and bi-directional backlinks</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 size={14} className="text-semantic-success shrink-0" />
-                  <span>One-click execution or export to GitHub PR & Notion</span>
+                  <span>One-click launch directly in Obsidian Desktop or Notion workspace</span>
                 </li>
               </ul>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-hairline flex items-center justify-between">
+            <div className="mt-6 pt-4 border-t border-hairline flex items-center justify-between font-sans">
               <span className="text-xs text-muted">You stay in complete control</span>
               <a
-                href="#hero-sandbox"
-                className="inline-flex items-center gap-1.5 bg-primary hover:bg-primary-active text-on-primary text-xs font-medium px-3.5 py-1.5 rounded-md transition-colors cursor-pointer"
+                href="#extensibility"
+                className="text-xs font-semibold text-primary hover:text-primary-active transition-colors flex items-center gap-1"
               >
-                <span>Try Action Plan Generator</span>
-                <ArrowRight size={12} />
+                <span>Explore MCP Integrations</span>
+                <ArrowRight size={13} />
               </a>
             </div>
           </motion.div>
@@ -171,5 +171,3 @@ export default function ActionPlanShowcaseSection() {
     </section>
   )
 }
-
-

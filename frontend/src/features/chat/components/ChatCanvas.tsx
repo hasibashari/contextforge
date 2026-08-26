@@ -59,14 +59,26 @@ export default function ChatCanvas() {
 
   const dynamicGreeting = getGreetingForSession(activeSession?.id)
 
-  // Empty State: Centered View (Headline + Capsule Input)
+  const PROMPT_SUGGESTIONS = [
+    { label: '📝 Buat Daily Note Obsidian', prompt: 'Buatkan atomic daily note di Obsidian untuk hari ini dengan frontmatter dan backlinks.' },
+    { label: '📱 Cek Screen Time Android', prompt: 'Ambil data Screen Time dan aplikasi aktif hari ini melalui Android MCP Bridge.' },
+    { label: '📑 Sinkronkan Task Notion', prompt: 'Cari dan tampilkan daftar task prioritas dari workspace Notion saya.' },
+    { label: '📅 Jadwal Google Calendar', prompt: 'Periksa jadwal rapat dan agenda penting saya di Google Calendar hari ini.' },
+  ]
+
+  // Empty State: Centered View (Headline + Capsule Input + Suggestion Chips)
   if (isInitialState) {
     return (
       <div className="flex-1 h-full min-h-0 flex flex-col items-center justify-center bg-canvas text-ink px-4 sm:px-6 relative overflow-hidden">
-        <div className="w-full max-w-188 mx-auto flex flex-col items-center text-center space-y-5 sm:space-y-6 -mt-20 sm:-mt-28">
-          <h1 className="text-xl sm:text-2xl font-normal tracking-tight text-ink">
-            {dynamicGreeting}
-          </h1>
+        <div className="w-full max-w-188 mx-auto flex flex-col items-center text-center space-y-6 -mt-16 sm:-mt-24">
+          <div className="space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-ink font-sans">
+              {dynamicGreeting}
+            </h1>
+            <p className="text-xs sm:text-sm text-muted font-sans max-w-md mx-auto">
+              Autonomous AI agent workspace with direct Model Context Protocol (MCP) tool integration.
+            </p>
+          </div>
 
           <ChatInputBar
             isCentered={true}
@@ -75,6 +87,20 @@ export default function ChatCanvas() {
             skills={skills}
             agents={agents}
           />
+
+          {/* Quick Prompt Suggestion Chips */}
+          <div className="flex items-center justify-center gap-2 flex-wrap max-w-lg pt-1">
+            {PROMPT_SUGGESTIONS.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => sendChatMessage(item.prompt)}
+                className="px-3 py-1.5 rounded-xl bg-surface-card hover:bg-canvas-soft border border-hairline hover:border-primary/40 text-ink text-xs font-sans font-medium transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-xs"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     )

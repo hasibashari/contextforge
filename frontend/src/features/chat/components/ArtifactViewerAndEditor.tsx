@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Image as ImageIcon,
   Trash2,
-  HardDrive,
   Smartphone,
 } from 'lucide-react'
 import { MarkdownRenderer } from '@/shared'
@@ -137,34 +136,6 @@ export const ArtifactViewerAndEditor: React.FC<ArtifactViewerProps> = ({
             >
               <BookOpen size={13} className="shrink-0" />
               <span className="truncate">Open in Obsidian</span>
-            </button>
-
-            {/* Save to Local Folder if handle active */}
-            <button
-              onClick={async () => {
-                const fileName =
-                  artifact.locationPath || `${artifact.title || 'Note'}.md`
-                const success = await obsidianBridgeService.writeNoteToLocalVault(
-                  fileName,
-                  artifact.content,
-                )
-                if (success) {
-                  showToast(
-                    `📁 Successfully saved to local folder: "${fileName}"`,
-                    'success',
-                  )
-                } else {
-                  showToast(
-                    '⚠️ Could not write to local folder. Please pair your folder in Integrations.',
-                    'error',
-                  )
-                }
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface hover:bg-surface-elevated border border-hairline text-ink text-xs font-medium transition-all cursor-pointer truncate shadow-2xs"
-              title="Save directly to paired local directory on disk"
-            >
-              <HardDrive size={13} className="shrink-0 text-primary" />
-              <span className="truncate">Save to Folder</span>
             </button>
           </div>
 

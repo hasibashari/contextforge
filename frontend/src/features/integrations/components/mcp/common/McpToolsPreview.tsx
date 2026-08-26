@@ -13,9 +13,9 @@ export const McpToolsPreview: React.FC<McpToolsPreviewProps> = ({
   if (!tools || tools.length === 0) return null
 
   return (
-    <div className="space-y-1.5 pt-2 border-t border-hairline/60">
+    <div className="space-y-2 pt-2 border-t border-hairline/60">
       <div className="text-[11px] font-mono font-semibold uppercase tracking-caption text-muted flex items-center justify-between">
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5 text-ink">
           <Sparkles size={11} className="text-primary" />
           <span>Exposed Server Tools</span>
         </span>
@@ -24,17 +24,17 @@ export const McpToolsPreview: React.FC<McpToolsPreviewProps> = ({
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
         {tools.map((tool) => (
           <div
             key={tool.name}
-            className="p-2 rounded-lg bg-canvas border border-hairline flex flex-col justify-between"
+            className="p-2 rounded-lg bg-canvas-soft border border-hairline hover:border-hairline/90 flex flex-col justify-between transition-colors"
           >
-            <div className="font-semibold text-ink text-[11px] flex items-center gap-1">
-              <Terminal size={10} className="text-primary shrink-0" />
+            <div className="font-semibold text-ink text-[11px] font-mono flex items-center gap-1.5 min-w-0">
+              <Terminal size={11} className="text-primary shrink-0" />
               <span className="truncate">{tool.name}</span>
             </div>
-            <div className="text-[10px] text-muted truncate font-sans mt-0.5">
+            <div className="text-[10px] text-muted truncate font-sans mt-1">
               {tool.description}
             </div>
           </div>

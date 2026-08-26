@@ -49,12 +49,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           type={computedType}
           disabled={disabled}
           className={cn(
-            'w-full bg-canvas border border-hairline text-ink placeholder:text-muted focus:outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:bg-canvas-soft shadow-2xs',
+            'w-full bg-canvas border border-hairline text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50 disabled:bg-canvas-soft shadow-2xs',
             variant === 'mono' ? 'font-mono' : 'font-sans',
             sizeClasses[inputSize],
             leftIcon ? 'pl-8' : '',
             allowToggleVisibility || rightAction ? 'pr-9' : '',
-            error ? 'border-semantic-error focus:border-semantic-error' : '',
+            error ? 'border-semantic-error focus:border-semantic-error focus:ring-semantic-error/20' : '',
             className,
           )}
           {...props}

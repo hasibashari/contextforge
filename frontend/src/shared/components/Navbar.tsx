@@ -87,7 +87,7 @@ export default function Navbar() {
             href="https://github.com"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-body hover:text-ink px-2.5 py-1.5 rounded-md hover:bg-canvas-soft border border-transparent hover:border-hairline transition-all"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-body hover:text-ink px-3 py-1.5 rounded-xl hover:bg-canvas-soft border border-transparent hover:border-hairline transition-all"
           >
             <GithubIcon className="w-3.5 h-3.5" />
             <span>GitHub</span>
@@ -95,7 +95,7 @@ export default function Navbar() {
 
           <Link
             to="/dashboard"
-            className="inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-active text-on-primary text-xs font-medium px-3.5 py-2 rounded-md transition-colors shadow-xs"
+            className="inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-active text-on-primary text-xs font-semibold px-4 py-2 rounded-xl transition-colors shadow-xs"
           >
             <span>Launch Workspace</span>
             <ArrowRight size={13} />
@@ -104,7 +104,7 @@ export default function Navbar() {
 
         {/* Mobile Toggle */}
         <button
-          className="md:hidden text-ink p-1.5 rounded-md hover:bg-canvas-soft border border-hairline transition-colors"
+          className="md:hidden text-ink p-1.5 rounded-xl hover:bg-canvas-soft border border-hairline transition-colors cursor-pointer"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Toggle Menu"
         >

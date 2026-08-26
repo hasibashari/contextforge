@@ -4,9 +4,7 @@ import {
   ArrowRight,
   Terminal,
   Brain,
-  FileCheck,
   CheckCircle2,
-  GitPullRequest,
   ShieldCheck,
   Database,
   ExternalLink,
@@ -40,9 +38,9 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.05 }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-[68px] font-normal text-ink leading-[1.08] tracking-display-mega mb-6"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-[64px] font-normal text-ink leading-[1.1] tracking-display-mega mb-6"
           >
-            Delegate complex work to AI agents that understand your context.
+            Delegate complex work to AI agents that understand your real-world context.
           </motion.h1>
 
           <motion.p
@@ -51,9 +49,9 @@ export default function HeroSection() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-base sm:text-lg text-body leading-relaxed max-w-2xl mx-auto mb-8 font-normal"
           >
-            ContextForge orchestrates autonomous agents that gather intelligence from GitHub,
-            knowledge bases, and live web resources — turning ambiguous goals into verified,
-            executable action plans.
+            ContextForge orchestrates autonomous AI agents that gather intelligence from Obsidian,
+            Android mobile telemetry, Google Calendar, Notion, and live web grounding — turning messy daily inputs
+            into verified atomic notes, action plans, and automated workflows.
           </motion.p>
 
           <motion.div
@@ -64,7 +62,7 @@ export default function HeroSection() {
           >
             <Link
               to="/dashboard"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-active text-on-primary text-sm font-medium px-6 py-3 rounded-md transition-colors shadow-xs group"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-active text-on-primary text-sm font-medium px-6 py-3 rounded-xl transition-colors shadow-xs group"
             >
               <span>Launch Workspace</span>
               <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
@@ -72,7 +70,7 @@ export default function HeroSection() {
 
             <a
               href="#sources"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-surface-card hover:bg-canvas-soft text-ink border border-hairline-strong text-sm font-medium px-6 py-3 rounded-md transition-colors"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-surface-card hover:bg-canvas-soft text-ink border border-hairline-strong text-sm font-medium px-6 py-3 rounded-xl transition-colors shadow-2xs"
             >
               <span>Explore Context Ingestion</span>
             </a>
@@ -96,13 +94,13 @@ export default function HeroSection() {
                   <span className="w-2.5 h-2.5 rounded-full bg-[#f4be4f] inline-block" />
                   <span className="w-2.5 h-2.5 rounded-full bg-[#61c554] inline-block" />
                   <span className="text-xs font-mono text-muted ml-2 hidden sm:inline-block">
-                    ContextForge Workspace — Acme Platform (Production)
+                    ContextForge Workspace — Executive AI Engine (v0.9-agent)
                   </span>
                 </div>
 
                 <Link
                   to="/dashboard"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary hover:bg-primary-active text-on-primary text-xs font-medium transition-colors shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-active text-on-primary text-xs font-medium transition-colors shadow-xs"
                 >
                   <span>Open Full App</span>
                   <ExternalLink size={12} />
@@ -115,67 +113,73 @@ export default function HeroSection() {
                   {/* Column 1: Left Mockup Navigation Sidebar */}
                   <div className="hidden md:flex md:col-span-4 lg:col-span-3 bg-canvas-soft border-r border-hairline p-3.5 flex-col justify-between">
                     <div className="space-y-3.5">
-                      <div className="flex items-center gap-2 p-2 bg-surface-card rounded-md border border-hairline shadow-2xs">
+                      <div className="flex items-center gap-2 p-2 bg-surface-card rounded-lg border border-hairline shadow-2xs">
                         <div className="w-5 h-5 rounded bg-primary text-on-primary text-xs flex items-center justify-center font-bold">
-                          A
+                          CF
                         </div>
                         <div className="truncate">
-                          <div className="font-semibold text-ink truncate text-xs">Acme Platform</div>
-                          <div className="text-[10px] text-muted truncate">production-cluster</div>
+                          <div className="font-semibold text-ink truncate text-xs">Personal Workspace</div>
+                          <div className="text-[10px] text-muted truncate">obsidian-vault-main</div>
                         </div>
                       </div>
 
                       <div className="space-y-1">
-                        <div className="px-2 py-1 text-[10px] font-mono text-muted uppercase tracking-caption">
-                          Workspace
+                        <div className="px-2 py-1 text-[10px] font-mono text-muted uppercase tracking-caption font-semibold">
+                          Active Sources
                         </div>
-                        <div className="px-2.5 py-1.5 rounded-md bg-ink text-canvas font-medium flex items-center gap-2 shadow-xs">
-                          <Terminal size={13} className="text-primary" />
-                          <span>Agent Overview</span>
-                        </div>
-                        <div className="px-2.5 py-1.5 rounded-md text-body hover:text-ink flex items-center justify-between">
+                        <div className="px-2.5 py-1.5 rounded-lg bg-primary-soft text-primary font-medium flex items-center justify-between border border-primary-subtle shadow-2xs">
                           <div className="flex items-center gap-2">
-                            <Brain size={13} className="text-muted" />
-                            <span>Live Runs</span>
+                            <Terminal size={13} className="text-primary" />
+                            <span>Executive Agent</span>
                           </div>
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-strong">2</span>
+                          <span className="text-[10px] font-mono font-bold">LIVE</span>
                         </div>
-                        <div className="px-2.5 py-1.5 rounded-md text-body hover:text-ink flex items-center justify-between">
+                        <div className="px-2.5 py-1.5 rounded-lg text-body hover:text-ink flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <FileCheck size={13} className="text-muted" />
-                            <span>Action Plans</span>
+                            <Layers size={13} className="text-[#7c3aed]" />
+                            <span>Obsidian Bridge</span>
                           </div>
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary text-on-primary font-bold">3</span>
+                          <span className="text-[9px] font-mono text-semantic-success">● Paired</span>
                         </div>
-                        <div className="px-2.5 py-1.5 rounded-md text-body hover:text-ink flex items-center gap-2">
-                          <Database size={13} className="text-muted" />
-                          <span>Context Sources</span>
+                        <div className="px-2.5 py-1.5 rounded-lg text-body hover:text-ink flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Brain size={13} className="text-[#10b981]" />
+                            <span>Android MCP</span>
+                          </div>
+                          <span className="text-[9px] font-mono text-semantic-success">● Online</span>
+                        </div>
+                        <div className="px-2.5 py-1.5 rounded-lg text-body hover:text-ink flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Globe size={13} className="text-[#0284c7]" />
+                            <span>Google Calendar</span>
+                          </div>
+                          <span className="text-[9px] font-mono text-semantic-success">● Synced</span>
                         </div>
                       </div>
 
                       <div className="space-y-1 pt-2 border-t border-hairline">
-                        <div className="px-2 py-1 text-[10px] font-mono text-muted uppercase tracking-caption">
-                          Indexed Repos
+                        <div className="px-2 py-1 text-[10px] font-mono text-muted uppercase tracking-caption font-semibold">
+                          Scheduled Tasks
                         </div>
-                        <div className="px-2 py-0.5 text-[11px] text-body flex items-center gap-1.5 truncate">
-                          <span className="w-1.5 h-1.5 rounded-full bg-semantic-success" />
-                          <span className="truncate">acme/auth-service</span>
+                        <div className="px-2 py-0.5 text-[11px] text-body flex items-center justify-between truncate">
+                          <span className="truncate">🌅 Morning Briefing</span>
+                          <span className="font-mono text-[9px] text-muted">07:00 AM</span>
                         </div>
-                        <div className="px-2 py-0.5 text-[11px] text-body flex items-center gap-1.5 truncate">
-                          <span className="w-1.5 h-1.5 rounded-full bg-semantic-success" />
-                          <span className="truncate">acme/data-platform</span>
+                        <div className="px-2 py-0.5 text-[11px] text-body flex items-center justify-between truncate">
+                          <span className="truncate">📱 Screen Time Audit</span>
+                          <span className="font-mono text-[9px] text-muted">10:00 PM</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="pt-2 border-t border-hairline">
-                      <div className="p-2 rounded-md bg-canvas border border-hairline space-y-1">
+                      <div className="p-2 rounded-lg bg-surface-card border border-hairline space-y-1">
                         <div className="flex items-center gap-1.5 text-[10px] font-medium text-ink">
                           <ShieldCheck size={12} className="text-semantic-success" />
-                          <span>HITL Safety Gate: Active</span>
+                          <span>Strict HITL Gate: Active</span>
                         </div>
                         <div className="text-[9px] text-muted leading-tight">
-                          Human confirmation required before PR merge.
+                          Human confirmation required before vault modifications.
                         </div>
                       </div>
                     </div>
@@ -188,68 +192,68 @@ export default function HeroSection() {
                       <div className="grid grid-cols-3 gap-2">
                         <div className="bg-surface-card p-2.5 rounded-lg border border-hairline">
                           <div className="text-[9px] text-muted font-mono uppercase tracking-caption">Agent</div>
-                          <div className="text-xs font-bold text-ink mt-0.5 truncate">SecurityAgent</div>
+                          <div className="text-xs font-bold text-ink mt-0.5 truncate">ExecutiveAssist</div>
                         </div>
                         <div className="bg-surface-card p-2.5 rounded-lg border border-hairline">
-                          <div className="text-[9px] text-muted font-mono uppercase tracking-caption">Context</div>
-                          <div className="text-xs font-bold text-primary font-mono mt-0.5 truncate">48 Files · 2 RFCs</div>
+                          <div className="text-[9px] text-muted font-mono uppercase tracking-caption">Connected Sources</div>
+                          <div className="text-xs font-bold text-primary font-mono mt-0.5 truncate">4 MCP Protocols</div>
                         </div>
                         <div className="bg-surface-card p-2.5 rounded-lg border border-hairline">
-                          <div className="text-[9px] text-muted font-mono uppercase tracking-caption">Status</div>
-                          <div className="text-xs font-bold text-semantic-success font-mono mt-0.5 truncate">Plan Ready</div>
+                          <div className="text-[9px] text-muted font-mono uppercase tracking-caption">Safety Gate</div>
+                          <div className="text-xs font-bold text-semantic-success font-mono mt-0.5 truncate">Verified (HITL)</div>
                         </div>
                       </div>
 
                       {/* Terminal / Live Step Feed Preview */}
-                      <div className="bg-ink text-canvas rounded-lg p-3.5 font-mono text-[10px] sm:text-[11px] space-y-2 border border-hairline shadow-xs">
+                      <div className="bg-ink text-canvas rounded-xl p-3.5 font-mono text-[10px] sm:text-[11px] space-y-2 border border-hairline shadow-xs">
                         <div className="flex items-center justify-between text-muted-soft text-[9px] sm:text-[10px] border-b border-white/10 pb-1.5">
                           <div className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse" />
-                            <span>Task Runner — PLAN-104</span>
+                            <span>Workflow Runner — BRIEFING-DAILY</span>
                           </div>
-                          <span>ast-sandbox:passed</span>
+                          <span>cron:07:00</span>
                         </div>
 
                         <div className="space-y-1 text-hairline-soft pt-0.5">
                           <div className="text-timeline-thinking">
-                            &gt; [01/PLAN] Goal: Migrate OAuth2 session tokens
+                            &gt; [01/CALENDAR] Fetched 4 meetings & 1 keynote for today
                           </div>
                           <div className="text-timeline-grep">
-                            &gt; [02/INGEST] Ingested `github:acme/auth-service` & RFC-204
+                            &gt; [02/ANDROID] Retrieved Screen Time (4h 12m) & Battery (89%)
                           </div>
                           <div className="text-timeline-edit">
-                            &gt; [03/SANDBOX] AST mutation complete: 3 files modified
+                            &gt; [03/OBSIDIAN] Synthesized daily note with frontmatter & backlinks
                           </div>
                           <div className="text-semantic-success flex items-center gap-1 pt-0.5">
                             <CheckCircle2 size={12} className="shrink-0" />
-                            <span>✓ 14/14 unit tests passed. 0 CVEs detected.</span>
+                            <span>✓ Saved to local vault: `2026-08-26-daily-briefing.md`</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Action Plan Deliverable Preview Cards */}
                       <div className="space-y-2">
-                        <div className="text-[10px] font-mono uppercase tracking-caption text-muted">
-                          Generated Deliverable
+                        <div className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
+                          Generated Obsidian Note Artifact
                         </div>
 
-                        <div className="bg-surface-card p-3 rounded-lg border border-hairline-strong flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
+                        <div className="bg-surface-card p-3 rounded-xl border border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] font-mono font-bold text-primary">PLAN-104</span>
-                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-timeline-thinking/20 text-ink font-semibold">
-                                Pending Sign-off
+                              <span className="text-[11px] font-mono font-bold text-primary">NOTE-2026-08-26</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-semantic-success/15 text-semantic-success font-semibold">
+                                Synced to Vault
                               </span>
                             </div>
                             <div className="text-xs font-medium text-ink truncate">
-                              OAuth2 Scoped Tokens Migration (+104 / -18)
+                              Executive Daily Note & Habit Tracker (+4 meetings / +2 habits)
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
-                            <div className="px-2.5 py-1.5 rounded-md bg-primary text-on-primary text-[11px] font-medium inline-flex items-center gap-1 shadow-xs">
-                              <GitPullRequest size={12} />
-                              <span>Approve PR</span>
+                            <div className="px-2.5 py-1.5 rounded-lg bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20 text-[11px] font-medium inline-flex items-center gap-1 shadow-2xs">
+                              <Layers size={12} />
+                              <span>Open in Obsidian</span>
                             </div>
                           </div>
                         </div>
@@ -258,8 +262,8 @@ export default function HeroSection() {
 
                     {/* Bottom Status bar inside preview */}
                     <div className="pt-2.5 border-t border-hairline flex items-center justify-between text-[10px] text-muted font-mono">
-                      <span className="truncate">Sources: GitHub, Notion, Web OpenAPI</span>
-                      <span className="text-semantic-success shrink-0">● Synced</span>
+                      <span className="truncate">Active Protocols: Obsidian, Android MCP, Calendar, Notion</span>
+                      <span className="text-semantic-success shrink-0">● 100% Operational</span>
                     </div>
                   </div>
 
@@ -269,70 +273,70 @@ export default function HeroSection() {
                       <div className="flex items-center justify-between pb-2 border-b border-hairline">
                         <div className="flex items-center gap-1.5 font-semibold text-ink text-[11px]">
                           <Sparkles size={13} className="text-primary" />
-                          <span>Context Inspector</span>
+                          <span>Live Context Inspector</span>
                         </div>
-                        <span className="text-[9px] font-mono text-primary font-bold">51 Ingested</span>
+                        <span className="text-[9px] font-mono text-primary font-bold">4 Connected</span>
                       </div>
 
                       {/* Active Grounding Scope */}
                       <div className="space-y-1.5">
-                        <div className="text-[9px] font-mono uppercase tracking-caption text-muted">
-                          Active Grounding Scope
+                        <div className="text-[9px] font-mono uppercase tracking-caption text-muted font-semibold">
+                          Connected Telemetry
                         </div>
-                        <div className="p-2 rounded bg-surface-card border border-hairline space-y-0.5 shadow-2xs">
+                        <div className="p-2 rounded-lg bg-surface-card border border-hairline space-y-0.5 shadow-2xs">
                           <div className="flex items-center justify-between text-[11px] font-medium text-ink">
-                            <span className="truncate">acme/auth-service</span>
-                            <span className="text-[9px] font-mono text-semantic-success">✓ 14 files</span>
+                            <span className="truncate">Android Bridge (Termux)</span>
+                            <span className="text-[9px] font-mono text-semantic-success">✓ 89% Batt</span>
                           </div>
-                          <p className="text-[10px] text-muted truncate">JWT middleware & routes</p>
+                          <p className="text-[10px] text-muted truncate">Top App: Obsidian Mobile (1h 45m)</p>
                         </div>
-                        <div className="p-2 rounded bg-surface-card border border-hairline space-y-0.5 shadow-2xs">
-                          <div className="flex items-center justify-between text-[11px] font-medium text-ink">
-                            <div className="flex items-center gap-1 truncate">
-                              <Layers size={11} className="text-timeline-thinking shrink-0" />
-                              <span className="truncate">Notion Security RFC</span>
-                            </div>
-                            <span className="text-[9px] font-mono text-semantic-success">✓ RFC #204</span>
-                          </div>
-                          <p className="text-[10px] text-muted truncate">Scoped token spec</p>
-                        </div>
-                        <div className="p-2 rounded bg-surface-card border border-hairline space-y-0.5 shadow-2xs">
+                        <div className="p-2 rounded-lg bg-surface-card border border-hairline space-y-0.5 shadow-2xs">
                           <div className="flex items-center justify-between text-[11px] font-medium text-ink">
                             <div className="flex items-center gap-1 truncate">
                               <Globe size={11} className="text-timeline-read shrink-0" />
-                              <span className="truncate">Stripe API Docs</span>
+                              <span className="truncate">Google Calendar</span>
                             </div>
-                            <span className="text-[9px] font-mono text-semantic-success">✓ v2024-06</span>
+                            <span className="text-[9px] font-mono text-semantic-success">✓ 4 Events</span>
                           </div>
-                          <p className="text-[10px] text-muted truncate">Webhook schemas</p>
+                          <p className="text-[10px] text-muted truncate">Next: Sprint Demo at 10:30 AM</p>
+                        </div>
+                        <div className="p-2 rounded-lg bg-surface-card border border-hairline space-y-0.5 shadow-2xs">
+                          <div className="flex items-center justify-between text-[11px] font-medium text-ink">
+                            <div className="flex items-center gap-1 truncate">
+                              <Layers size={11} className="text-[#7c3aed] shrink-0" />
+                              <span className="truncate">Obsidian Vault</span>
+                            </div>
+                            <span className="text-[9px] font-mono text-semantic-success">✓ Local FS</span>
+                          </div>
+                          <p className="text-[10px] text-muted truncate">Daily notes & backlink graph</p>
                         </div>
                       </div>
 
-                      {/* AST Telemetry */}
+                      {/* Telemetry Summary */}
                       <div className="space-y-1">
-                        <div className="text-[9px] font-mono uppercase tracking-caption text-muted">
-                          Sandboxed AST Telemetry
+                        <div className="text-[9px] font-mono uppercase tracking-caption text-muted font-semibold">
+                          Grounding & Security
                         </div>
-                        <div className="p-2 rounded bg-canvas border border-hairline text-[10px] space-y-1">
+                        <div className="p-2 rounded-lg bg-canvas border border-hairline text-[10px] space-y-1 shadow-2xs">
                           <div className="flex items-center justify-between">
-                            <span className="text-muted">Regression Suite:</span>
-                            <span className="font-mono text-semantic-success font-semibold">14/14 Pass</span>
+                            <span className="text-muted">Data Storage:</span>
+                            <span className="font-mono text-semantic-success font-semibold">100% Local</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-muted">Security CVEs:</span>
-                            <span className="font-mono text-semantic-success font-semibold">0 Detected</span>
+                            <span className="text-muted">HITL Policy:</span>
+                            <span className="font-mono text-primary font-semibold">Strict Sign-off</span>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     <div className="pt-2 border-t border-hairline">
-                      <div className="flex items-center justify-between p-1.5 rounded bg-surface-card border border-hairline text-[10px]">
+                      <div className="flex items-center justify-between p-1.5 rounded-lg bg-surface-card border border-hairline text-[10px]">
                         <div className="flex items-center gap-1.5 font-medium text-ink truncate">
-                          <Database size={12} className="text-timeline-grep" />
-                          <span className="truncate">Postgres MCP</span>
+                          <Database size={12} className="text-primary" />
+                          <span className="truncate">Model Context Protocol</span>
                         </div>
-                        <span className="font-mono text-semantic-success text-[9px]">12ms</span>
+                        <span className="font-mono text-semantic-success text-[9px]">Active</span>
                       </div>
                     </div>
                   </div>

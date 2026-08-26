@@ -4,47 +4,47 @@ import { Brain, Cpu, ShieldCheck, FileCheck, CheckCircle2 } from 'lucide-react'
 const STEPS = [
   {
     step: '01',
-    stageLabel: 'Thinking',
-    pillClass: 'bg-[#dfa88f] text-[#26251e]',
-    title: '1. Objective & Task Planning',
+    stageLabel: 'Multi-Source',
+    pillClass: 'bg-primary-soft text-primary border border-primary-subtle',
+    title: '1. Multi-Source Context Ingestion',
     description:
-      'The agent receives natural language instructions, breaks complex goals into structured sub-tasks, and establishes measurable pass/fail checkpoints.',
+      'The agent gathers real-world signals across Google Calendar meetings, Android device telemetry (Screen Time, battery), and your existing Obsidian vault.',
     icon: Brain,
     activityLabel: 'Agent Activity:',
-    activityText: 'Formulating 4 deterministic checkpoints before deep context scanning.',
+    activityText: 'Ingested 4 calendar events, Android telemetry stream, and 365 vault daily notes.',
   },
   {
     step: '02',
-    stageLabel: 'Grepping & Reading',
-    pillClass: 'bg-[#9fc9a2] text-[#26251e]',
-    title: '2. Comprehensive Context Ingestion',
+    stageLabel: 'Reasoning',
+    pillClass: 'bg-[#7c3aed]/15 text-[#7c3aed] border border-[#7c3aed]/30',
+    title: '2. SOP Playbook & Skill Execution',
     description:
-      'Reads project repositories on GitHub, company SOPs in Notion, and live documentation across the web simultaneously for complete domain context.',
+      'Matches your natural language instruction to standardized SOP skills, applying deterministic rules and domain-specific formatting.',
     icon: Cpu,
     activityLabel: 'Agent Activity:',
-    activityText: 'Ingested 48 codebase files, 1 security policy doc, and 1 web API specification.',
+    activityText: 'Loaded `obsidian-note-creator` & `android-telemetry-audit` playbooks.',
   },
   {
     step: '03',
-    stageLabel: 'Editing',
-    pillClass: 'bg-[#c0a8dd] text-[#26251e]',
-    title: '3. Automated Analysis & Verification',
+    stageLabel: 'Safety Gate',
+    pillClass: 'bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30',
+    title: '3. Strict Human-In-The-Loop (HITL)',
     description:
-      'Synthesizes exact solutions, runs automated test simulations in sandboxed environments, and verifies that zero regressions or CVEs are introduced.',
+      'Enforces safety policies: external mutations, file writes, and database modifications require explicit human sign-off before execution.',
     icon: ShieldCheck,
     activityLabel: 'Agent Activity:',
-    activityText: 'Automated test suite passed: 14 test cases verified, 0 vulnerabilities.',
+    activityText: 'Guarded mutation checked: 0 unauthorized writes, awaiting user sign-off.',
   },
   {
     step: '04',
-    stageLabel: 'Done',
-    pillClass: 'bg-[#c08532] text-[#ffffff]',
-    title: '4. Ready-to-Execute Action Plan',
+    stageLabel: 'Delivery',
+    pillClass: 'bg-semantic-success/15 text-semantic-success border border-semantic-success/30',
+    title: '4. Atomic Note & Action Delivery',
     description:
-      'Delivers an executive action plan: structured checklist, impact analysis, estimated completion time, and pull request draft ready for human sign-off.',
+      'Delivers verified atomic Markdown notes directly to your local Obsidian vault with frontmatter, backlinks, and automated background tasks.',
     icon: FileCheck,
     activityLabel: 'Agent Activity:',
-    activityText: 'Action plan deliverable generated and awaiting your review.',
+    activityText: 'Saved `2026-08-26-daily-briefing.md` and updated Notion sprint tasks.',
   },
 ]
 
@@ -58,11 +58,11 @@ export default function AgentWorkflowSection() {
             <span>02 / Autonomous Engine</span>
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-[40px] font-normal text-ink leading-[1.15] tracking-display-lg mb-4">
-            Transparent at every step, from goal to execution.
+            Transparent at every step, from prompt to local note delivery.
           </h2>
           <p className="text-sm sm:text-base text-body leading-relaxed">
-            No confusing "black box" guesswork. You always have complete visibility into what your
-            agent is thinking, researching, testing, and preparing.
+            No black-box guesswork. You always have complete visibility into what your
+            agent is reading, reasoning, validating, and writing.
           </p>
         </div>
 
@@ -77,12 +77,12 @@ export default function AgentWorkflowSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: idx * 0.08 }}
-                className="bg-surface-card rounded-lg border border-hairline p-6 flex flex-col justify-between hover:border-hairline-strong transition-all"
+                className="bg-surface-card rounded-2xl border border-hairline p-6 flex flex-col justify-between hover:border-hairline-strong transition-all shadow-2xs"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-md bg-canvas-soft border border-hairline flex items-center justify-center text-ink">
+                      <div className="w-8 h-8 rounded-xl bg-canvas-soft border border-hairline flex items-center justify-center text-ink">
                         <Icon size={16} />
                       </div>
                       <span className="text-xs font-mono font-semibold text-muted">
@@ -91,22 +91,22 @@ export default function AgentWorkflowSection() {
                     </div>
 
                     <span
-                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-caption ${step.pillClass}`}
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-caption ${step.pillClass}`}
                     >
                       {step.stageLabel}
                     </span>
                   </div>
 
-                  <h3 className="text-base sm:text-lg font-semibold text-ink mb-2">
+                  <h3 className="text-base sm:text-lg font-semibold text-ink mb-2 font-sans">
                     {step.title}
                   </h3>
-                  <p className="text-xs sm:text-sm text-body leading-relaxed mb-6">
+                  <p className="text-xs sm:text-sm text-body leading-relaxed mb-6 font-sans">
                     {step.description}
                   </p>
                 </div>
 
                 {/* Activity Badge Box */}
-                <div className="bg-canvas-soft rounded-md border border-hairline p-3 flex items-start gap-2.5 text-xs text-ink">
+                <div className="bg-canvas-soft rounded-xl border border-hairline p-3 flex items-start gap-2.5 text-xs text-ink font-sans">
                   <CheckCircle2 size={15} className="text-semantic-success shrink-0 mt-0.5" />
                   <div>
                     <span className="font-semibold text-muted text-[11px] block mb-0.5">

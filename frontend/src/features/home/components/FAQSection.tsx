@@ -4,29 +4,29 @@ import { Plus, Minus } from 'lucide-react'
 
 const FAQS = [
   {
-    question: 'How is ContextForge different from a standard AI chatbot?',
+    question: 'Bagaimana ContextForge terhubung ke vault Obsidian saya?',
     answer:
-      'Standard chatbots only provide isolated conversational text without deep understanding of your codebase. ContextForge reads your GitHub repositories, internal team SOPs in Notion/Confluence, and live web references simultaneously, delivering deterministic Action Plans with verified steps and pull request drafts ready for immediate execution.',
+      'ContextForge membaca dan menulis catatan Markdown langsung ke vault lokal Anda dengan format atomic, frontmatter metadata YAML, dan bi-directional backlinks. Anda juga dapat membuka catatan yang dihasilkan langsung di aplikasi Obsidian Desktop dengan 1 klik.',
   },
   {
-    question: 'Is it secure to connect proprietary code and confidential team documents?',
+    question: 'Bagaimana cara kerja Android MCP Bridge?',
     answer:
-      'Yes, absolutely. ContextForge uses ephemeral, scoped access tokens and enterprise-grade encryption. Your proprietary source code and private documents are never used to train global AI models or shared with third parties.',
+      'Android Bridge menghubungkan smartphone Android Anda via Termux atau ADB. Ini memungkinkan agen AI memeriksa status baterai, memantau aplikasi yang sedang berjalan, menganalisis statistik Screen Time, dan mengirimkan notifikasi push secara langsung ke ponsel Anda.',
   },
   {
-    question: 'Can agents modify code or make decisions without my explicit permission?',
+    question: 'Apakah agen AI dapat memodifikasi file atau database tanpa izin?',
     answer:
-      'Never. ContextForge operates under strict Human-in-the-Loop approval gates. The agent analyzes context, simulates solutions in isolated sandboxes, and formats clear action plans. Applying changes or opening Pull Requests always requires your explicit confirmation.',
+      'Tidak pernah. ContextForge beroperasi di bawah gerbang keamanan Strict Human-in-the-Loop (HITL). Agen dapat bernalar dan menganalisis secara mandiri, namun setiap aksi penulisan file ke disk, modifikasi database, atau pengiriman data eksternal memerlukan persetujuan eksplisit Anda.',
   },
   {
-    question: 'Which applications and tools can I connect out of the box?',
+    question: 'Layanan dan protokol apa saja yang didukung out-of-the-box?',
     answer:
-      'You can instantly connect GitHub, GitLab, Notion, Confluence, Linear, Jira, Slack, Discord, Google Docs, and technical PDFs. You can also connect internal microservices and databases via the open Model Context Protocol (MCP) standard.',
+      'ContextForge mendukung Obsidian Vault, Android Mobile Bridge, Google Calendar, Notion Database, dan Live Web Grounding (Tavily). Selain itu, Anda dapat menghubungkan custom tools apa pun yang mematuhi standar Model Context Protocol (MCP).',
   },
   {
-    question: 'Do I need to write complex prompts or code to use the platform?',
+    question: 'Dapatkah saya menjadwalkan workflow automasi harian (Cron)?',
     answer:
-      'No. You can delegate tasks in plain natural language (for example: "Audit our auth middleware for OAuth 2.1 compliance and draft a migration plan"). The agent autonomously handles context discovery, analysis, and verification.',
+      'Ya. Modul Automasi ContextForge memungkinkan Anda mengatur jadwal cron berulang (misalnya briefing harian pukul 07:00 pagi yang merangkum agenda rapat Google Calendar dan kebiasaan Screen Time ke dalam daily note Obsidian).',
   },
 ]
 

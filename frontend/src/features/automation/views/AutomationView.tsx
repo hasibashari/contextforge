@@ -5,6 +5,8 @@ import {
   PageHeader,
   Button,
   ConfirmDeleteModal,
+  EmptyState,
+  IconBox,
 } from '@/shared'
 import type { AutomationWorkflow } from '@/shared/types/workspace'
 import { AutomationCard } from '../components/AutomationCard'
@@ -65,36 +67,49 @@ export default function AutomationView() {
         title="Automations & Workflows"
         description="Configure autonomous background schedules (Triggers), prompt templates, and direct MCP tool executions (Obsidian Vault daily note synthesis, Notion task briefings)."
         actions={
-          <Button
-            variant="primary"
-            size="sm"
-            leftIcon={<Plus size={14} />}
-            onClick={handleOpenCreateModal}
-          >
-            Create Automation
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-card border border-hairline shadow-2xs font-mono text-xs">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  automations.filter((a) => a.isActive).length > 0
+                    ? 'bg-semantic-success animate-pulse'
+                    : 'bg-muted'
+                }`}
+              />
+              <span className="text-body font-medium text-xs">
+                <strong className="text-ink font-semibold">
+                  {automations.filter((a) => a.isActive).length}
+                </strong>{' '}
+                of {automations.length} Active
+              </span>
+            </div>
+
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus size={14} />}
+              onClick={handleOpenCreateModal}
+            >
+              Create Automation
+            </Button>
+          </div>
         }
       />
 
-      {/* Cards Grid */}
+      {/* Cards Grid or Empty State */}
       {automations.length === 0 ? (
-        <div className="p-12 text-center rounded-xl border border-hairline bg-surface-card text-muted space-y-3">
-          <Zap size={32} className="mx-auto text-muted/60" />
-          <h3 className="text-sm font-semibold text-ink">No automations found</h3>
-          <p className="text-xs max-w-md mx-auto">
-            Create a new autonomous agent workflow to trigger scheduled tasks or Obsidian Vault note generation.
-          </p>
-          <Button
-            variant="primary"
-            size="sm"
-            leftIcon={<Plus size={14} />}
-            onClick={handleOpenCreateModal}
-          >
-            Create Your First Automation
-          </Button>
-        </div>
+        <EmptyState
+          icon={<IconBox size="lg" variant="primary" icon={<Zap size={22} />} />}
+          title="No Automations Configured"
+          description="Create scheduled background workflows or event-driven triggers to execute multi-step MCP agent actions autonomously."
+          action={{
+            label: 'Create Your First Automation',
+            onClick: handleOpenCreateModal,
+            icon: <Plus size={14} />,
+          }}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           {automations.map((workflow) => (
             <AutomationCard
               key={workflow.id}

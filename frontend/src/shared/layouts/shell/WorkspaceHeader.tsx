@@ -44,10 +44,10 @@ export default function WorkspaceHeader({
           <button
             onClick={onToggleAside}
             title={isAsideOpen ? 'Close Document Panel' : 'Open Document Panel'}
-            className={`p-1.5 rounded-lg border transition-colors cursor-pointer hidden md:flex ${
+            className={`p-1.5 rounded-xl border transition-colors cursor-pointer hidden md:flex ${
               isAsideOpen
-                ? 'bg-surface-strong border-hairline text-primary'
-                : 'bg-canvas-soft border-hairline text-muted hover:text-ink'
+                ? 'bg-primary-soft border-primary-subtle text-primary shadow-2xs'
+                : 'bg-surface-card border-hairline text-muted hover:text-ink hover:border-hairline-strong'
             }`}
             aria-label="Toggle Document Panel"
           >
