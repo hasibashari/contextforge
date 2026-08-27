@@ -82,7 +82,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   return (
     <div
       onClick={() => onOpenDetails(goal)}
-      className="group relative bg-surface-card hover:bg-surface-card border border-hairline hover:border-primary/40 rounded-3xl p-5.5 transition-all duration-200 shadow-2xs hover:shadow-md flex flex-col justify-between cursor-pointer select-none active:scale-[0.99]"
+      className="group relative bg-surface-card hover:bg-surface-card border border-hairline hover:border-primary/40 rounded-2xl p-5 transition-all duration-200 shadow-2xs hover:shadow-md flex flex-col justify-between cursor-pointer select-none active:scale-[0.99]"
     >
       {/* Top Header Row */}
       <div>

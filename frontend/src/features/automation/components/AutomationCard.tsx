@@ -179,7 +179,7 @@ export function AutomationCard({
           ? 'border-primary/60 shadow-md ring-1 ring-primary/20 bg-primary-soft'
           : workflow.isActive
           ? 'border-hairline hover:border-primary/40'
-          : 'border-dashed border-hairline/80 opacity-80 bg-canvas/40'
+          : 'border-hairline hover:border-primary/40 opacity-75'
       }`}
     >
       {/* Top Header: Trigger Badge, Service Tags, Guardrails, Menu & Toggle */}

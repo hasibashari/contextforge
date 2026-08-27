@@ -159,7 +159,7 @@ export default function GoalsView() {
 
       {/* Analytics Overview Cards (Material 3 Surface Elevation) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4.5">
-        <div className="p-5 bg-surface-card border border-hairline rounded-3xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
+        <div className="p-5 bg-surface-card border border-hairline rounded-2xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
               Active Goals
@@ -174,7 +174,7 @@ export default function GoalsView() {
           </div>
         </div>
 
-        <div className="p-5 bg-surface-card border border-hairline rounded-3xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
+        <div className="p-5 bg-surface-card border border-hairline rounded-2xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
               Avg Compliance
@@ -186,7 +186,7 @@ export default function GoalsView() {
           </div>
         </div>
 
-        <div className="p-5 bg-surface-card border border-hairline rounded-3xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
+        <div className="p-5 bg-surface-card border border-hairline rounded-2xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
               Max Active Streak
@@ -199,7 +199,7 @@ export default function GoalsView() {
           </div>
         </div>
 
-        <div className="p-5 bg-surface-card border border-hairline rounded-3xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
+        <div className="p-5 bg-surface-card border border-hairline rounded-2xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
               Connected Telemetry
