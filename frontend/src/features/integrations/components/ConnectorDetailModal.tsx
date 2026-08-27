@@ -241,10 +241,10 @@ const ConnectorDetailContent: FC<ConnectorDetailContentProps> = ({
 
           {/* Obsidian Connected Folder Configuration in Edit Mode */}
           {integration.id.includes('obsidian') && (
-            <div className="p-3.5 bg-[#7c3aed]/5 rounded-xl border border-[#7c3aed]/20 space-y-2.5">
+            <div className="p-3.5 bg-surface-card rounded-2xl border border-hairline hover:border-primary/40 transition-all space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 font-semibold text-ink text-xs">
-                  <Folder size={14} className="text-[#7c3aed]" />
+                  <Folder size={14} className="text-primary" />
                   <span>Connected Obsidian Folder</span>
                 </div>
                 {selectedFolder && (
@@ -254,9 +254,9 @@ const ConnectorDetailContent: FC<ConnectorDetailContentProps> = ({
                 )}
               </div>
 
-              <div className="p-3 bg-canvas rounded-xl border border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="p-3 bg-surface-strong/60 rounded-xl border border-hairline hover:border-primary/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-[#7c3aed]/10 text-[#7c3aed] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center shrink-0">
                     <Folder size={16} />
                   </div>
                   <div className="min-w-0">
@@ -335,9 +335,9 @@ const ConnectorDetailContent: FC<ConnectorDetailContentProps> = ({
 
           {/* Storage & Mount Banner for Obsidian */}
           {integration.id.includes('obsidian') && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-[#7c3aed]/5 rounded-xl border border-[#7c3aed]/20 gap-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-surface-card rounded-2xl border border-hairline hover:border-primary/40 transition-all gap-2.5">
               <div className="flex items-center gap-2 min-w-0">
-                <Folder size={16} className="text-[#7c3aed]" />
+                <Folder size={16} className="text-primary" />
                 <div className="min-w-0">
                   <div className="font-semibold text-ink text-xs truncate">
                     Connected Folder: 📁 {currentIntegration.targetBinding?.folderScope || currentIntegration.authConfig?.vaultName || currentIntegration.authConfig?.vaultPath || obsidianBridgeService.getPairedDirectoryHandle()?.name || obsidianBridgeService.getPairedVaultName() || 'Obsidian Vault'}

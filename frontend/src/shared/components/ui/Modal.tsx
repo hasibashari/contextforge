@@ -53,9 +53,9 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`bg-surface-card border border-hairline rounded-xl sm:rounded-2xl ${
+        className={`bg-surface-card border border-hairline rounded-3xl ${
           sizeClasses[size] || 'max-w-2xl'
-        } w-full p-4 sm:p-5 space-y-3.5 shadow-2xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150 my-auto ${className}`}
+        } w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[88vh] sm:max-h-[82vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150 my-auto ${className}`}
       >
         {children}
       </div>
@@ -84,32 +84,32 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
 }) => {
   return (
     <div
-      className={`flex items-start justify-between gap-3 pb-3 border-b border-hairline ${className}`}
+      className={`flex items-start justify-between gap-3 pb-3.5 border-b border-hairline w-full min-w-0 ${className}`}
     >
-      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-        {icon && <div className="shrink-0">{icon}</div>}
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-            <h2 className="text-sm sm:text-base font-semibold text-ink leading-snug truncate">
+      <div className="flex items-start gap-3 min-w-0 flex-1">
+        {icon && <div className="shrink-0 mt-0.5">{icon}</div>}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <h2 className="text-base font-semibold text-ink leading-snug wrap-break-word">
               {title}
             </h2>
             {badge && <span className="shrink-0">{badge}</span>}
           </div>
           {subtitle && (
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-mono text-muted mt-0.5">
+            <div className="text-xs text-muted mt-1 wrap-break-word leading-relaxed font-sans">
               {subtitle}
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         {actions && <div>{actions}</div>}
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-canvas-soft text-muted hover:text-ink cursor-pointer transition-colors"
+            className="p-1.5 rounded-xl hover:bg-surface-strong text-muted hover:text-ink cursor-pointer transition-colors active:scale-95"
             title="Close modal"
           >
             <X size={17} />
@@ -131,7 +131,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
 }) => {
   return (
     <div
-      className={`pt-3 border-t border-hairline flex items-center justify-between gap-2.5 ${className}`}
+      className={`pt-3.5 border-t border-hairline flex items-center justify-between gap-3 ${className}`}
     >
       {children}
     </div>

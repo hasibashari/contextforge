@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { Trash2, AlertTriangle, Loader2 } from 'lucide-react'
+import { Trash2, AlertTriangle } from 'lucide-react'
 import { Modal, ModalHeader, ModalFooter } from './Modal'
 import { IconBox } from './IconBox'
+import { Button } from './Button'
 
 export interface ConfirmDeleteModalProps {
   isOpen: boolean
@@ -46,45 +47,38 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
         onClose={loading ? undefined : onClose}
       />
 
-      <div className="space-y-3 text-xs">
-        <p className="text-body leading-relaxed">{description}</p>
+      <div className="space-y-3.5 text-xs py-1">
+        <p className="text-muted leading-relaxed font-sans">{description}</p>
 
         {itemName && (
-          <div className="p-2.5 bg-canvas rounded-lg border border-hairline flex items-center gap-2 font-mono text-[11px] text-ink">
-            <Trash2 size={13} className="text-semantic-error shrink-0" />
+          <div className="p-3 bg-surface-strong/60 rounded-xl border border-hairline flex items-center gap-2.5 font-mono text-[11px] text-ink">
+            <Trash2 size={14} className="text-semantic-error shrink-0" />
             <span className="font-semibold truncate">{itemName}</span>
           </div>
         )}
       </div>
 
-      <ModalFooter className="justify-end gap-2 pt-3">
-        <button
+      <ModalFooter className="justify-end gap-2.5">
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onClose}
           disabled={loading}
-          className="px-3.5 py-1.5 text-xs text-body hover:text-ink cursor-pointer disabled:opacity-50"
         >
           {cancelLabel}
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="danger"
+          size="sm"
           onClick={handleConfirm}
-          disabled={loading}
-          className="px-4 py-1.5 bg-semantic-error hover:bg-semantic-error/90 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+          isLoading={loading}
+          leftIcon={<Trash2 size={13} />}
         >
-          {loading ? (
-            <>
-              <Loader2 size={13} className="animate-spin" />
-              <span>Deleting...</span>
-            </>
-          ) : (
-            <>
-              <Trash2 size={13} />
-              <span>{confirmLabel}</span>
-            </>
-          )}
-        </button>
+          {confirmLabel}
+        </Button>
       </ModalFooter>
     </Modal>
   )

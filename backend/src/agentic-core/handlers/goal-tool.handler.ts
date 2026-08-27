@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { GoalsRepository, GoalRow } from '../../modules/goals/goals.repository';
+import { GoalsService } from '../../modules/goals/goals.service';
 import {
   OrchestrationResult,
   StreamEmitter,
@@ -9,7 +10,11 @@ import {
 export class GoalToolHandler {
   private readonly logger = new Logger(GoalToolHandler.name);
 
-  constructor(private readonly goalsRepo: GoalsRepository) {}
+  constructor(
+    private readonly goalsRepo: GoalsRepository,
+    @Inject(forwardRef(() => GoalsService))
+    private readonly goalsService: GoalsService,
+  ) {}
 
   async execute(
     toolName: string,
@@ -50,19 +55,19 @@ export class GoalToolHandler {
           },
         });
 
-        const created = await this.goalsRepo.createGoal({
+        const created = await this.goalsService.createGoal({
           title,
           description,
           category,
-          cron_evaluation: cron,
-          target_metrics: {
+          cronEvaluation: cron,
+          targetMetrics: {
             daily_focus_mins: 120,
             max_screentime_mins: 90,
           },
-          linked_mcp_servers: ['android-bridge', 'google-calendar', 'notion'],
+          linkedMcpServers: ['android-bridge', 'google-calendar', 'notion'],
         });
 
-        const summaryText = `New Goal **"${created.title}"** has been successfully registered to ContextForge. The system will track daily progress and run automated reflections to Notion daily at 21:00.`;
+        const summaryText = `New Goal **"${created.title}"** has been successfully registered to ContextForge and scheduled in Automations. The system will track daily progress and run automated reflections to Notion daily at 21:00.`;
 
         return {
           textContent: summaryText,

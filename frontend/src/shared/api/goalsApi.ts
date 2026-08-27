@@ -76,11 +76,42 @@ export interface CreateGoalPayload {
 
 const BASE_URL = '/api/goals';
 
+let cachedGoals: Goal[] | null = null;
+const cachedTasksByGoalId = new Map<string, GoalTask[]>();
+const cachedEvaluationsByGoalId = new Map<string, GoalEvaluation[]>();
+
 export const goalsApi = {
-  async fetchGoals(): Promise<Goal[]> {
+  getCachedGoals(): Goal[] | null {
+    return cachedGoals;
+  },
+
+  getCachedTasks(goalId: string): GoalTask[] | null {
+    return cachedTasksByGoalId.get(goalId) || null;
+  },
+
+  getCachedEvaluations(goalId: string): GoalEvaluation[] | null {
+    return cachedEvaluationsByGoalId.get(goalId) || null;
+  },
+
+  async fetchGoals(forceRefresh = false): Promise<Goal[]> {
+    if (!forceRefresh && cachedGoals && cachedGoals.length > 0) {
+      // Trigger background quiet revalidation without blocking UI
+      fetch(BASE_URL)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (Array.isArray(data)) {
+            cachedGoals = data;
+          }
+        })
+        .catch(() => {});
+      return cachedGoals;
+    }
+
     const res = await fetch(BASE_URL);
     if (!res.ok) throw new Error('Failed to fetch goals');
-    return res.json();
+    const data = (await res.json()) as Goal[];
+    cachedGoals = data;
+    return data;
   },
 
   async fetchGoalById(id: string): Promise<Goal> {
@@ -96,7 +127,11 @@ export const goalsApi = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('Failed to create goal');
-    return res.json();
+    const created = (await res.json()) as Goal;
+    if (cachedGoals) {
+      cachedGoals = [created, ...cachedGoals.filter((g) => g.id !== created.id)];
+    }
+    return created;
   },
 
   async updateGoal(id: string, payload: Partial<Goal>): Promise<Goal> {
@@ -106,12 +141,21 @@ export const goalsApi = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('Failed to update goal');
-    return res.json();
+    const updated = (await res.json()) as Goal;
+    if (cachedGoals) {
+      cachedGoals = cachedGoals.map((g) => (g.id === id ? updated : g));
+    }
+    return updated;
   },
 
   async deleteGoal(id: string): Promise<{ success: boolean }> {
     const res = await fetch(`${BASE_URL}/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete goal');
+    if (cachedGoals) {
+      cachedGoals = cachedGoals.filter((g) => g.id !== id);
+    }
+    cachedTasksByGoalId.delete(id);
+    cachedEvaluationsByGoalId.delete(id);
     return res.json();
   },
 
@@ -125,13 +169,35 @@ export const goalsApi = {
       body: JSON.stringify({ additionalContext }),
     });
     if (!res.ok) throw new Error('Failed to decompose goal with AI');
-    return res.json();
+    const data = (await res.json()) as { goal: Goal; tasks: GoalTask[] };
+    if (data.tasks) {
+      cachedTasksByGoalId.set(id, data.tasks);
+    }
+    if (cachedGoals && data.goal) {
+      cachedGoals = cachedGoals.map((g) => (g.id === id ? data.goal : g));
+    }
+    return data;
   },
 
-  async fetchGoalTasks(goalId: string): Promise<GoalTask[]> {
+  async fetchGoalTasks(goalId: string, forceRefresh = false): Promise<GoalTask[]> {
+    const cached = cachedTasksByGoalId.get(goalId);
+    if (!forceRefresh && cached && cached.length > 0) {
+      fetch(`${BASE_URL}/${goalId}/tasks`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (Array.isArray(data)) {
+            cachedTasksByGoalId.set(goalId, data);
+          }
+        })
+        .catch(() => {});
+      return cached;
+    }
+
     const res = await fetch(`${BASE_URL}/${goalId}/tasks`);
     if (!res.ok) throw new Error('Failed to fetch goal tasks');
-    return res.json();
+    const tasks = (await res.json()) as GoalTask[];
+    cachedTasksByGoalId.set(goalId, tasks);
+    return tasks;
   },
 
   async createGoalTask(
@@ -144,7 +210,10 @@ export const goalsApi = {
       body: JSON.stringify(task),
     });
     if (!res.ok) throw new Error('Failed to create task');
-    return res.json();
+    const created = (await res.json()) as GoalTask;
+    const existing = cachedTasksByGoalId.get(goalId) || [];
+    cachedTasksByGoalId.set(goalId, [created, ...existing.filter((t) => t.id !== created.id)]);
+    return created;
   },
 
   async updateGoalTaskStatus(
@@ -163,7 +232,15 @@ export const goalsApi = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('Failed to update task status');
-    return res.json();
+    const updated = (await res.json()) as GoalTask;
+    const existing = cachedTasksByGoalId.get(goalId);
+    if (existing) {
+      cachedTasksByGoalId.set(
+        goalId,
+        existing.map((t) => (t.id === taskId ? updated : t)),
+      );
+    }
+    return updated;
   },
 
   async verifyGoalTask(
@@ -178,7 +255,28 @@ export const goalsApi = {
       method: 'POST',
     });
     if (!res.ok) throw new Error('Failed to verify task with MCP');
-    return res.json();
+    const data = (await res.json()) as {
+      status: 'verified_completed' | 'incomplete' | 'unverified';
+      evidence: Record<string, unknown>;
+      notes: string;
+    };
+    const existing = cachedTasksByGoalId.get(goalId);
+    if (existing) {
+      cachedTasksByGoalId.set(
+        goalId,
+        existing.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                status: data.status,
+                verification_evidence: data.evidence,
+                verification_notes: data.notes,
+              }
+            : t,
+        ),
+      );
+    }
+    return data;
   },
 
   async deleteGoalTask(
@@ -189,6 +287,13 @@ export const goalsApi = {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to delete task');
+    const existing = cachedTasksByGoalId.get(goalId);
+    if (existing) {
+      cachedTasksByGoalId.set(
+        goalId,
+        existing.filter((t) => t.id !== taskId),
+      );
+    }
     return res.json();
   },
 
@@ -197,12 +302,33 @@ export const goalsApi = {
       method: 'POST',
     });
     if (!res.ok) throw new Error('Failed to run goal evaluation');
-    return res.json();
+    const evaluation = (await res.json()) as GoalEvaluation;
+    const existing = cachedEvaluationsByGoalId.get(goalId) || [];
+    cachedEvaluationsByGoalId.set(goalId, [
+      evaluation,
+      ...existing.filter((e) => e.id !== evaluation.id),
+    ]);
+    return evaluation;
   },
 
-  async fetchGoalEvaluations(goalId: string): Promise<GoalEvaluation[]> {
+  async fetchGoalEvaluations(goalId: string, forceRefresh = false): Promise<GoalEvaluation[]> {
+    const cached = cachedEvaluationsByGoalId.get(goalId);
+    if (!forceRefresh && cached && cached.length > 0) {
+      fetch(`${BASE_URL}/${goalId}/evaluations`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (Array.isArray(data)) {
+            cachedEvaluationsByGoalId.set(goalId, data);
+          }
+        })
+        .catch(() => {});
+      return cached;
+    }
+
     const res = await fetch(`${BASE_URL}/${goalId}/evaluations`);
     if (!res.ok) throw new Error('Failed to fetch evaluations');
-    return res.json();
+    const evaluations = (await res.json()) as GoalEvaluation[];
+    cachedEvaluationsByGoalId.set(goalId, evaluations);
+    return evaluations;
   },
 };

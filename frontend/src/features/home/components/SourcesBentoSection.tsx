@@ -28,10 +28,10 @@ export default function SourcesBentoSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.4 }}
-            className="bg-surface-card rounded-2xl border border-hairline p-6 flex flex-col justify-between hover:border-hairline-strong transition-all group shadow-2xs"
+            className="bg-surface-card rounded-2xl border border-hairline p-6 flex flex-col justify-between hover:border-primary/40 transition-all group shadow-2xs"
           >
             <div>
-              <div className="w-10 h-10 rounded-xl bg-[#7c3aed]/10 border border-[#7c3aed]/20 flex items-center justify-center text-[#7c3aed] mb-5 group-hover:border-[#7c3aed]/40 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-[#7c3aed]/10 border border-[#7c3aed]/20 flex items-center justify-center text-[#7c3aed] mb-5 group-hover:border-primary/40 transition-colors">
                 <Layers size={18} />
               </div>
 
@@ -69,10 +69,10 @@ export default function SourcesBentoSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="bg-surface-card rounded-2xl border border-hairline p-6 flex flex-col justify-between hover:border-hairline-strong transition-all group shadow-2xs"
+            className="bg-surface-card rounded-2xl border border-hairline p-6 flex flex-col justify-between hover:border-primary/40 transition-all group shadow-2xs"
           >
             <div>
-              <div className="w-10 h-10 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20 flex items-center justify-center text-[#10b981] mb-5 group-hover:border-[#10b981]/40 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20 flex items-center justify-center text-[#10b981] mb-5 group-hover:border-primary/40 transition-colors">
                 <Smartphone size={18} />
               </div>
 
@@ -110,10 +110,10 @@ export default function SourcesBentoSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="bg-surface-card rounded-2xl border border-hairline p-6 flex flex-col justify-between hover:border-hairline-strong transition-all group shadow-2xs"
+            className="bg-surface-card rounded-2xl border border-hairline p-6 flex flex-col justify-between hover:border-primary/40 transition-all group shadow-2xs"
           >
             <div>
-              <div className="w-10 h-10 rounded-xl bg-[#0284c7]/10 border border-[#0284c7]/20 flex items-center justify-center text-[#0284c7] mb-5 group-hover:border-[#0284c7]/40 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-[#0284c7]/10 border border-[#0284c7]/20 flex items-center justify-center text-[#0284c7] mb-5 group-hover:border-primary/40 transition-colors">
                 <Calendar size={18} />
               </div>
 

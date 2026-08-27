@@ -25,11 +25,7 @@ export const IntegrationCard: FC<IntegrationCardProps> = ({
   return (
     <div
       onClick={isConnected ? onOpenDetail : onConnect || onOpenDetail}
-      className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-surface-card border transition-all duration-200 cursor-pointer shadow-2xs hover:shadow-md ${
-        isConnected
-          ? 'border-hairline hover:border-primary/40'
-          : 'border-dashed border-hairline hover:border-primary/60 bg-canvas/40'
-      }`}
+      className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-surface-card border border-hairline hover:border-primary/40 transition-all duration-200 cursor-pointer shadow-2xs hover:shadow-md"
     >
       {/* Top Header: Icon, Name & Status */}
       <div className="space-y-3">

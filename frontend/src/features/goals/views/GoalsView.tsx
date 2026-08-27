@@ -30,8 +30,9 @@ const CATEGORY_TABS = [
 ]
 
 export default function GoalsView() {
-  const [goals, setGoals] = useState<Goal[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const cached = goalsApi.getCachedGoals()
+  const [goals, setGoals] = useState<Goal[]>(cached || [])
+  const [isLoading, setIsLoading] = useState<boolean>(!cached)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -39,22 +40,22 @@ export default function GoalsView() {
     useState<Goal | null>(null)
   const [deletingGoalId, setDeletingGoalId] = useState<string | null>(null)
 
-  const loadGoals = useCallback(async () => {
-    setIsLoading(true)
+  const loadGoals = useCallback(async (force = false) => {
+    if (!cached && force) setIsLoading(true)
     try {
-      const fetched = await goalsApi.fetchGoals()
+      const fetched = await goalsApi.fetchGoals(force)
       setGoals(fetched)
     } catch {
       // safe fallback
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [cached])
 
   useEffect(() => {
     let isMounted = true
     goalsApi
-      .fetchGoals()
+      .fetchGoals(false)
       .then((data) => {
         if (isMounted) {
           setGoals(data)
@@ -137,7 +138,7 @@ export default function GoalsView() {
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={loadGoals}
+              onClick={() => void loadGoals(true)}
               className="p-2 rounded-xl bg-surface-card hover:bg-surface-strong border border-hairline text-muted hover:text-ink transition-colors cursor-pointer shadow-2xs"
               title="Refresh Goals"
             >
@@ -157,78 +158,81 @@ export default function GoalsView() {
       />
 
       {/* Analytics Overview Cards (Material 3 Surface Elevation) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 bg-surface-card border border-hairline rounded-2xl shadow-2xs space-y-1.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4.5">
+        <div className="p-5 bg-surface-card border border-hairline rounded-3xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
               Active Goals
             </span>
-            <IconBox size="sm" variant="primary" icon={<Target size={13} />} />
+            <IconBox size="sm" variant="primary" icon={<Target size={14} />} />
           </div>
-          <div className="text-2xl font-bold text-ink font-mono tracking-tight">
+          <div className="text-2xl sm:text-3xl font-bold text-ink font-mono tracking-tight">
             {activeGoalsCount}
-            <span className="text-xs text-muted font-normal ml-1 font-sans">
+            <span className="text-xs text-muted font-normal ml-1.5 font-sans">
               / {goals.length} total
             </span>
           </div>
         </div>
 
-        <div className="p-4 bg-surface-card border border-hairline rounded-2xl shadow-2xs space-y-1.5">
+        <div className="p-5 bg-surface-card border border-hairline rounded-3xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
               Avg Compliance
             </span>
-            <IconBox size="sm" variant="success" icon={<Target size={13} />} />
+            <IconBox size="sm" variant="success" icon={<Target size={14} />} />
           </div>
-          <div className="text-2xl font-bold text-semantic-success font-mono tracking-tight">
+          <div className="text-2xl sm:text-3xl font-bold text-semantic-success font-mono tracking-tight">
             {avgCompliance}%
           </div>
         </div>
 
-        <div className="p-4 bg-surface-card border border-hairline rounded-2xl shadow-2xs space-y-1.5">
+        <div className="p-5 bg-surface-card border border-hairline rounded-3xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
               Max Active Streak
             </span>
-            <IconBox size="sm" variant="neutral" icon={<Flame size={13} className="text-amber-500" />} />
+            <IconBox size="sm" variant="neutral" icon={<Flame size={14} className="text-amber-500" />} />
           </div>
-          <div className="text-2xl font-bold text-ink font-mono tracking-tight flex items-center gap-1.5">
+          <div className="text-2xl sm:text-3xl font-bold text-ink font-mono tracking-tight flex items-center gap-1.5">
             <span>{maxStreak}</span>
             <span className="text-xs text-muted font-normal font-sans">Days</span>
           </div>
         </div>
 
-        <div className="p-4 bg-surface-card border border-hairline rounded-2xl shadow-2xs space-y-1.5">
+        <div className="p-5 bg-surface-card border border-hairline rounded-3xl shadow-2xs space-y-2 hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
               Connected Telemetry
             </span>
-            <span className="text-[10px] font-mono text-semantic-success font-bold">LIVE</span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono text-semantic-success font-bold bg-semantic-success-soft px-2 py-0.5 rounded-full border border-semantic-success/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse" />
+              LIVE
+            </span>
           </div>
-          <div className="flex items-center gap-1.5 pt-1">
+          <div className="flex items-center gap-1.5 pt-0.5">
             <span
               title="Android Bridge Telemetry"
-              className="p-1.5 rounded-lg bg-surface-strong border border-hairline text-semantic-success"
+              className="p-1.5 rounded-xl bg-surface-strong border border-hairline text-semantic-success hover:bg-canvas transition-colors"
             >
-              <Smartphone size={13} />
+              <Smartphone size={14} />
             </span>
             <span
               title="Google Calendar Schedule"
-              className="p-1.5 rounded-lg bg-surface-strong border border-hairline text-primary"
+              className="p-1.5 rounded-xl bg-surface-strong border border-hairline text-primary hover:bg-canvas transition-colors"
             >
-              <Calendar size={13} />
+              <Calendar size={14} />
             </span>
             <span
               title="Notion Workspace Journal"
-              className="p-1.5 rounded-lg bg-surface-strong border border-hairline text-amber-500"
+              className="p-1.5 rounded-xl bg-surface-strong border border-hairline text-amber-500 hover:bg-canvas transition-colors"
             >
-              <BookOpen size={13} />
+              <BookOpen size={14} />
             </span>
           </div>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Filter and Search Bar (M3 Tonal Bar) */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
         {/* Category Pill Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
@@ -246,7 +250,7 @@ export default function GoalsView() {
                 key={tab.id}
                 type="button"
                 onClick={() => setSelectedCategory(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium border transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 active:scale-95 ${
                   isActive
                     ? 'bg-primary text-on-primary border-primary shadow-xs font-semibold'
                     : 'bg-surface-card text-muted hover:text-ink hover:bg-surface-strong border-hairline'
@@ -268,14 +272,14 @@ export default function GoalsView() {
         </div>
 
         {/* Search Field */}
-        <div className="relative w-full sm:w-64">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <div className="relative w-full sm:w-68">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search goals..."
-            className="w-full pl-8 pr-3.5 py-1.5 bg-surface-card border border-hairline rounded-xl text-xs text-ink placeholder:text-muted focus:outline-hidden focus:border-primary transition-colors shadow-2xs font-sans"
+            className="w-full pl-9 pr-3.5 py-2 bg-surface-card border border-hairline rounded-2xl text-xs text-ink placeholder:text-muted focus:outline-hidden focus:border-primary transition-colors shadow-2xs font-sans"
           />
         </div>
       </div>
@@ -330,10 +334,11 @@ export default function GoalsView() {
       {/* Details Modal */}
       {selectedGoalForDetails && (
         <GoalDetailsModal
+          key={selectedGoalForDetails.id}
           isOpen={Boolean(selectedGoalForDetails)}
           goal={selectedGoalForDetails}
           onClose={() => setSelectedGoalForDetails(null)}
-          onGoalUpdated={loadGoals}
+          onGoalUpdated={() => void loadGoals(true)}
         />
       )}
 

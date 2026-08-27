@@ -126,6 +126,28 @@ export class GoalsRepository implements OnModuleInit {
         CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status, category);
         CREATE INDEX IF NOT EXISTS idx_goal_tasks_goal ON goal_tasks(goal_id, status);
         CREATE INDEX IF NOT EXISTS idx_goal_evaluations_goal ON goal_evaluations(goal_id, evaluation_date DESC);
+
+        -- Auto-sync all goals into automations table for visual dashboard tracking
+        INSERT INTO automations (
+          id, name, description, agent_id, agent_name, mcp_server_id, mcp_tools,
+          trigger_type, schedule_cron, schedule_label, prompt_template, guardrail_strict_hitl, is_active
+        )
+        SELECT 
+          'auto-goal-' || g.id,
+          'Daily Goal Evaluator: ' || g.title,
+          'Automated closed-loop evaluation & Notion reflection report for goal "' || g.title || '"',
+          'agent-personal-assistant',
+          'Personal Assistant',
+          'notion',
+          ARRAY['android_get_usage_summary', 'google_calendar_list_events', 'notion_create_page', 'notion_get_tasks'],
+          'schedule',
+          COALESCE(g.cron_evaluation, '0 21 * * *'),
+          'Every Night at 21:00 (Evaluation Closed Loop)',
+          'Execute daily evaluation for Goal "' || g.title || '" (ID: ' || g.id || '). Collect telemetry from Android Bridge, compare against today''s Google Calendar, verify task completion status in Notion, compute overall compliance score, and log reflection summary to Notion.',
+          false,
+          true
+        FROM goals g
+        ON CONFLICT (id) DO NOTHING;
       `);
       this.logger.log(
         '✅ Goals, Goal Tasks, and Goal Evaluations tables verified in PostgreSQL.',
@@ -355,75 +377,92 @@ export class GoalsRepository implements OnModuleInit {
     return this.normalizeEvaluation(res.rows[0]);
   }
 
-  private normalizeGoal(row: Record<string, any>): GoalRow {
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument */
+  private normalizeGoal(row: any): GoalRow {
     return {
-      id: row.id,
-      user_id: row.user_id,
-      title: row.title,
-      description: row.description,
-      category: row.category,
-      status: row.status,
+      id: String(row.id || ''),
+      user_id: row.user_id ? String(row.user_id) : undefined,
+      title: String(row.title || ''),
+      description: String(row.description || ''),
+      category: (row.category as GoalRow['category']) || 'productivity',
+      status: (row.status as GoalRow['status']) || 'active',
       target_metrics:
         typeof row.target_metrics === 'string'
-          ? JSON.parse(row.target_metrics)
-          : row.target_metrics || {},
+          ? (JSON.parse(row.target_metrics) as Record<string, unknown>)
+          : (row.target_metrics as Record<string, unknown>) || {},
       current_progress_pct: Number(row.current_progress_pct || 0),
       streak_days: Number(row.streak_days || 0),
-      cron_evaluation: row.cron_evaluation,
+      cron_evaluation: String(row.cron_evaluation || '0 21 * * *'),
       linked_mcp_servers: Array.isArray(row.linked_mcp_servers)
-        ? row.linked_mcp_servers
+        ? (row.linked_mcp_servers as string[])
         : [],
-      notion_parent_page_id: row.notion_parent_page_id,
-      notion_database_id: row.notion_database_id,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      notion_parent_page_id: row.notion_parent_page_id
+        ? String(row.notion_parent_page_id)
+        : undefined,
+      notion_database_id: row.notion_database_id
+        ? String(row.notion_database_id)
+        : undefined,
+      created_at: String(row.created_at || ''),
+      updated_at: String(row.updated_at || ''),
     };
   }
 
-  private normalizeTask(row: Record<string, any>): GoalTaskRow {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private normalizeTask(row: any): GoalTaskRow {
     return {
-      id: row.id,
-      goal_id: row.goal_id,
-      title: row.title,
-      description: row.description,
-      scheduled_start: row.scheduled_start,
-      scheduled_end: row.scheduled_end,
-      mcp_target: row.mcp_target,
-      mcp_resource_id: row.mcp_resource_id,
-      status: row.status,
+      id: String(row.id || ''),
+      goal_id: String(row.goal_id || ''),
+      title: String(row.title || ''),
+      description: row.description ? String(row.description) : undefined,
+      scheduled_start: row.scheduled_start
+        ? String(row.scheduled_start)
+        : undefined,
+      scheduled_end: row.scheduled_end ? String(row.scheduled_end) : undefined,
+      mcp_target: row.mcp_target ? String(row.mcp_target) : undefined,
+      mcp_resource_id: row.mcp_resource_id
+        ? String(row.mcp_resource_id)
+        : undefined,
+      status: (row.status as GoalTaskRow['status']) || 'pending',
       verification_evidence:
         typeof row.verification_evidence === 'string'
-          ? JSON.parse(row.verification_evidence)
-          : row.verification_evidence || {},
-      verification_notes: row.verification_notes,
-      risk_level: row.risk_level,
+          ? (JSON.parse(row.verification_evidence) as Record<string, unknown>)
+          : (row.verification_evidence as Record<string, unknown>) || {},
+      verification_notes: row.verification_notes
+        ? String(row.verification_notes)
+        : undefined,
+      risk_level: (row.risk_level as GoalTaskRow['risk_level']) || 'low_risk',
       requires_user_approval: Boolean(row.requires_user_approval),
-      user_approval_status: row.user_approval_status,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      user_approval_status:
+        (row.user_approval_status as GoalTaskRow['user_approval_status']) ||
+        'none',
+      created_at: String(row.created_at || ''),
+      updated_at: String(row.updated_at || ''),
     };
   }
 
-  private normalizeEvaluation(row: Record<string, any>): GoalEvaluationRow {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private normalizeEvaluation(row: any): GoalEvaluationRow {
     return {
-      id: row.id,
-      goal_id: row.goal_id,
-      evaluation_date: row.evaluation_date,
+      id: String(row.id || ''),
+      goal_id: String(row.goal_id || ''),
+      evaluation_date: String(row.evaluation_date || ''),
       score_pct: Number(row.score_pct || 0),
-      summary: row.summary,
+      summary: String(row.summary || ''),
       tasks_completed: Number(row.tasks_completed || 0),
       tasks_incomplete: Number(row.tasks_incomplete || 0),
       tasks_unverified: Number(row.tasks_unverified || 0),
       insights:
         typeof row.insights === 'string'
-          ? JSON.parse(row.insights)
-          : row.insights || [],
+          ? (JSON.parse(row.insights) as string[])
+          : (row.insights as string[]) || [],
       adaptations_proposed:
         typeof row.adaptations_proposed === 'string'
-          ? JSON.parse(row.adaptations_proposed)
-          : row.adaptations_proposed || [],
-      notion_page_url: row.notion_page_url,
-      created_at: row.created_at,
+          ? (JSON.parse(row.adaptations_proposed) as string[])
+          : (row.adaptations_proposed as string[]) || [],
+      notion_page_url: row.notion_page_url
+        ? String(row.notion_page_url)
+        : undefined,
+      created_at: String(row.created_at || ''),
     };
   }
 }

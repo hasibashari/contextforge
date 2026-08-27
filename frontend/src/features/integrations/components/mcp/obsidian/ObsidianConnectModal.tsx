@@ -138,10 +138,10 @@ export const ObsidianConnectModal: React.FC<ObsidianConnectModalProps> = ({
 
       <div className="space-y-4 text-xs font-mono">
         <form onSubmit={handleObsidianConnect} className="space-y-4">
-          <div className="p-4 rounded-xl bg-[#7c3aed]/5 border border-[#7c3aed]/20 space-y-3">
+          <div className="p-4 rounded-2xl bg-surface-card border border-hairline hover:border-primary/40 transition-all space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-ink text-xs">
-                <Folder size={16} className="text-[#7c3aed]" />
+                <Folder size={16} className="text-primary" />
                 <span>Select Obsidian Folder</span>
               </div>
               {isFolderHandleActive && (
@@ -156,13 +156,13 @@ export const ObsidianConnectModal: React.FC<ObsidianConnectModalProps> = ({
             </p>
 
             {/* Folder Selector Status & Action */}
-            <div className="p-3.5 bg-canvas rounded-xl border border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="p-3.5 bg-surface-strong/60 rounded-xl border border-hairline hover:border-primary/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div
                   className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                     isFolderHandleActive
                       ? 'bg-semantic-success/10 text-semantic-success'
-                      : 'bg-[#7c3aed]/10 text-[#7c3aed]'
+                      : 'bg-primary-soft text-primary'
                   }`}
                 >
                   <Folder size={18} />

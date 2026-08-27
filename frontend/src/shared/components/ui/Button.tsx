@@ -27,29 +27,29 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const variantClasses = {
       primary:
-        'bg-primary hover:bg-primary-active text-on-primary font-semibold shadow-xs disabled:opacity-50',
+        'bg-primary hover:bg-primary-hover active:bg-primary-active text-on-primary font-semibold shadow-xs hover:shadow-sm disabled:opacity-50',
       secondary:
-        'bg-canvas-soft hover:bg-canvas text-ink border border-hairline hover:border-hairline-strong shadow-2xs disabled:opacity-50',
+        'bg-surface-strong hover:bg-canvas text-ink border border-hairline hover:border-hairline-strong shadow-2xs disabled:opacity-50',
       outline:
-        'bg-transparent hover:bg-canvas-soft text-ink border border-hairline hover:border-primary/40 disabled:opacity-50',
+        'bg-surface-card hover:bg-surface-strong text-ink border border-hairline hover:border-hairline-strong shadow-2xs disabled:opacity-50',
       ghost:
-        'bg-transparent hover:bg-canvas-soft text-muted hover:text-ink disabled:opacity-50',
+        'bg-transparent hover:bg-surface-strong text-muted hover:text-ink disabled:opacity-50',
       danger:
-        'bg-semantic-error/10 hover:bg-semantic-error/20 text-semantic-error border border-semantic-error/30 font-semibold disabled:opacity-50',
+        'bg-semantic-error-soft hover:bg-semantic-error/20 text-semantic-error border border-semantic-error/30 font-semibold disabled:opacity-50',
       success:
-        'bg-semantic-success hover:bg-semantic-success/90 text-white font-semibold shadow-xs disabled:opacity-50',
+        'bg-semantic-success-soft hover:bg-semantic-success/20 text-semantic-success border border-semantic-success/30 font-semibold disabled:opacity-50',
       dark:
-        'bg-black hover:bg-zinc-800 text-white font-semibold shadow-xs disabled:opacity-50',
+        'bg-ink hover:bg-ink-secondary active:bg-black text-canvas font-semibold shadow-xs disabled:opacity-50',
       purple:
-        'bg-[#7c3aed] hover:bg-[#7c3aed]/90 text-white font-semibold shadow-xs disabled:opacity-50',
+        'bg-[#7c3aed] hover:bg-[#6d28d9] active:bg-[#5b21b6] text-white font-semibold shadow-xs disabled:opacity-50',
     }
 
     const sizeClasses = {
-      xs: 'px-2.5 py-1 text-[11px] rounded-md gap-1',
-      sm: 'px-3 py-1.5 text-xs rounded-lg gap-1.5',
-      md: 'px-4 py-2 text-xs sm:text-sm rounded-lg gap-2',
-      lg: 'px-5 py-2.5 text-sm rounded-xl gap-2',
-      icon: 'w-7 h-7 p-0 rounded-full flex items-center justify-center',
+      xs: 'px-2.5 py-1 text-[11px] rounded-lg gap-1',
+      sm: 'px-3.5 py-1.5 text-xs rounded-xl gap-1.5 font-medium',
+      md: 'px-4 py-2 text-xs sm:text-sm rounded-xl gap-2 font-medium',
+      lg: 'px-5 py-2.5 text-sm rounded-2xl gap-2 font-medium',
+      icon: 'w-8 h-8 p-0 rounded-xl flex items-center justify-center',
     }
 
     return (
@@ -57,7 +57,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          'inline-flex items-center justify-center transition-all cursor-pointer select-none font-sans outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+          'inline-flex items-center justify-center transition-all cursor-pointer select-none font-sans outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[0.98]',
           variantClasses[variant],
           sizeClasses[size],
           className,

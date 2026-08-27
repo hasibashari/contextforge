@@ -17,7 +17,7 @@ import {
   UpdateGoalTaskStatusDto,
 } from './dto/goal-task.dto';
 
-@Controller('goals')
+@Controller('api/goals')
 export class GoalsController {
   constructor(private readonly goalsService: GoalsService) {}
 

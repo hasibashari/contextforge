@@ -49,7 +49,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           type={computedType}
           disabled={disabled}
           className={cn(
-            'w-full bg-canvas border border-hairline text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50 disabled:bg-canvas-soft shadow-2xs',
+            'w-full bg-surface-card border border-hairline hover:border-hairline-strong text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all rounded-xl disabled:opacity-50 disabled:bg-surface-strong/50 shadow-2xs',
             variant === 'mono' ? 'font-mono' : 'font-sans',
             sizeClasses[inputSize],
             leftIcon ? 'pl-8' : '',

@@ -4,6 +4,10 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  Smartphone,
+  Calendar,
+  BookOpen,
+  HelpCircle,
 } from 'lucide-react'
 import { goalsApi, type GoalTask } from '@/shared/api/goalsApi'
 import {
@@ -73,34 +77,48 @@ export const GoalVerificationModal: React.FC<GoalVerificationModalProps> = ({
     }
   }
 
+  const getMcpIcon = (mcp?: string) => {
+    switch (mcp) {
+      case 'android-bridge':
+        return <Smartphone size={13} className="text-semantic-success" />
+      case 'google-calendar':
+        return <Calendar size={13} className="text-primary" />
+      case 'notion':
+        return <BookOpen size={13} className="text-amber-500" />
+      default:
+        return <HelpCircle size={13} className="text-muted" />
+    }
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalHeader
         title="Evidence Verification Gate"
-        subtitle="Epistemic Rigor & Zero-Assumption Policy"
+        subtitle="Human-in-the-Loop • Zero-Assumption Verification"
         icon={<IconBox size="md" variant="neutral" icon={<ShieldCheck size={18} className="text-amber-500" />} />}
         onClose={onClose}
       />
 
       <div className="space-y-4 py-2">
-        {/* Task Context Card */}
-        <div className="p-3.5 bg-surface-card border border-hairline rounded-2xl space-y-1.5 shadow-2xs">
+        {/* Task Context Card (M3 Elevated Surface) */}
+        <div className="p-4 bg-surface-card border border-hairline rounded-2xl space-y-2 shadow-2xs">
           <div className="text-[10px] font-mono text-muted uppercase tracking-caption font-semibold">
             Task Under Verification
           </div>
-          <h4 className="text-xs font-semibold text-ink">{task.title}</h4>
+          <h4 className="text-xs font-semibold text-ink leading-snug">{task.title}</h4>
           {task.description && (
-            <p className="text-[11px] text-muted leading-tight">{task.description}</p>
+            <p className="text-[11px] text-muted leading-relaxed">{task.description}</p>
           )}
-          <div className="pt-1 flex items-center gap-2 text-xs">
+          <div className="pt-1.5 flex items-center gap-2 text-xs">
             <span className="text-muted text-[11px]">Target MCP:</span>
-            <span className="font-mono text-ink text-xs font-semibold">
-              {task.mcp_target || 'General'}
+            <span className="inline-flex items-center gap-1 font-mono text-ink text-xs font-semibold bg-surface-strong px-2 py-0.5 rounded-lg border border-hairline">
+              {getMcpIcon(task.mcp_target)}
+              <span>{task.mcp_target || 'General'}</span>
             </span>
           </div>
         </div>
 
-        <p className="text-xs text-muted leading-relaxed font-sans">
+        <p className="text-xs text-muted leading-relaxed font-sans px-0.5">
           The system did not find automatic telemetry verification for this item or it was conducted offline. Please select the verified outcome:
         </p>
 
@@ -113,13 +131,13 @@ export const GoalVerificationModal: React.FC<GoalVerificationModalProps> = ({
           />
         </FormField>
 
-        {/* Action Buttons */}
-        <div className="space-y-2 pt-2">
+        {/* M3 Action Buttons */}
+        <div className="space-y-2.5 pt-2">
           <Button
             type="button"
             variant="primary"
             size="sm"
-            className="w-full justify-center"
+            className="w-full justify-center shadow-xs"
             isLoading={isVerifying}
             leftIcon={<CheckCircle2 size={14} />}
             onClick={() => handleManualVerify('verified_completed')}
@@ -131,7 +149,7 @@ export const GoalVerificationModal: React.FC<GoalVerificationModalProps> = ({
             type="button"
             variant="outline"
             size="sm"
-            className="w-full justify-center"
+            className="w-full justify-center hover:bg-primary-soft hover:text-primary hover:border-primary/30 transition-all"
             disabled={isVerifying}
             leftIcon={<Sparkles size={13} className="text-primary" />}
             onClick={handleMcpTelemetryCheck}
@@ -154,8 +172,9 @@ export const GoalVerificationModal: React.FC<GoalVerificationModalProps> = ({
       </div>
 
       <ModalFooter>
-        <div className="text-[10px] font-mono text-muted">
-          HITL Gate • Rigorous Evidence Mode
+        <div className="text-[10px] font-mono text-muted flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+          <span>HITL Gate • Rigorous Evidence Mode</span>
         </div>
         <Button type="button" variant="ghost" size="xs" onClick={onClose}>
           Cancel
