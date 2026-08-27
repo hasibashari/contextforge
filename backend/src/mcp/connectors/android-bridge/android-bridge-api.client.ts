@@ -100,7 +100,7 @@ export class AndroidBridgeApiClient {
           err.message.includes('fetch failed'))
       ) {
         throw new Error(
-          `Tidak dapat terhubung ke Android Device pada ${url}. Pastikan aplikasi Android MCP Bridge berjalan di latar depan dan port 8080 terhubung.`,
+          `Unable to connect to Android Device at ${url}. Ensure the Android MCP Bridge app is running in the foreground and port 8080 is accessible.`,
         );
       }
       throw err;

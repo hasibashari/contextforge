@@ -52,7 +52,7 @@ export class AutomationToolHandler {
       `Autonomous background worker scheduled ${scheduleLabel} to execute ${mcpServerId} operations.`;
     const promptTemplate =
       args.prompt_template ||
-      `Tinjau seluruh data dan tugas terkait dari konektor MCP (${mcpServerId}). Buatkan ringkasan prioritas tinggi untuk hari ini ({{today}}).`;
+      `Review all related data and tasks from the MCP connector (${mcpServerId}). Generate a high-priority action summary for today ({{today}}).`;
 
     const agentId = 'agent-personal-assistant';
     const agentName = 'Personal Assistant Agent';

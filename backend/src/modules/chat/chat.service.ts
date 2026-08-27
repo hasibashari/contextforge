@@ -275,7 +275,7 @@ export class ChatService {
     res: Response,
   ): Promise<void> {
     const prompt =
-      'Berikan morning briefing harian untuk saya: rangkum agenda kalender hari ini, prioritas tugas teknis, dan saran fokus hari ini.';
+      'Provide my daily morning briefing: summarize today’s calendar agenda, technical priorities, and focus recommendations.';
     return this.sendMessageStream(
       sessionId,
       prompt,

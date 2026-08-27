@@ -144,7 +144,7 @@ export class GoalsService {
         trigger_type: 'schedule',
         schedule_cron: createdGoal.cron_evaluation,
         schedule_label: 'Every Night at 21:00 (Evaluation Closed Loop)',
-        prompt_template: `Jalankan evaluasi harian untuk Goal "${createdGoal.title}" (ID: ${createdGoal.id}). Kumpulkan telemetri dari Android Bridge, bandingkan dengan Google Calendar hari ini, verifikasi status task di Notion, hitung skor kepatuhan, dan tulis laporan refleksi ke Notion.`,
+        prompt_template: `Execute daily evaluation for Goal "${createdGoal.title}" (ID: ${createdGoal.id}). Collect telemetry from Android Bridge, compare against today's Google Calendar, verify task completion status in Notion, compute overall compliance score, and log reflection summary to Notion.`,
         is_active: true,
       });
       this.logger.log(
@@ -379,19 +379,19 @@ Return strictly a JSON object with this format (no markdown formatting outside J
                 status: matched.status,
                 lastEdited: matched.lastEditedTime,
               };
-              notes = `Terverifikasi selesai di Notion Workspace (Page: ${matched.title || task.title}).`;
+              notes = `Verified completed in Notion Workspace (Page: ${matched.title || task.title}).`;
             } else {
               verificationStatus = 'incomplete';
               evidence = {
                 source: 'notion_workspace',
                 status: matched.status,
               };
-              notes = `Ditemukan di Notion namun status masih: "${matched.status || 'pending'}".`;
+              notes = `Found in Notion but status is still: "${matched.status || 'pending'}".`;
             }
           } else {
             verificationStatus = 'unverified';
             notes =
-              'Tugas tidak ditemukan di Notion Workspace saat pencarian otomatis.';
+              'Task was not found in Notion Workspace during automated check.';
           }
         }
       } else if (task.mcp_target === 'google-calendar') {
@@ -414,6 +414,7 @@ Return strictly a JSON object with this format (no markdown formatting outside J
           const summaryStr = ev.summary || '';
           if (
             summaryStr.includes('✅') ||
+            summaryStr.toLowerCase().includes('done') ||
             summaryStr.toLowerCase().includes('selesai') ||
             ev.status === 'confirmed'
           ) {
@@ -423,22 +424,22 @@ Return strictly a JSON object with this format (no markdown formatting outside J
               eventId: ev.id,
               summary: ev.summary,
             };
-            notes = `Terverifikasi dari jadwal Google Calendar: ${summaryStr}`;
+            notes = `Verified from Google Calendar schedule: ${summaryStr}`;
           } else {
             verificationStatus = 'unverified';
             notes =
-              'Event kalender ada, namun memerlukan konfirmasi penyelesaian dari pengguna.';
+              'Calendar event exists, but requires manual completion confirmation from user.';
           }
         }
       } else {
         // Physical or general offline task
         verificationStatus = 'unverified';
         notes =
-          'Tugas memerlukan konfirmasi langsung dari pengguna (Zero-Assumption Policy).';
+          'Task requires explicit human-in-the-loop confirmation (Zero-Assumption Policy).';
       }
     } catch (mcpErr: unknown) {
       verificationStatus = 'unverified';
-      notes = `Konektor MCP offline/gagal: ${mcpErr instanceof Error ? mcpErr.message : String(mcpErr)}. Status ditandai belum terverifikasi.`;
+      notes = `MCP connector offline/failed: ${mcpErr instanceof Error ? mcpErr.message : String(mcpErr)}. Marked as unverified.`;
     }
 
     await this.repo.updateTask(taskId, {
@@ -498,7 +499,7 @@ Generate a JSON with:
   "adaptations": ["Suggested schedule adjustment for tomorrow", "Habit tip"]
 }`;
 
-    let summary = `Evaluasi harian untuk ${goal.title}: Skor kepatuhan ${scorePct}%. ${completed} dari ${tasks.length} tugas berhasil diverifikasi selesai.`;
+    let summary = `Daily evaluation for ${goal.title}: ${scorePct}% compliance score. ${completed} of ${tasks.length} tasks verified completed.`;
     let insights: string[] = [];
     let adaptations: string[] = [];
 
@@ -523,28 +524,28 @@ Generate a JSON with:
     // Write Journal to Notion Workspace
     let notionPageUrl: string | undefined;
     try {
-      const notionMarkdown = `# 🎯 Evaluasi Harian: ${goal.title} (${todayStr})
+      const notionMarkdown = `# 🎯 Daily Reflection: ${goal.title} (${todayStr})
 
-> [!NOTE] **Skor Kepatuhan Produktivitas: ${scorePct}%** | **🔥 Streak: ${newStreak} Hari**
+> [!NOTE] **Productivity Compliance Score: ${scorePct}%** | **🔥 Streak: ${newStreak} Days**
 
-### 📊 Ringkasan Pelaksanaan
+### 📊 Execution Overview
 ${summary}
 
-### 📋 Status Tugas Harian
+### 📋 Daily Task Breakdown
 ${tasks.map((t) => `- [${t.status === 'verified_completed' ? 'x' : ' '}] **${t.title}** (${t.status.toUpperCase()})`).join('\n')}
 
-### 💡 Insight & Pola Produktivitas
+### 💡 Productivity Insights & Focus Patterns
 ${insights.map((i) => `- ${i}`).join('\n')}
 
-### 🚀 Rekomendasi Adaptasi Esok Hari
+### 🚀 Actionable Adaptations for Tomorrow
 ${adaptations.map((a) => `- ${a}`).join('\n')}
 `;
 
       const notionRes = await this.mcpHandler.execute(
         'notion_create_page',
-        `Evaluasi Harian: ${goal.title}`,
+        `Daily Reflection: ${goal.title}`,
         {
-          title: `🎯 Evaluasi Goal: ${goal.title} (${todayStr})`,
+          title: `🎯 Goal Reflection: ${goal.title} (${todayStr})`,
           content: notionMarkdown,
           parentPageId: goal.notion_parent_page_id,
         },
@@ -566,7 +567,7 @@ ${adaptations.map((a) => `- ${a}`).join('\n')}
       await this.personalHubService.createUserMemory({
         category: 'workflow',
         key: `goal_chronotype_${goal.id}`,
-        value: `Evaluasi ${todayStr}: Skor ${scorePct}%. Insight: ${insights.join('; ')}`,
+        value: `Evaluation ${todayStr}: Score ${scorePct}%. Insight: ${insights.join('; ')}`,
       });
     } catch {
       // Memory fallback safe

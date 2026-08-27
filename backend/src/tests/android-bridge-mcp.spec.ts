@@ -148,13 +148,13 @@ export async function runAndroidBridgeTests() {
     validatePackageName('id.co.bank.app');
 
     // Invalid packages
-    assert.throws(() => validatePackageName(''), /wajib diisi/);
+    assert.throws(() => validatePackageName(''), /required/);
     assert.throws(
       () => validatePackageName('instagram'),
-      /Format package name "instagram" tidak valid/,
+      /Invalid package name format "instagram"/,
     );
-    assert.throws(() => validatePackageName('123.com.test'), /tidak valid/);
-    assert.throws(() => validatePackageName('com..invalid'), /tidak valid/);
+    assert.throws(() => validatePackageName('123.com.test'), /Invalid/);
+    assert.throws(() => validatePackageName('com..invalid'), /Invalid/);
   });
 
   // 5. Friendly App Name Resolver
@@ -216,15 +216,15 @@ export async function runAndroidBridgeTests() {
     });
 
     assert.ok(report.includes('Instagram'));
-    assert.ok(report.includes('45 menit/hari'));
+    assert.ok(report.includes('45 mins/day'));
     assert.ok(report.includes('Tiktok'));
-    assert.ok(report.includes('Aplikasi Diblokir'));
+    assert.ok(report.includes('Blocked Applications'));
   });
 
   // 8. Raw Usage List Formatter
   await test('8. formatRawUsageList handles empty and populated lists', () => {
     const emptyReport = formatRawUsageList([]);
-    assert.ok(emptyReport.includes('Tidak ada data'));
+    assert.ok(emptyReport.includes('No application usage recorded'));
 
     const populated = formatRawUsageList([
       {
@@ -474,7 +474,7 @@ export async function runAndroidBridgeTests() {
       {},
     );
     assert.strictEqual(statusRes.success, true);
-    assert.ok(statusRes.summary.includes('Android Bridge terhubung'));
+    assert.ok(statusRes.summary.includes('Android Bridge connected'));
 
     // Test foreground app tool
     const fgRes = await connector.executeTool('android_get_foreground_app', {});
@@ -487,7 +487,7 @@ export async function runAndroidBridgeTests() {
       maxDailyMinutes: 30,
     });
     assert.strictEqual(limitRes.success, true);
-    assert.ok(limitRes.summary.includes('30 menit/hari'));
+    assert.ok(limitRes.summary.includes('30 mins/day'));
 
     // Test block app tool
     const blockRes = await connector.executeTool('android_block_app', {
@@ -495,7 +495,7 @@ export async function runAndroidBridgeTests() {
       block: true,
     });
     assert.strictEqual(blockRes.success, true);
-    assert.ok(blockRes.summary.includes('diblokir'));
+    assert.ok(blockRes.summary.includes('blocked'));
     assert.ok(blockRes.summary.includes('Tiktok'));
 
     // Test DND tool
@@ -528,7 +528,7 @@ export async function runAndroidBridgeTests() {
       maxDailyMinutes: 30,
     });
     assert.strictEqual(res1.success, false);
-    assert.ok(res1.summary.includes('Gagal mengeksekusi'));
+    assert.ok(res1.summary.includes('Failed to execute'));
 
     // Invalid package format in block_app
     const res2 = await connector.executeTool('android_block_app', {
@@ -536,7 +536,7 @@ export async function runAndroidBridgeTests() {
       block: true,
     });
     assert.strictEqual(res2.success, false);
-    assert.ok(res2.summary.includes('Gagal mengeksekusi'));
+    assert.ok(res2.summary.includes('Failed to execute'));
 
     // Empty message in send_notification
     const res3 = await connector.executeTool('android_send_notification', {
@@ -544,12 +544,12 @@ export async function runAndroidBridgeTests() {
       message: '',
     });
     assert.strictEqual(res3.success, false);
-    assert.ok(res3.summary.includes('Gagal mengeksekusi'));
+    assert.ok(res3.summary.includes('Failed to execute'));
 
     // Unknown tool
     const res4 = await connector.executeTool('android_unknown_tool', {});
     assert.strictEqual(res4.success, false);
-    assert.ok(res4.summary.includes('tidak didukung'));
+    assert.ok(res4.summary.includes('not supported'));
   });
 
   // 15. Offline Device Probe Handling
@@ -567,7 +567,7 @@ export async function runAndroidBridgeTests() {
     assert.strictEqual(probe.status, 'disconnected');
     assert.ok(
       probe.message?.includes('offline') ||
-        probe.message?.includes('Tidak dapat terhubung'),
+        probe.message?.includes('Unable to connect'),
     );
 
     restoreFetchMock();

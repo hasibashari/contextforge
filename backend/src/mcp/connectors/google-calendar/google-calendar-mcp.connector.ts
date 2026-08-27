@@ -191,7 +191,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
                 foregroundColor: cal.foregroundColor,
               })),
             },
-            summary: `📅 Berhasil menemukan ${calendars.length} kalender di akun Google Calendar.`,
+            summary: `📅 Successfully retrieved ${calendars.length} calendar(s) from Google Calendar account.`,
           };
         }
 
@@ -243,8 +243,8 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
             },
             summary:
               events.length > 0
-                ? `📅 Ditemukan ${events.length} agenda pada kalender "${calendarId}":\n${formattedList}`
-                : `📅 Tidak ada agenda ditemukan pada kalender "${calendarId}" untuk rentang waktu tersebut.`,
+                ? `📅 Found ${events.length} event(s) in calendar "${calendarId}":\n${formattedList}`
+                : `📅 No events found in calendar "${calendarId}" for the given time range.`,
           };
         }
 
@@ -255,7 +255,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
           ).trim();
           const eventId = params.eventId as string;
           if (!eventId) {
-            throw new Error('Parameter "eventId" wajib diisi.');
+            throw new Error('Parameter "eventId" is required.');
           }
 
           const event = await this.executeWithAuthRetry((headers) =>
@@ -264,7 +264,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
 
           return {
             data: event as unknown as Record<string, unknown>,
-            summary: `📌 Detail Agenda: ${formatEventSummary(event)} (Status: ${event.status || 'confirmed'})`,
+            summary: `📌 Event Details: ${formatEventSummary(event)} (Status: ${event.status || 'confirmed'})`,
           };
         }
 
@@ -287,7 +287,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
           const createMeetingLink = Boolean(params.createMeetingLink);
 
           if (!startStr || !endStr) {
-            throw new Error('Parameter "start" dan "end" wajib diisi.');
+            throw new Error('Parameters "start" and "end" are required.');
           }
 
           if (!isAllDay) {
@@ -327,7 +327,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
 
           return {
             data: created as unknown as Record<string, unknown>,
-            summary: `✨ Berhasil membuat agenda baru: "${created.summary || 'Untitled Event'}" pada ${formatEventSummary(created)}.${meetLink ? `\n🔗 Link Google Meet: ${meetLink}` : ''}`,
+            summary: `✨ Successfully created new event: "${created.summary || 'Untitled Event'}" at ${formatEventSummary(created)}.${meetLink ? `\n🔗 Google Meet: ${meetLink}` : ''}`,
           };
         }
 
@@ -338,7 +338,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
           ).trim();
           const eventId = params.eventId as string;
           if (!eventId) {
-            throw new Error('Parameter "eventId" wajib diisi.');
+            throw new Error('Parameter "eventId" is required.');
           }
 
           const patchPayload: Record<string, unknown> = {};
@@ -397,7 +397,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
 
           return {
             data: updated as unknown as Record<string, unknown>,
-            summary: `✏️ Berhasil memperbarui agenda "${updated.summary}": ${formatEventSummary(updated)}`,
+            summary: `✏️ Successfully updated event "${updated.summary}": ${formatEventSummary(updated)}`,
           };
         }
 
@@ -408,7 +408,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
           ).trim();
           const eventId = params.eventId as string;
           if (!eventId) {
-            throw new Error('Parameter "eventId" wajib diisi.');
+            throw new Error('Parameter "eventId" is required.');
           }
 
           await this.executeWithAuthRetry((headers) =>
@@ -421,7 +421,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
               deletedEventId: eventId,
               calendarId,
             },
-            summary: `🗑️ Berhasil menghapus agenda (ID: \`${eventId}\`) dari kalender "${calendarId}".`,
+            summary: `🗑️ Successfully deleted event (ID: \`${eventId}\`) from calendar "${calendarId}".`,
           };
         }
 
@@ -430,7 +430,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
           const timeMin = params.timeMin as string;
           const timeMax = params.timeMax as string;
           if (!timeMin || !timeMax) {
-            throw new Error('Parameter "timeMin" dan "timeMax" wajib diisi.');
+            throw new Error('Parameters "timeMin" and "timeMax" are required.');
           }
 
           validateTimeRange(timeMin, timeMax);
@@ -484,13 +484,13 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
               timeRange: { start: timeMin, end: timeMax, timeZone },
               calendars: availabilityReport,
             },
-            summary: `⏱️ Cek Ketersediaan (${timeMin} s/d ${timeMax}): Ditemukan ${totalBusySlots} slot sibuk dan ${totalFreeSlots} slot waktu luang di ${calendarIds.length} kalender.`,
+            summary: `⏱️ Availability Check (${timeMin} to ${timeMax}): Found ${totalBusySlots} busy slot(s) and ${totalFreeSlots} free slot(s) across ${calendarIds.length} calendar(s).`,
           };
         }
 
         default:
           throw new Error(
-            `Tool "${toolName}" tidak didukung oleh Google Calendar MCP Connector.`,
+            `Tool "${toolName}" is not supported by Google Calendar MCP Connector.`,
           );
       }
     });

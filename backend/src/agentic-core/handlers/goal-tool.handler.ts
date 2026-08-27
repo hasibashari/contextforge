@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { GoalsRepository } from '../../modules/goals/goals.repository';
+import { GoalsRepository, GoalRow } from '../../modules/goals/goals.repository';
 import {
   OrchestrationResult,
   StreamEmitter,
@@ -14,7 +14,7 @@ export class GoalToolHandler {
   async execute(
     toolName: string,
     prompt: string,
-    args: Record<string, any>,
+    args: Record<string, unknown>,
     emit: StreamEmitter,
   ): Promise<OrchestrationResult> {
     void prompt;
@@ -24,10 +24,23 @@ export class GoalToolHandler {
 
     switch (toolName) {
       case 'create_goal': {
-        const title = args.title || 'Meningkatkan Produktivitas & Fokus';
-        const description = args.description || '';
-        const category = args.category || 'productivity';
-        const cron = args.cron_evaluation || '0 21 * * *';
+        const title =
+          typeof args?.title === 'string'
+            ? args.title
+            : 'Deep Work & Cognitive Focus';
+        const description =
+          typeof args?.description === 'string' ? args.description : '';
+        const category: GoalRow['category'] =
+          args?.category === 'learning' ||
+          args?.category === 'health' ||
+          args?.category === 'finance' ||
+          args?.category === 'custom'
+            ? args.category
+            : 'productivity';
+        const cron =
+          typeof args?.cron_evaluation === 'string'
+            ? args.cron_evaluation
+            : '0 21 * * *';
 
         emit({
           event: 'timeline_stage',
@@ -49,7 +62,7 @@ export class GoalToolHandler {
           linked_mcp_servers: ['android-bridge', 'google-calendar', 'notion'],
         });
 
-        const summaryText = `Sasaran (Goal) baru **"${created.title}"** telah berhasil didaftarkan ke sistem ContextForge. Sistem akan memantau progres harian dan menjalankan evaluasi otomatis ke Notion setiap pukul 21:00.`;
+        const summaryText = `New Goal **"${created.title}"** has been successfully registered to ContextForge. The system will track daily progress and run automated reflections to Notion daily at 21:00.`;
 
         return {
           textContent: summaryText,
@@ -69,14 +82,14 @@ export class GoalToolHandler {
 
         const summaryText =
           activeGoals.length > 0
-            ? `Ditemukan **${activeGoals.length} sasaran aktif**:\n` +
+            ? `Found **${activeGoals.length} active goal(s)**:\n` +
               activeGoals
                 .map(
                   (g) =>
-                    `- 🎯 **${g.title}** (${g.category.toUpperCase()} | Progres: ${g.current_progress_pct}% | 🔥 Streak: ${g.streak_days} hari)`,
+                    `- 🎯 **${g.title}** (${g.category.toUpperCase()} | Progress: ${g.current_progress_pct}% | 🔥 Streak: ${g.streak_days} days)`,
                 )
                 .join('\n')
-            : 'Saat ini belum ada sasaran (goal) aktif yang terdaftar.';
+            : 'No active goals currently registered.';
 
         return {
           textContent: summaryText,
@@ -90,13 +103,13 @@ export class GoalToolHandler {
       }
 
       case 'decompose_goal_into_tasks': {
-        const goalId = args.goal_id;
+        const goalId = args?.goal_id as string | undefined;
         const goal = goalId ? await this.goalsRepo.getGoalById(goalId) : null;
         const targetGoal = goal || (await this.goalsRepo.getAllGoals())[0];
 
         if (!targetGoal) {
           return {
-            textContent: 'Tidak ditemukan goal yang valid untuk didekomposisi.',
+            textContent: 'No valid goal found for task decomposition.',
             summary: 'No valid goal found',
             rawResult: { success: false, error: 'No active goal found' },
           };
@@ -113,8 +126,8 @@ export class GoalToolHandler {
         const todayIso = new Date().toISOString().slice(0, 10);
         const task1 = await this.goalsRepo.createTask({
           goal_id: targetGoal.id,
-          title: 'Sesi Fokus & Deep Work (Blok Pagi)',
-          description: 'Mengerjakan tugas prioritas tanpa distraksi',
+          title: 'Deep Work & Focus Session (Morning Block)',
+          description: 'Execute high-priority objectives with zero distraction',
           scheduled_start: `${todayIso}T09:00:00+07:00`,
           scheduled_end: `${todayIso}T11:00:00+07:00`,
           mcp_target: 'google-calendar',
@@ -123,8 +136,9 @@ export class GoalToolHandler {
 
         const task2 = await this.goalsRepo.createTask({
           goal_id: targetGoal.id,
-          title: 'Update & Centang Task Harian di Notion',
-          description: 'Memperbarui status to-do list proyek aktif di Notion',
+          title: 'Update & Check Daily Action Items in Notion',
+          description:
+            'Sync active project deliverables and checklists to Notion',
           scheduled_start: `${todayIso}T16:00:00+07:00`,
           scheduled_end: `${todayIso}T16:30:00+07:00`,
           mcp_target: 'notion',
@@ -133,8 +147,8 @@ export class GoalToolHandler {
 
         const task3 = await this.goalsRepo.createTask({
           goal_id: targetGoal.id,
-          title: 'Batasi Screen Time Medsos & Game (Maksimal 60 Menit)',
-          description: 'Menerapkan batas waktu aplikasi via Android Bridge',
+          title: 'Enforce Social Media Screen Time Limit (Max 60 Mins)',
+          description: 'Apply app usage constraints via Android Bridge',
           scheduled_start: `${todayIso}T08:00:00+07:00`,
           scheduled_end: `${todayIso}T22:00:00+07:00`,
           mcp_target: 'android-bridge',
@@ -143,7 +157,7 @@ export class GoalToolHandler {
         });
 
         return {
-          textContent: `Goal **"${targetGoal.title}"** telah berhasil didekomposisi menjadi 3 sub-tugas yang terhubung dengan Google Calendar, Notion, dan Android Bridge.`,
+          textContent: `Goal **"${targetGoal.title}"** has been successfully decomposed into 3 sub-tasks integrated with Google Calendar, Notion, and Android Bridge.`,
           summary: `Decomposed goal into 3 tasks`,
           rawResult: {
             success: true,
@@ -154,12 +168,12 @@ export class GoalToolHandler {
       }
 
       case 'verify_task_completion': {
-        const taskId = args.task_id;
+        const taskId = args?.task_id as string | undefined;
         const task = taskId ? await this.goalsRepo.getTaskById(taskId) : null;
 
         if (!task) {
           return {
-            textContent: `Task ID "${taskId}" tidak ditemukan untuk diverifikasi.`,
+            textContent: `Task ID "${taskId || 'unknown'}" not found for verification.`,
             summary: 'Task not found',
             rawResult: { success: false, error: 'Task not found' },
           };
@@ -175,7 +189,7 @@ export class GoalToolHandler {
 
         // Zero-Assumption policy: return unverified if evidence is not definitive
         return {
-          textContent: `Status verifikasi untuk task **"${task.title}"**: \`${task.status.toUpperCase()}\`. Bukti: ${task.verification_notes || 'Menunggu konfirmasi telemetri.'}`,
+          textContent: `Verification status for task **"${task.title}"**: \`${task.status.toUpperCase()}\`. Evidence: ${task.verification_notes || 'Awaiting telemetry confirmation.'}`,
           summary: `Task verified: ${task.status}`,
           rawResult: {
             taskId: task.id,
@@ -187,13 +201,13 @@ export class GoalToolHandler {
       }
 
       case 'record_goal_evaluation': {
-        const goalId = args.goal_id;
+        const goalId = args?.goal_id as string | undefined;
         const goal = goalId ? await this.goalsRepo.getGoalById(goalId) : null;
         const targetGoal = goal || (await this.goalsRepo.getAllGoals())[0];
 
         if (!targetGoal) {
           return {
-            textContent: 'Tidak ditemukan goal untuk dievaluasi.',
+            textContent: 'No goal found for evaluation.',
             summary: 'Goal not found',
             rawResult: { success: false, error: 'Goal not found' },
           };
@@ -212,22 +226,22 @@ export class GoalToolHandler {
           goal_id: targetGoal.id,
           evaluation_date: todayStr,
           score_pct: 85.0,
-          summary: `Evaluasi harian untuk ${targetGoal.title}: Skor kepatuhan 85%. Sesi fokus terlaksana dengan baik.`,
+          summary: `Daily evaluation for ${targetGoal.title}: 85% compliance score. Deep focus blocks completed effectively.`,
           tasks_completed: 2,
           tasks_incomplete: 0,
           tasks_unverified: 1,
           insights: [
-            'Produktivitas tertinggi tercapai pada sesi pagi 09:00 - 11:00.',
-            'Screen time smartphone berkurang 40% dibandingkan rata-rata mingguan.',
+            'Peak focus productivity achieved during morning block (09:00 - 11:00).',
+            'Smartphone screen time decreased by 40% compared to weekly average.',
           ],
           adaptations_proposed: [
-            'Pertahankan blok fokus pagi hari esok.',
-            'Jadwalkan istirahat aktif 15 menit di sore hari jam 15:00.',
+            'Maintain morning deep work block tomorrow.',
+            'Schedule a 15-minute active recovery break at 15:00 in the afternoon.',
           ],
         });
 
         return {
-          textContent: `Evaluasi harian untuk **"${targetGoal.title}"** telah berhasil dicatat dengan skor kepatuhan **${evalRow.score_pct}%**. Jurnal refleksi dan adaptasi telah tersimpan.`,
+          textContent: `Daily evaluation for **"${targetGoal.title}"** recorded with **${evalRow.score_pct}%** compliance score. Reflection journal and adaptations saved.`,
           summary: `Evaluation recorded: ${evalRow.score_pct}%`,
           rawResult: {
             success: true,

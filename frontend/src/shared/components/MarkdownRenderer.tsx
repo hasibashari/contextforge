@@ -114,7 +114,7 @@ const InlineSourcePill: React.FC<{ href: string; label: string }> = ({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      title={`Buka sumber: ${displayLabel} (${href})`}
+      title={`Open source: ${displayLabel} (${href})`}
       className="inline-flex items-center gap-1.5 px-2 py-0.5 mx-0.5 my-0.5 rounded-full bg-canvas-soft hover:bg-canvas border border-hairline hover:border-hairline-strong text-[11px] font-medium text-ink transition-all shadow-2xs hover:shadow-xs cursor-pointer align-middle no-underline select-none group"
     >
       {!faviconFailed && faviconUrl ? (

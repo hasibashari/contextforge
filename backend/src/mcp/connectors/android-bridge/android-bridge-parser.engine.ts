@@ -33,7 +33,7 @@ export function formatDurationMs(ms: number): string {
  */
 export function validatePackageName(packageName: string): void {
   if (!packageName || typeof packageName !== 'string') {
-    throw new Error('Nama package aplikasi wajib diisi.');
+    throw new Error('Application package name is required.');
   }
 
   const trimmed = packageName.trim();
@@ -41,7 +41,7 @@ export function validatePackageName(packageName: string): void {
 
   if (!packageRegex.test(trimmed)) {
     throw new Error(
-      `Format package name "${packageName}" tidak valid. Harap gunakan format seperti "com.instagram.android" atau "com.whatsapp".`,
+      `Invalid package name format "${packageName}". Please use a format like "com.instagram.android" or "com.whatsapp".`,
     );
   }
 }
@@ -76,7 +76,7 @@ export function formatUsageSummaryReport(
   const apps = Array.isArray(summary.apps) ? summary.apps : [];
 
   if (apps.length === 0) {
-    return `📱 **Ringkasan Penggunaan Android (${dateStr})**\n- Total Screen Time: **${totalStr}**\n- Belum ada catatan aktivitas aplikasi hari ini.`;
+    return `📱 **Android Usage Summary (${dateStr})**\n- Total Screen Time: **${totalStr}**\n- No recorded app activity today.`;
   }
 
   const sortedApps = [...apps].sort(
@@ -99,7 +99,7 @@ export function formatUsageSummaryReport(
       ? `${getFriendlyAppName(sortedApps[0].packageName)} (\`${sortedApps[0].packageName}\`)`
       : 'None';
 
-  return `📱 **Ringkasan Penggunaan Android (${dateStr})**\n- Total Screen Time: **${totalStr}**\n- Aplikasi Paling Sering Digunakan: **${mostUsed}**\n\n**Daftar Aplikasi Terbanyak Digunakan:**\n${topApps}`;
+  return `📱 **Android Usage Summary (${dateStr})**\n- Total Screen Time: **${totalStr}**\n- Most Used App: **${mostUsed}**\n\n**Top Applications by Screen Time:**\n${topApps}`;
 }
 
 /**
@@ -107,7 +107,7 @@ export function formatUsageSummaryReport(
  */
 export function formatRawUsageList(apps: AndroidAppUsageItem[]): string {
   if (!apps || apps.length === 0) {
-    return '📱 Tidak ada data penggunaan aplikasi yang tercatat sejak 00:00 hari ini.';
+    return '📱 No application usage recorded since 00:00 today.';
   }
 
   const sorted = [...apps].sort(
@@ -121,7 +121,7 @@ export function formatRawUsageList(apps: AndroidAppUsageItem[]): string {
     return `- **${friendlyName}** (\`${app.packageName}\`): ${dur}`;
   });
 
-  return `📱 Ditemukan data penggunaan ${apps.length} aplikasi:\n${lines.join('\n')}`;
+  return `📱 Recorded usage data for ${apps.length} application(s):\n${lines.join('\n')}`;
 }
 
 /**
@@ -138,17 +138,17 @@ export function formatRestrictionsReport(
       ? limits
           .map(
             (l) =>
-              `- **${getFriendlyAppName(l.packageName)}** (\`${l.packageName}\`): Maksimal **${l.maxDailyMinutes} menit/hari** ${l.isBlocked ? '🛑 *(Sedang Diblokir)*' : '⏳ *(Aktif)*'}`,
+              `- **${getFriendlyAppName(l.packageName)}** (\`${l.packageName}\`): Max **${l.maxDailyMinutes} mins/day** ${l.isBlocked ? '🛑 *(Blocked)*' : '⏳ *(Active)*'}`,
           )
           .join('\n')
-      : '- Tidak ada batas waktu aplikasi yang dikonfigurasi.';
+      : '- No daily app limits configured.';
 
   const blockedLines =
     blocked.length > 0
       ? blocked
           .map((b) => `- 🚫 **${getFriendlyAppName(b)}** (\`${b}\`)`)
           .join('\n')
-      : '- Tidak ada aplikasi yang sedang diblokir secara instan.';
+      : '- No applications currently blocked.';
 
-  return `🎯 **Status Pembatasan & Kontrol Fokus Android:**\n\n**Batas Waktu Harian (App Limits):**\n${limitLines}\n\n**Aplikasi Diblokir (Blocked Apps):**\n${blockedLines}`;
+  return `🎯 **Android Focus Restrictions & App Controls:**\n\n**Daily App Limits:**\n${limitLines}\n\n**Blocked Applications:**\n${blockedLines}`;
 }

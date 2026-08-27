@@ -84,7 +84,7 @@ export class NotionMcpConnector extends BaseMcpConnector {
       switch (toolName) {
         case 'notion_list_workspace_resources': {
           const res = await this.apiClient.listWorkspaceResources(authHeaders);
-          const summary = `Ditemukan ${res.pages.length} halaman, ${res.databases.length} database, dan ${res.databaseEntries.length} entri di workspace Notion.`;
+          const summary = `Found ${res.pages.length} page(s), ${res.databases.length} database(s), and ${res.databaseEntries.length} entries in Notion workspace.`;
           return {
             data: res as unknown as Record<string, unknown>,
             summary,
@@ -95,7 +95,7 @@ export class NotionMcpConnector extends BaseMcpConnector {
         case 'notion_search': {
           const query = (params.query as string) || '';
           const searchResult = await this.apiClient.search(authHeaders, query);
-          const summary = `Ditemukan ${searchResult.length} item di Notion untuk pencarian "${query}".`;
+          const summary = `Found ${searchResult.length} item(s) in Notion for query "${query}".`;
           return {
             data: searchResult as unknown as Record<string, unknown>,
             summary,
@@ -108,7 +108,7 @@ export class NotionMcpConnector extends BaseMcpConnector {
             authHeaders,
             statusFilter,
           );
-          const summary = `Ditemukan ${tasksResult.length} task aktif di Notion.`;
+          const summary = `Found ${tasksResult.length} active task(s) in Notion.`;
           return {
             data: tasksResult as unknown as Record<string, unknown>,
             summary,
@@ -118,13 +118,13 @@ export class NotionMcpConnector extends BaseMcpConnector {
         case 'notion_read_page': {
           const pageId = (params.pageId as string) || (params.id as string);
           if (!pageId) {
-            throw new Error('Parameter "pageId" wajib diisi.');
+            throw new Error('Parameter "pageId" is required.');
           }
 
           const pageData = await this.apiClient.readPage(authHeaders, pageId);
           return {
             data: pageData as unknown as Record<string, unknown>,
-            summary: `Halaman "${pageData.title}" (${pageData.content.length} karakter) berhasil dibaca dari Notion.`,
+            summary: `Page "${pageData.title}" (${pageData.content.length} characters) successfully retrieved from Notion.`,
           };
         }
 
@@ -142,13 +142,13 @@ export class NotionMcpConnector extends BaseMcpConnector {
 
           return {
             data: newPage as unknown as Record<string, unknown>,
-            summary: `Halaman baru "${newPage.title}" (ID: ${newPage.id}) berhasil dibuat di Notion. Link: ${newPage.url}`,
+            summary: `New page "${newPage.title}" (ID: ${newPage.id}) successfully created in Notion. URL: ${newPage.url}`,
           };
         }
 
         default:
           throw new Error(
-            `Tool "${toolName}" tidak didukung oleh Notion MCP Server.`,
+            `Tool "${toolName}" is not supported by Notion MCP Server.`,
           );
       }
     });

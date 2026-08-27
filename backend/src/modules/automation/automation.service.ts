@@ -74,7 +74,7 @@ export class AutomationService {
       .replace(/\{\{workspace\}\}/g, workflow.name);
 
     if (!prompt.trim()) {
-      prompt = `Tinjau seluruh data dan tugas terkait dari konektor MCP (${workflow.mcp_server_id || 'Notion/Obsidian'}). Buatkan ringkasan prioritas tinggi untuk hari ini (${todayStr}).`;
+      prompt = `Review all related data and tasks from the MCP connector (${workflow.mcp_server_id || 'Notion/Obsidian'}). Generate a high-priority action summary for today (${todayStr}).`;
     }
 
     this.logger.log(

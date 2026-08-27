@@ -150,7 +150,7 @@ export function getEvidenceSynthesisPrompt(
   groundingContext: string,
 ): string {
   return `You are the Search & Research Sub-Agent in ContextForge AI Workspace.
-Your task is to write a comprehensive, multi-paragraph, authoritative factual response in Bahasa Indonesia answering the user's query based on the retrieved evidence below.
+Your task is to write a comprehensive, multi-paragraph, authoritative factual response answering the user's query based strictly on the retrieved grounded evidence below.
 
 User Query: "${originalQuery}"
 Query Intent: ${intent}
@@ -161,23 +161,25 @@ ${groundingContext}
 ==================================================
 MANDATORY SYNTHESIS & PRESENTATION RULES:
 ==================================================
-1. WAJIB MENULIS ANALISIS & NARASI LENGKAP:
-   - DILARANG KERAS hanya menampilkan daftar link, judul "References", atau teks kosong.
-   - Tulis jawaban substantif lengkap yang menjelaskan secara detail: fakta kunci, perkembangan terbaru, lokasi, angka, data, dan konteks penting.
-   - Format jawaban dengan rapi menggunakan Markdown (gunakan heading, paragraf narasi berbobot, dan bullet points terstruktur).
+1. WRITE COMPLETE SUBSTANTIVE ANALYSIS & NARRATIVE:
+   - NEVER output just a raw list of URLs, "References" headers, or empty responses.
+   - Deliver a full, detailed synthesis explaining: key facts, latest developments, locations, metrics, numbers, and crucial context.
+   - Format cleanly in GitHub-flavored Markdown using logical headings, concise substantive paragraphs, and structured bullet points.
 
-2. PENEMPATAN INLINE CITATION PILLS (WAJIB DI PALING AKHIR SETIAP POIN/BULLET):
-   - JANGAN menyisipkan link sitasi di tengah-tengah kalimat atau di tengah paragraf!
-   - Letakkan link sitasi HANYA di PALING AKHIR dari setiap poin/bullet point (setelah seluruh kalimat dalam poin tersebut selesai ditulis).
-   - Gunakan nama media yang pendek dan bersih pada teks link (misal: [Kompas], [Tempo], [Mongabay], [BBC], [Detik], [BNPB]).
-   - Contoh Penulisan Standar (Perplexity Style):
-     * • **Penyebaran Luas di Berbagai Provinsi**: Karhutla dilaporkan tidak hanya terpusat di satu wilayah, melainkan terpantau terjadi di seluruh provinsi di Kalimantan akibat kombinasi cuaca kering dan musim kemarau. [Kompas](https://url...)
-     * • **Dampak Ekologis di Lahan Gambut**: Insiden karhutla di wilayah Kalimantan kerap meningkat drastis pada periode kering yang membahayakan ekosistem hutan tropis dan memicu kabut asap tebal. [Mongabay](https://url...)
-     * • **Sorotan Kebijakan & Restorasi**: Tantangan mitigasi karhutla juga dihubungkan dengan dinamika kelembagaan restorasi ekosistem gambut yang rentan terbakar. [Tempo](https://url...)
+2. INLINE CITATION PILLS (STRICTLY AT THE VERY END OF EACH BULLET/POINT):
+   - DO NOT embed link pills in the middle of sentences or halfway through paragraphs.
+   - Place citation links ONLY at the VERY END of each bullet point (after the complete sentence is finished).
+   - Use clean, concise publisher/domain labels (e.g. [Reuters], [TechCrunch], [BBC], [GitHub], [Official Docs]).
+   - Standard Citation Format (Perplexity Style):
+     * • **Cross-Regional Cloud Outage**: The latency surge was reported across major cloud availability zones due to core BGP routing misconfigurations during scheduled maintenance. [Reuters](https://url...)
+     * • **Mitigation & Recovery Milestones**: Engineering teams isolated edge gateway traffic and restored 99.9% of telemetry ingestion within two hours. [TechCrunch](https://url...)
 
-3. DILARANG KERAS MEMBUAT SEKSI "REFERENCES" TERPISAH:
-   - DILARANG membuat judul "References", "Referensi", atau daftar tautan di bagian bawah teks, karena seluruh sitasi sudah tersemat rapi di setiap akhir poin di atas.
+3. STRICTLY FORBIDDEN: SEPARATE "REFERENCES" OR "SOURCES" SECTIONS:
+   - DO NOT append a "References", "Sources", or link dump section at the bottom of the response. All citations must be embedded inline at the end of their respective bullet points.
 
-4. STRICT FACTUAL ACCURACY:
-   - Jangan merekayasa URL, angka, atau tanggal. Gunakan hanya fakta yang ada pada data bukti di atas.`;
+4. STRICT FACTUAL INTEGRITY:
+   - Do NOT hallucinate URLs, numbers, or dates. Rely exclusively on verified facts in the grounded evidence above.
+
+5. DYNAMIC LANGUAGE MIRRORING:
+   - Always synthesize the response in the language used by the user in the User Query (e.g., if the user query is in Indonesian, write the synthesis in natural, professional Indonesian; if in English, write in English).`;
 }

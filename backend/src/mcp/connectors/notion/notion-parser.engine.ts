@@ -363,7 +363,7 @@ export function convertBlocksToMarkdown(blocks: NotionBlock[]): string {
     }
   }
 
-  return lines.join('\n').trim() || '*(Halaman kosong)*';
+  return lines.join('\n').trim() || '*(Empty page)*';
 }
 
 /**

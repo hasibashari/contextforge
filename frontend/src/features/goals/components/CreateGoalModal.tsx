@@ -86,10 +86,10 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
 
   const handleAiAutoFill = () => {
     if (!title.trim()) {
-      setTitle('Meningkatkan Produktivitas & Fokus Kerja')
+      setTitle('Deep Work & Cognitive Focus Optimization')
     }
     setDescription(
-      'Menerapkan alokasi deep work harian di kalender, membatasi screen time smartphone di bawah 90 menit, dan menyusun evaluasi malam otomatis ke Notion Workspace.',
+      'Schedule daily deep work blocks in Google Calendar, limit smartphone screen time below 90 minutes via Android Bridge, and automate nightly reflective syncs to Notion Workspace.',
     )
     setCategory('productivity')
     setMaxScreentimeMins(90)

@@ -238,7 +238,7 @@ export async function runGoogleCalendarTests() {
     const data = result.data as Record<string, unknown>;
     assert.strictEqual(data.connected, false);
     assert.strictEqual(data.status, 'unauthenticated');
-    assert.ok(result.summary.includes('belum terhubung'));
+    assert.ok(result.summary.includes('Disconnected'));
 
     if (oldKey) process.env.GOOGLE_ACCESS_TOKEN = oldKey;
     if (oldCalKey) process.env.GOOGLE_CALENDAR_TOKEN = oldCalKey;
@@ -325,7 +325,7 @@ export async function runGoogleCalendarTests() {
       };
       assert.strictEqual(data.totalDiscovered, 2);
       assert.strictEqual(data.calendars[0].summary, 'Personal Calendar');
-      assert.ok(result.summary.includes('Berhasil menemukan 2 kalender'));
+      assert.ok(result.summary.includes('Successfully retrieved 2 calendar'));
     } finally {
       restoreFetchMock();
     }
@@ -458,7 +458,7 @@ export async function runGoogleCalendarTests() {
       assert.strictEqual(body?.location, 'Meeting Room 3');
       const data = result.data as { id: string; summary: string };
       assert.strictEqual(data.id, 'created-ev-555');
-      assert.ok(result.summary.includes('Berhasil membuat agenda baru'));
+      assert.ok(result.summary.includes('Successfully created new event'));
     } finally {
       restoreFetchMock();
     }
@@ -503,7 +503,7 @@ export async function runGoogleCalendarTests() {
       const body = capturedBody as CapturedEventBody | null;
       assert.strictEqual(body?.summary, 'Updated Sprint Planning');
       assert.strictEqual(body?.location, 'Virtual Zoom');
-      assert.ok(result.summary.includes('Berhasil memperbarui'));
+      assert.ok(result.summary.includes('Successfully updated'));
     } finally {
       restoreFetchMock();
     }
@@ -529,7 +529,7 @@ export async function runGoogleCalendarTests() {
       );
 
       assert.strictEqual(result.success, true);
-      assert.ok(result.summary.includes('Berhasil menghapus'));
+      assert.ok(result.summary.includes('Successfully deleted'));
     } finally {
       restoreFetchMock();
     }
@@ -587,8 +587,8 @@ export async function runGoogleCalendarTests() {
       };
       assert.strictEqual(data.calendars.primary.busy.length, 1);
       assert.strictEqual(data.calendars.primary.free.length, 2);
-      assert.ok(result.summary.includes('1 slot sibuk'));
-      assert.ok(result.summary.includes('2 slot waktu luang'));
+      assert.ok(result.summary.includes('1 busy slot'));
+      assert.ok(result.summary.includes('2 free slot'));
     } finally {
       restoreFetchMock();
     }

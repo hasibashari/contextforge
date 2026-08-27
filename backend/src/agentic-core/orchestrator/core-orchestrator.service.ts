@@ -306,10 +306,10 @@ export class CoreOrchestratorService {
           const locPath = art.location_path || 'Work/Notes/';
           const snippet =
             art.content && art.content.length > 600
-              ? `${art.content.slice(0, 600)}\n\n*(Buka dokumen lengkap di panel Aside)*`
+              ? `${art.content.slice(0, 600)}\n\n*(Open full document in the aside panel)*`
               : art.content ||
-                'Telah dibuat dengan frontmatter YAML dan backlinks.';
-          finalResult.textContent = `Dokumen **${art.title}** telah berhasil disusun dan disimpan di Obsidian Vault Anda pada path: \`${locPath}\`.\n\n### 📋 Ringkasan Dokumen:\n${snippet}`;
+                'Compiled with standard YAML frontmatter and bi-directional backlinks.';
+          finalResult.textContent = `Document **${art.title}** has been compiled and saved to your Obsidian Vault at path: \`${locPath}\`.\n\n### 📋 Document Summary:\n${snippet}`;
           this.streamFinalText(finalResult.textContent, emit);
         } else if (finalResult.intent?.summaryText) {
           finalResult.textContent = finalResult.intent.summaryText;
@@ -334,7 +334,7 @@ export class CoreOrchestratorService {
           });
 
           finalResult.textContent =
-            fallbackResponse.text || 'Tugas telah selesai diproses.';
+            fallbackResponse.text || 'Task processing completed.';
           this.streamFinalText(finalResult.textContent, emit);
         }
       }

@@ -124,8 +124,8 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
             },
             summary:
               probe.status === 'connected'
-                ? `📱 Android Bridge terhubung pada ${this.endpoint} (${probe.latencyMs}ms latency) - Device: ${probe.device || 'Android Native MCP'}.`
-                : `⚠️ Android Bridge tidak merespons pada ${this.endpoint}: ${probe.message}`,
+                ? `📱 Android Bridge connected on ${this.endpoint} (${probe.latencyMs}ms latency) - Device: ${probe.device || 'Android Native MCP'}.`
+                : `⚠️ Android Bridge is not responding on ${this.endpoint}: ${probe.message}`,
           };
         }
 
@@ -242,11 +242,11 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
                 : NaN;
 
           if (!packageName) {
-            throw new Error('Parameter "packageName" wajib diisi.');
+            throw new Error('Parameter "packageName" is required.');
           }
           if (isNaN(maxDailyMinutes) || maxDailyMinutes <= 0) {
             throw new Error(
-              'Parameter "maxDailyMinutes" wajib berupa angka lebih dari 0.',
+              'Parameter "maxDailyMinutes" must be a number greater than 0.',
             );
           }
 
@@ -276,7 +276,7 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
               status: res.status || 'success',
               message: res.message,
             },
-            summary: `⏳ Berhasil menetapkan batas waktu penggunaan **${maxDailyMinutes} menit/hari** untuk aplikasi **${friendlyName}** (\`${packageName}\`).`,
+            summary: `⏳ Successfully set usage limit of **${maxDailyMinutes} mins/day** for application **${friendlyName}** (\`${packageName}\`).`,
           };
         }
 
@@ -287,7 +287,7 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
             params.block !== undefined ? Boolean(params.block) : true;
 
           if (!packageName) {
-            throw new Error('Parameter "packageName" wajib diisi.');
+            throw new Error('Parameter "packageName" is required.');
           }
 
           validatePackageName(packageName);
@@ -317,8 +317,8 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
               message: res.message,
             },
             summary: block
-              ? `🛑 Aplikasi **${friendlyName}** (\`${packageName}\`) berhasil **diblokir** di perangkat Android.`
-              : `✅ Blokir untuk aplikasi **${friendlyName}** (\`${packageName}\`) berhasil **dibuka**.`,
+              ? `🛑 Application **${friendlyName}** (\`${packageName}\`) successfully **blocked** on Android device.`
+              : `✅ Block for application **${friendlyName}** (\`${packageName}\`) successfully **removed**.`,
           };
         }
 
@@ -370,8 +370,8 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
               status: res.status || 'success',
             },
             summary: enable
-              ? `🔕 Mode **Do Not Disturb (DND)** berhasil **diaktifkan** pada perangkat Android untuk sesi fokus.`
-              : `🔔 Mode **Do Not Disturb (DND)** berhasil **dinonaktifkan**. Notifikasi kembali normal.`,
+              ? `🔕 **Do Not Disturb (DND)** mode successfully **enabled** on Android device for focus session.`
+              : `🔔 **Do Not Disturb (DND)** mode successfully **disabled**. Notifications restored to normal.`,
           };
         }
 
@@ -386,7 +386,7 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
 
           if (!message) {
             throw new Error(
-              'Parameter "message" tidak boleh kosong saat mengirim notifikasi.',
+              'Parameter "message" cannot be empty when sending notification.',
             );
           }
 
@@ -410,13 +410,13 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
               message,
               status: res.status || 'success',
             },
-            summary: `📬 Notifikasi lokal berhasil dikirim ke perangkat Android:\n**${title}**: ${message}`,
+            summary: `📬 Local notification successfully dispatched to Android device:\n**${title}**: ${message}`,
           };
         }
 
         default:
           throw new Error(
-            `Tool "${toolName}" tidak didukung oleh Android MCP Bridge.`,
+            `Tool "${toolName}" is not supported by Android MCP Bridge.`,
           );
       }
     });

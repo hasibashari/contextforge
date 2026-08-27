@@ -94,7 +94,7 @@ export abstract class BaseMcpConnector implements IMcpServer {
           error: sanitizedError,
           tool: toolName,
         },
-        summary: `❌ Gagal mengeksekusi ${toolName} pada ${this.name}: ${sanitizedError}`,
+        summary: `❌ Failed to execute ${toolName} on ${this.name}: ${sanitizedError}`,
       };
     }
   }
@@ -106,7 +106,7 @@ export abstract class BaseMcpConnector implements IMcpServer {
     toolName: string,
     serviceDisplayName: string,
   ): McpToolCallResult {
-    const msg = `Integrasi ${serviceDisplayName} belum terhubung atau token belum dikonfigurasi. Silakan hubungkan token di menu Workspace Integrations.`;
+    const msg = `${serviceDisplayName} integration is disconnected or credentials are not configured. Please connect in Workspace Integrations.`;
     this.logger.warn(
       `Tool "${toolName}" called on "${this.name}" without active credentials.`,
     );
@@ -120,7 +120,7 @@ export abstract class BaseMcpConnector implements IMcpServer {
         status: 'unauthenticated',
         message: msg,
       },
-      summary: `⚠️ ${serviceDisplayName} Belum Terhubung: ${msg}`,
+      summary: `⚠️ ${serviceDisplayName} Disconnected: ${msg}`,
     };
   }
 

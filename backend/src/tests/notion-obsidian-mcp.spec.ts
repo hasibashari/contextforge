@@ -103,7 +103,7 @@ export async function runNotionAndObsidianTests() {
         (result.data as Record<string, unknown>).status,
         'unauthenticated',
       );
-      assert.ok(result.summary.includes('Belum Terhubung'));
+      assert.ok(result.summary.includes('Disconnected'));
     } finally {
       if (savedApiKey) process.env.NOTION_API_KEY = savedApiKey;
       if (savedToken) process.env.NOTION_TOKEN = savedToken;

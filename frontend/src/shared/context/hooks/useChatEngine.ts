@@ -731,7 +731,7 @@ export function useChatEngine(
                   }
                 });
 
-              showToast(`📦 Catatan Berhasil Dibuat: ${createdArtifact.title}`);
+              showToast(`📦 Note Created Successfully: ${createdArtifact.title}`);
             },
             onAutomationCreated: (createdAuto) => {
               addAutomationToState?.(createdAuto);

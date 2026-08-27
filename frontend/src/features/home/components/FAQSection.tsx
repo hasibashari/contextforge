@@ -4,29 +4,29 @@ import { Plus, Minus } from 'lucide-react'
 
 const FAQS = [
   {
-    question: 'Bagaimana ContextForge terhubung ke vault Obsidian saya?',
+    question: 'How does ContextForge connect to my local Obsidian vault?',
     answer:
-      'ContextForge membaca dan menulis catatan Markdown langsung ke vault lokal Anda dengan format atomic, frontmatter metadata YAML, dan bi-directional backlinks. Anda juga dapat membuka catatan yang dihasilkan langsung di aplikasi Obsidian Desktop dengan 1 klik.',
+      'ContextForge reads and writes Markdown notes directly to your local vault using atomic formatting, YAML frontmatter metadata, and bi-directional backlinks. You can also open generated notes directly in your Obsidian Desktop app with a single click.',
   },
   {
-    question: 'Bagaimana cara kerja Android MCP Bridge?',
+    question: 'How does the Android MCP Bridge work?',
     answer:
-      'Android Bridge menghubungkan smartphone Android Anda via Termux atau ADB. Ini memungkinkan agen AI memeriksa status baterai, memantau aplikasi yang sedang berjalan, menganalisis statistik Screen Time, dan mengirimkan notifikasi push secara langsung ke ponsel Anda.',
+      'The Android Bridge connects your Android smartphone via Termux or ADB over the Model Context Protocol. This enables AI agents to check battery status, monitor running apps, analyze Screen Time metrics, and dispatch local push notifications directly to your phone.',
   },
   {
-    question: 'Apakah agen AI dapat memodifikasi file atau database tanpa izin?',
+    question: 'Can AI agents modify files or databases without permission?',
     answer:
-      'Tidak pernah. ContextForge beroperasi di bawah gerbang keamanan Strict Human-in-the-Loop (HITL). Agen dapat bernalar dan menganalisis secara mandiri, namun setiap aksi penulisan file ke disk, modifikasi database, atau pengiriman data eksternal memerlukan persetujuan eksplisit Anda.',
+      'Never. ContextForge operates under strict Human-in-the-Loop (HITL) safety verification gates. Agents can autonomously reason and plan, but every disk write, database modification, or external action requires your explicit approval.',
   },
   {
-    question: 'Layanan dan protokol apa saja yang didukung out-of-the-box?',
+    question: 'Which services and protocols are supported out of the box?',
     answer:
-      'ContextForge mendukung Obsidian Vault, Android Mobile Bridge, Google Calendar, Notion Database, dan Live Web Grounding (Tavily). Selain itu, Anda dapat menghubungkan custom tools apa pun yang mematuhi standar Model Context Protocol (MCP).',
+      'ContextForge natively supports Obsidian Vaults, Android Mobile Bridge, Google Calendar, Notion Databases, and Live Web Grounding (Tavily). Additionally, you can connect any custom tool or server compliant with the open Model Context Protocol (MCP) standard.',
   },
   {
-    question: 'Dapatkah saya menjadwalkan workflow automasi harian (Cron)?',
+    question: 'Can I schedule recurring automated daily workflows (Cron)?',
     answer:
-      'Ya. Modul Automasi ContextForge memungkinkan Anda mengatur jadwal cron berulang (misalnya briefing harian pukul 07:00 pagi yang merangkum agenda rapat Google Calendar dan kebiasaan Screen Time ke dalam daily note Obsidian).',
+      'Yes. The Automations module allows you to configure recurring cron schedules (e.g. a 07:00 AM daily morning briefing that aggregates your Google Calendar agenda and screen time habits directly into an Obsidian daily note).',
   },
 ]
 

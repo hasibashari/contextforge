@@ -126,7 +126,7 @@ export async function runMcpRegistryTests() {
     // Call unsupported tool to test safeExecute error catching
     const errorResult = await mockConnector.executeTool('unknown_tool', {});
     assert.strictEqual(errorResult.success, false);
-    assert.ok(errorResult.summary.includes('Gagal mengeksekusi unknown_tool'));
+    assert.ok(errorResult.summary.includes('Failed to execute unknown_tool'));
 
     // Call supported tool
     const successResult = await mockConnector.executeTool('mock_plugin_echo', {
