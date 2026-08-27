@@ -245,27 +245,15 @@ export class EcosystemController {
     @Query('error') error: string,
     @Res() res: Response,
   ) {
-    if (error || !code) {
-      res.setHeader('Content-Type', 'text/html');
-      return res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>Notion Authorization Cancelled</title></head>
-          <body style="font-family: system-ui, sans-serif; text-align: center; padding: 48px; background: #0b0f19; color: #f87171;">
-            <h2>⚠️ Notion Authorization Cancelled</h2>
-            <p style="color: #94a3b8;">${error || 'No authorization code returned'}</p>
-            <script>
-              if (window.opener) {
-                window.opener.postMessage({ type: 'NOTION_AUTH_ERROR', error: '${error || 'Cancelled'}' }, '*');
-                setTimeout(() => window.close(), 1500);
-              }
-            </script>
-          </body>
-        </html>
-      `);
-    }
-
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    if (error || !code) {
+      return res.redirect(
+        `${frontendUrl}/oauth/callback?status=error&provider=notion&error=${encodeURIComponent(
+          error || 'No authorization code returned',
+        )}`,
+      );
+    }
 
     try {
       const result = await this.notionOAuthService.exchangeOAuthCode(code);

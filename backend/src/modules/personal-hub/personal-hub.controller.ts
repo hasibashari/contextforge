@@ -40,8 +40,8 @@ export class PersonalHubController {
   }
 
   @Delete('memories/:id')
-  async deleteUserMemory(@Param('id') id: string) {
-    const data = await this.service.deleteUserMemory(id);
+  async deleteUserMemory(@Param('id') id: string, @GuestId() guestId?: string) {
+    const data = await this.service.deleteUserMemory(id, guestId);
     return { success: true, data };
   }
 }

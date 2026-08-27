@@ -186,7 +186,7 @@ export class ChatService {
       // 4. Load active workspace skills (SOPs) and persistent memory summary (ChatGPT/Claude pattern - memory-summary.md)
       const [activeSkills, memorySummary] = await Promise.all([
         this.ecosystemService.getActiveSkillsInstructions(),
-        this.personalHubService.getMemorySummaryMarkdown(),
+        this.personalHubService.getMemorySummaryMarkdown(guestId),
       ]);
 
       // 5. Delegate to Core Orchestrator with active Agent Persona, Skill SOPs & Memory Summary
@@ -245,6 +245,7 @@ export class ChatService {
       void this.personalHubService.autoExtractMemoriesFromDialogue(
         prompt,
         result.textContent,
+        guestId,
       );
 
       // Wait for AI Semantic Titling to finish writing to SSE stream before closing

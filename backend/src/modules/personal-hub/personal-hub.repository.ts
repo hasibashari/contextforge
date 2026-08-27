@@ -71,15 +71,36 @@ export class PersonalHubRepository implements OnModuleInit {
     return res.rows[0];
   }
 
+  async upsertUserMemory(data: {
+    category: 'profile' | 'preference' | 'project' | 'workflow';
+    key: string;
+    value: string;
+    userId?: string;
+  }): Promise<UserMemoryRow> {
+    const existing = await this.getUserMemories(data.userId);
+    const match = existing.find(
+      (m) => m.key.toLowerCase() === data.key.toLowerCase(),
+    );
+    if (match) {
+      const res = await this.db.query<UserMemoryRow>(
+        `UPDATE user_memories SET category = $1, value = $2, updated_at = NOW() WHERE id = $3 RETURNING *;`,
+        [data.category, data.value, match.id],
+      );
+      return res.rows[0];
+    }
+    return this.createUserMemory(data);
+  }
+
   async deleteUserMemory(id: string): Promise<void> {
     await this.db.query(`DELETE FROM user_memories WHERE id = $1;`, [id]);
   }
 
   async clearAll(userId?: string): Promise<void> {
     if (userId) {
-      await this.db.query(`DELETE FROM user_memories WHERE user_id = $1;`, [
-        userId,
-      ]);
+      await this.db.query(
+        `DELETE FROM user_memories WHERE user_id = $1 OR user_id IS NULL;`,
+        [userId],
+      );
     } else {
       await this.db.query(`DELETE FROM user_memories;`);
     }

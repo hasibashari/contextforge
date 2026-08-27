@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Seed JSON data
-import memoriesSeed from '../../../database/seeds/user_memories.json';
 import agentsSeed from '../../../database/seeds/agents.json';
 import skillsSeed from '../../../database/seeds/skills.json';
 import integrationsSeed from '../../../database/seeds/integrations.json';
@@ -53,27 +52,6 @@ async function runSeed() {
       ALTER TABLE IF EXISTS activity_logs ALTER COLUMN task_id TYPE VARCHAR(100);
       ALTER TABLE IF EXISTS user_memories ALTER COLUMN id TYPE VARCHAR(100);
     `);
-
-    // 2. Seed User Memories
-    console.log('🧠 Seeding User Memories...');
-    const memoryItems = memoriesSeed as Array<{
-      id: string;
-      category: string;
-      key: string;
-      value: string;
-    }>;
-    for (const item of memoryItems) {
-      await client.query(
-        `INSERT INTO user_memories (id, category, key, value)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (id) DO UPDATE SET
-          category = EXCLUDED.category,
-          key = EXCLUDED.key,
-          value = EXCLUDED.value;`,
-        [item.id, item.category, item.key, item.value],
-      );
-    }
-    console.log(`   ✓ Seeded ${memoryItems.length} user memories`);
 
     // 6. Seed Workspace Agents
     console.log('🤖 Seeding Workspace Agents...');
