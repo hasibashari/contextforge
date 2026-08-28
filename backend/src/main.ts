@@ -12,6 +12,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('app.port', 3001);
 
+  // Enable graceful shutdown for Cloud Run container lifecycle
+  app.enableShutdownHooks();
+
   // Enable CORS for Frontend React app
   app.enableCors({
     origin: '*',
@@ -19,7 +22,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   const httpServer = app.getHttpServer() as unknown as Parameters<
     typeof ObsidianBridgeGatewayService.prototype.attachHttpServer

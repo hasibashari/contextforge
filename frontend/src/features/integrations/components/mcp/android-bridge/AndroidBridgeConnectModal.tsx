@@ -46,18 +46,19 @@ export const AndroidBridgeConnectModal: FC<
   const [copiedAdb, setCopiedAdb] = useState(false)
 
   // QR Pairing Session States
+  const isCloudEnv =
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+
   const [customHost, setCustomHost] = useState<string>(() => {
-    return (
-      localStorage.getItem('contextforge_android_desktop_ip') ||
-      '192.168.1.8'
-    )
+    if (isCloudEnv) return window.location.host
+    return localStorage.getItem('contextforge_android_desktop_ip') || ''
   })
   const [isEditingHost, setIsEditingHost] = useState(false)
   const [hostInput, setHostInput] = useState<string>(() => {
-    return (
-      localStorage.getItem('contextforge_android_desktop_ip') ||
-      '192.168.1.8'
-    )
+    if (isCloudEnv) return window.location.host
+    return localStorage.getItem('contextforge_android_desktop_ip') || ''
   })
 
   const [session, setSession] = useState<PairingSessionData | null>(null)
@@ -107,8 +108,19 @@ export const AndroidBridgeConnectModal: FC<
     showToast(`Updated Desktop IP to ${trimmed}`, 'info')
   }
 
+  const getWebSocketUrl = () => {
+    const isHttps = window.location.protocol === 'https:'
+    const wsProtocol = isHttps ? 'wss:' : 'ws:'
+    if (window.location.port === '5173') {
+      const host = session?.desktopHost || customHost || window.location.hostname
+      const port = session?.desktopPort || 3001
+      return `${wsProtocol}//${host}:${port}/api/android-bridge/ws`
+    }
+    return `${wsProtocol}//${window.location.host}/api/android-bridge/ws`
+  }
+
   const handleCopyWsUrl = () => {
-    const wsUrl = `ws://${session?.desktopHost || customHost}:3001/api/android-bridge/ws`
+    const wsUrl = getWebSocketUrl()
     navigator.clipboard.writeText(wsUrl)
     setCopiedWs(true)
     setTimeout(() => setCopiedWs(false), 2000)
@@ -164,11 +176,12 @@ export const AndroidBridgeConnectModal: FC<
   useEffect(() => {
     let isMounted = true
     if (isOpen) {
-      const savedHost =
-        localStorage.getItem('contextforge_android_desktop_ip') || '192.168.1.8'
+      const targetHost = isCloudEnv
+        ? window.location.host
+        : customHost?.trim() || undefined
 
       ecosystemApi
-        .createAndroidPairingSession(savedHost.trim() || undefined)
+        .createAndroidPairingSession(targetHost)
         .then((res) => {
           if (!isMounted) return
           if (res && res.sessionId) {
@@ -190,7 +203,7 @@ export const AndroidBridgeConnectModal: FC<
     return () => {
       isMounted = false
     }
-  }, [isOpen, showToast])
+  }, [customHost, isCloudEnv, isOpen, showToast])
 
   // 2. Live 1-second interval countdown timer for QR session expiration
   useEffect(() => {
@@ -366,7 +379,7 @@ export const AndroidBridgeConnectModal: FC<
 
                       <div className="flex items-center justify-between font-mono text-[11px] text-ink font-semibold bg-canvas px-2.5 py-1.5 rounded-lg border border-hairline/60">
                         <span className="truncate select-all">
-                          ws://{session.desktopHost}:{session.desktopPort}/api/android-bridge/ws
+                          {getWebSocketUrl()}
                         </span>
                       </div>
 

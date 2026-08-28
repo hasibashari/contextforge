@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { geminiConfig } from './config/gemini.config';
@@ -24,6 +26,10 @@ import { AppController } from './app.controller';
       isGlobal: true,
       load: [appConfig, databaseConfig, geminiConfig],
       envFilePath: ['.env'],
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+      exclude: ['/api/{*any}'],
     }),
     EventEmitterModule.forRoot(),
     SecurityModule,

@@ -224,8 +224,8 @@ CREATE TABLE IF NOT EXISTS workspace_integrations (
     status VARCHAR(30) DEFAULT 'connected' CHECK (status IN ('connected', 'disconnected', 'error')),
     endpoint TEXT NOT NULL,
     version VARCHAR(50) DEFAULT 'v1.0.0',
-    transport VARCHAR(30) DEFAULT 'stdio' CHECK (transport IN ('stdio', 'streamable_http', 'sse', 'rest')),
-    auth_type VARCHAR(30) DEFAULT 'none' CHECK (auth_type IN ('none', 'bearer', 'oauth', 'api_key')),
+    transport VARCHAR(30) DEFAULT 'stdio' CHECK (transport IN ('stdio', 'streamable_http', 'sse', 'rest', 'websocket_bridge')),
+    auth_type VARCHAR(30) DEFAULT 'none' CHECK (auth_type IN ('none', 'bearer', 'oauth', 'oauth2', 'api_key')),
     auth_config JSONB DEFAULT '{}',
     description TEXT NOT NULL,
     tools JSONB DEFAULT '[]',
@@ -347,3 +347,28 @@ CREATE INDEX IF NOT EXISTS idx_automation_runs_workflow ON automation_runs(workf
 CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status, category);
 CREATE INDEX IF NOT EXISTS idx_goal_tasks_goal ON goal_tasks(goal_id, status);
 CREATE INDEX IF NOT EXISTS idx_goal_evaluations_goal ON goal_evaluations(goal_id, evaluation_date DESC);
+
+-- =====================================================================
+-- 14. Row Level Security (RLS) - Hardened Security for Cloud DB
+-- =====================================================================
+
+ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE artifacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE side_agent_executions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE execution_steps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tool_calls ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_memories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE knowledge_chunks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE knowledge_sources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workspace_agents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workspace_skills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workspace_integrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE automation_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE automations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE goal_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE goal_evaluations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wiki_pages ENABLE ROW LEVEL SECURITY;

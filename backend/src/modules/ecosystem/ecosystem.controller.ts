@@ -7,9 +7,10 @@ import {
   Param,
   Body,
   Query,
+  Req,
   Res,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { EcosystemService } from './ecosystem.service';
 import { NotionOAuthService } from '../../mcp/connectors/notion/notion-oauth.service';
 import { GoogleCalendarOAuthService } from '../../mcp/connectors/google-calendar/google-calendar-oauth.service';
@@ -245,7 +246,11 @@ export class EcosystemController {
     @Query('error') error: string,
     @Res() res: Response,
   ) {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      (process.env.NODE_ENV === 'production'
+        ? 'https://contextforge-441184699407.us-central1.run.app'
+        : 'http://localhost:5173');
 
     if (error || !code) {
       return res.redirect(
@@ -306,7 +311,11 @@ export class EcosystemController {
     @Query('error') error: string,
     @Res() res: Response,
   ) {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      (process.env.NODE_ENV === 'production'
+        ? 'https://contextforge-441184699407.us-central1.run.app'
+        : 'http://localhost:5173');
 
     if (error || !code) {
       return res.redirect(
@@ -354,9 +363,19 @@ export class EcosystemController {
   // ==========================================
 
   @Post('integrations/android/pair/session')
-  createAndroidPairingSession(@Body() body?: { customHost?: string }) {
+  createAndroidPairingSession(
+    @Req() req: Request,
+    @Body() body?: { customHost?: string },
+  ) {
+    const rawHost =
+      (req.headers['x-forwarded-host'] as string) || req.headers.host;
+    const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
+
     const session = this.androidPairingService.createPairingSession(
       body?.customHost,
+      undefined,
+      rawHost,
+      proto,
     );
     return {
       success: true,

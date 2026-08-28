@@ -29,6 +29,17 @@ export class GoogleCalendarOAuthService
     );
   }
 
+  private getRedirectUri(): string {
+    if (process.env.GOOGLE_REDIRECT_URI) {
+      return process.env.GOOGLE_REDIRECT_URI;
+    }
+    const isCloud = process.env.NODE_ENV === 'production';
+    const baseUrl = isCloud
+      ? 'https://contextforge-441184699407.us-central1.run.app'
+      : 'http://localhost:3001';
+    return `${baseUrl}/api/ecosystem/oauth/google-calendar/callback`;
+  }
+
   /**
    * Generates Google OAuth 2.0 Authorization URL with least-privilege Calendar scopes
    */
@@ -41,9 +52,7 @@ export class GoogleCalendarOAuthService
     message?: string;
   } {
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const redirectUri =
-      process.env.GOOGLE_REDIRECT_URI ||
-      'http://localhost:3001/api/ecosystem/oauth/google-calendar/callback';
+    const redirectUri = this.getRedirectUri();
 
     const scopes = [
       'https://www.googleapis.com/auth/calendar.events',
@@ -82,9 +91,7 @@ export class GoogleCalendarOAuthService
   }> {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri =
-      process.env.GOOGLE_REDIRECT_URI ||
-      'http://localhost:3001/api/ecosystem/oauth/google-calendar/callback';
+    const redirectUri = this.getRedirectUri();
 
     if (!clientId || !clientSecret) {
       throw new BadRequestException(

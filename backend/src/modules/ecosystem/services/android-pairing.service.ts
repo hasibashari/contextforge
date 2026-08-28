@@ -160,13 +160,6 @@ export class AndroidPairingService implements OnModuleInit {
    * so an Android phone on the same Wi-Fi network can connect to ContextForge.
    */
   public getLocalLanIp(): string {
-    const configuredIp =
-      this.configService?.get<string>('DESKTOP_LAN_IP') ||
-      process.env.DESKTOP_LAN_IP;
-    if (configuredIp) {
-      return configuredIp.trim();
-    }
-
     const interfaces = os.networkInterfaces();
     const wifi192Ips: string[] = [];
     const lan10Ips: string[] = [];
@@ -204,18 +197,52 @@ export class AndroidPairingService implements OnModuleInit {
   public createSession(
     customHost?: string,
     portOverride?: number,
+    requestHost?: string,
+    requestProto?: string,
   ): AndroidPairingSession {
     const sessionId = `pair_${crypto.randomBytes(6).toString('hex')}`;
     const pinNumber = Math.floor(100000 + Math.random() * 900000);
     const pinCode = pinNumber.toString();
     const formattedPin = `${pinCode.slice(0, 3)}-${pinCode.slice(3)}`;
 
-    const host = customHost?.trim() || this.getLocalLanIp();
-    const port =
-      portOverride || this.configService?.get<number>('app.port', 3001) || 3001;
+    const isCloud = Boolean(
+      (requestHost &&
+        !requestHost.includes('localhost') &&
+        !requestHost.includes('127.0.0.1')) ||
+      (customHost &&
+        (customHost.includes('.run.app') ||
+          customHost.startsWith('https://'))) ||
+      requestProto === 'https' ||
+      process.env.NODE_ENV === 'production',
+    );
 
-    const confirmUrl = `http://${host}:${port}/api/ecosystem/integrations/android/pair/confirm`;
-    const wsUrl = `ws://${host}:${port}/api/android-bridge/ws`;
+    let host: string;
+    let port: number;
+    let confirmUrl: string;
+    let wsUrl: string;
+
+    if (isCloud && (requestHost || (customHost && customHost.includes('.')))) {
+      const rawHost =
+        customHost && customHost.includes('.run.app')
+          ? customHost
+          : requestHost || 'contextforge-441184699407.us-central1.run.app';
+      const cleanHost = rawHost
+        .replace(/^https?:\/\//, '')
+        .replace(/\/.*$/, '');
+
+      host = cleanHost;
+      port = 443;
+      confirmUrl = `https://${cleanHost}/api/ecosystem/integrations/android/pair/confirm`;
+      wsUrl = `wss://${cleanHost}/api/android-bridge/ws`;
+    } else {
+      host = customHost?.trim() || this.getLocalLanIp();
+      port =
+        portOverride ||
+        this.configService?.get<number>('app.port', 3001) ||
+        3001;
+      confirmUrl = `http://${host}:${port}/api/ecosystem/integrations/android/pair/confirm`;
+      wsUrl = `ws://${host}:${port}/api/android-bridge/ws`;
+    }
 
     const qrPayload = {
       protocol: 'contextforge-mcp-bridge',
@@ -259,7 +286,7 @@ export class AndroidPairingService implements OnModuleInit {
 
     this.sessions.set(sessionId, session);
     this.logger.log(
-      `📱 Created Android QR pairing session [${sessionId}] with PIN [${formattedPin}] for desktop ${host}:${port}`,
+      `📱 Created Android QR pairing session [${sessionId}] with PIN [${formattedPin}] for endpoint: ${wsUrl}`,
     );
 
     return session;
@@ -271,8 +298,10 @@ export class AndroidPairingService implements OnModuleInit {
   public createPairingSession(
     customHost?: string,
     port?: number,
+    requestHost?: string,
+    requestProto?: string,
   ): AndroidPairingSession {
-    return this.createSession(customHost, port);
+    return this.createSession(customHost, port, requestHost, requestProto);
   }
 
   /**

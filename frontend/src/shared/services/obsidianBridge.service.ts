@@ -55,8 +55,9 @@ class ObsidianBridgeService {
     if (this.bridgeSocket && this.bridgeSocket.readyState === WebSocket.OPEN) return
 
     this.isConnecting = true
-    const host = window.location.hostname || 'localhost'
-    const wsUrl = `ws://${host}:3001/api/obsidian-bridge/ws`
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.port === '5173' ? `${window.location.hostname}:3001` : window.location.host
+    const wsUrl = `${protocol}//${host}/api/obsidian-bridge/ws`
 
     try {
       this.bridgeSocket = new WebSocket(wsUrl)

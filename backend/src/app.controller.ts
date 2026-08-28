@@ -2,8 +2,8 @@ import { Controller, Get } from '@nestjs/common';
 
 @Controller()
 export class AppController {
-  @Get()
-  getRoot() {
+  @Get('api')
+  getApiRoot() {
     return {
       name: 'ContextForge AI Agentic Platform API',
       version: '1.0.0',

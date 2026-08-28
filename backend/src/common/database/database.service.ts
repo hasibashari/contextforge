@@ -26,11 +26,20 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       5000,
     );
 
+    const isSupabase =
+      connectionString?.includes('supabase.co') ||
+      connectionString?.includes('pooler.supabase.com');
+    const isSslNeeded =
+      isSupabase ||
+      process.env.NODE_ENV === 'production' ||
+      connectionString?.includes('sslmode=require');
+
     this.pool = new Pool({
       connectionString,
       max,
       idleTimeoutMillis,
       connectionTimeoutMillis,
+      ssl: isSslNeeded ? { rejectUnauthorized: false } : undefined,
     });
 
     this.pool.on('error', (err: Error) => {

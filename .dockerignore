@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+.git
+.gitignore
+.env
+.env.*
+*.log
+.gemini
+.agents
+scratch
+brain
+docs
+*.md
+All things agentic hackathon.txt

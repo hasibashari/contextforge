@@ -29,14 +29,17 @@ export const GoogleCalendarConnectModal: React.FC<
   const handleGoogleCalendarDirectConnect = async () => {
     setIsSubmitting(true)
     try {
+      const baseOrigin = window.location.port === '5173'
+        ? `${window.location.protocol}//${window.location.hostname}:3001`
+        : window.location.origin
+      const defaultAuthUrl = `${baseOrigin}/api/ecosystem/oauth/google-calendar/authorize`
+
       const res = await ecosystemApi.getGoogleCalendarOAuthUrl().catch(() => ({
         configured: false,
-        authUrl: `${window.location.protocol}//${window.location.hostname}:3001/api/ecosystem/oauth/google-calendar/authorize`,
+        authUrl: defaultAuthUrl,
       }))
 
-      const targetUrl =
-        res.authUrl ||
-        `${window.location.protocol}//${window.location.hostname}:3001/api/ecosystem/oauth/google-calendar/authorize`
+      const targetUrl = res.authUrl || defaultAuthUrl
 
       window.open(targetUrl, '_blank', 'noopener,noreferrer')
 

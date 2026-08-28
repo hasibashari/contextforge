@@ -30,15 +30,20 @@ export const NotionConnectModal: React.FC<NotionConnectModalProps> = ({
   const handleNotionDirectConnect = async () => {
     setIsSubmitting(true)
     try {
+      const baseOrigin =
+        window.location.port === '5173'
+          ? `${window.location.protocol}//${window.location.hostname}:3001`
+          : window.location.origin
+      const defaultAuthUrl = `https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=${encodeURIComponent(
+        `${baseOrigin}/api/ecosystem/oauth/notion/callback`,
+      )}`
+
       const res = await ecosystemApi.getNotionOAuthUrl().catch(() => ({
         configured: false,
-        authUrl:
-          'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback',
+        authUrl: defaultAuthUrl,
       }))
 
-      const targetUrl =
-        res.authUrl ||
-        'https://api.notion.com/v1/oauth/authorize?client_id=contextforge-workspace&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fecosystem%2Foauth%2Fnotion%2Fcallback'
+      const targetUrl = res.authUrl || defaultAuthUrl
 
       window.open(targetUrl, '_blank', 'noopener,noreferrer')
 
