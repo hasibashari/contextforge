@@ -38,16 +38,10 @@ function preprocessMarkdown(text: string): string {
   // 3. Strip inline footnote reference markers (e.g. "[^1]", "[^note]")
   processed = processed.replace(/\[\^[\w-]+\]/g, '')
 
-  // 4. Strip accidental bottom reference header, hr dividers, and trailing link lists (e.g. "References\n* [Link]...")
-  processed = processed.replace(
-    /(?:\n|^)(?:---\s*\n+)?#*\s*(?:References|Referensi|Sumber Informasi|Sources|Daftar Pustaka)[\s\S]*$/i,
-    '',
-  )
-
-  // 5. Clean up spaces before punctuation marks (e.g. "kalimat ." -> "kalimat.", "kata , " -> "kata, ")
+  // 4. Clean up spaces before punctuation marks (e.g. "kalimat ." -> "kalimat.", "kata , " -> "kata, ")
   processed = processed.replace(/[ \t]+([.,;:!?])/g, '$1')
 
-  // 6. Clean up duplicate spaces
+  // 5. Clean up duplicate spaces
   processed = processed.replace(/[ \t]{2,}/g, ' ')
 
   return processed.trim()
@@ -114,57 +108,7 @@ const GoogleCalendarLink: React.FC<{ href: string; label: string }> = ({
   )
 }
 
-/**
- * Standard Web Link for Documentation, Articles, and Outgoing Links
- */
-const StandardWebLink: React.FC<{ href: string; label: string }> = ({
-  href,
-  label,
-}) => {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={href}
-      className="text-primary font-medium hover:underline underline-offset-2 inline-flex items-center gap-1 wrap-break-word transition-colors cursor-pointer"
-    >
-      <span>{label}</span>
-      <ExternalLink size={10} className="text-muted opacity-60 shrink-0" />
-    </a>
-  )
-}
 
-/**
- * Checks if a link is an inline web search citation pill
- */
-function isWebCitationPill(href: string, label: string): boolean {
-  const clean = label.trim()
-  if (!clean) return true
-  // Domain pattern: e.g. "kompas.com", "reuters.com", "detik.com"
-  if (/^[a-z0-9-]+\.[a-z]{2,}(?:\.[a-z]{2,})?$/i.test(clean)) return true
-  // Bracketed number or plain number: e.g. "[1]", "1"
-  if (/^\[?\d+\]?$/.test(clean)) return true
-  // Explicit parenthesized domain: e.g. "CNN (cnn.com)"
-  if (/\([a-z0-9-]+\.[a-z]{2,}\)$/i.test(clean)) return true
-  // Single publisher word matching hostname: e.g. "Reuters", "Wikipedia", "Antara"
-  try {
-    const urlObj = new URL(href)
-    const hostname = urlObj.hostname.replace(/^www\./, '')
-    const brand = hostname.split('.')[0]?.toLowerCase()
-    if (
-      brand &&
-      clean.length <= 25 &&
-      !clean.includes(' ') &&
-      (clean.toLowerCase() === brand || hostname.includes(clean.toLowerCase()))
-    ) {
-      return true
-    }
-  } catch {
-    // ignore
-  }
-  return false
-}
 
 /**
  * Perplexity-style Inline Source Pill Component for Web Search Citations
@@ -476,13 +420,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
               return <GoogleCalendarLink href={hrefStr} label={labelText} />
             }
 
-            // 6. Web Search Source Citation Pill (short domain citations / [1] pills)
-            if (isWebCitationPill(hrefStr, labelText)) {
-              return <InlineSourcePill href={hrefStr} label={labelText} />
-            }
-
-            // 7. Standard Web Link (Documentation, Articles, Repositories)
-            return <StandardWebLink href={hrefStr} label={labelText} />
+            // 6. External Web Search Citations & Links
+            return <InlineSourcePill href={hrefStr} label={labelText} />
           },
           code: ({ className: codeClassName, children, ...props }) => {
             const match = /language-(\w+)/.exec(codeClassName || '')
