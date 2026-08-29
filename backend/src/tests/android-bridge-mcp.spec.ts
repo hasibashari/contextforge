@@ -15,14 +15,29 @@ import {
   TOOL_CATALOG,
   BUILTIN_FUNCTION_DECLARATIONS,
 } from '../agentic-core/tools/builtin-tools';
+import type { IntegrationsService } from '../modules/ecosystem/services/integrations.service';
+import type { McpRegistryService } from '../mcp/core';
 
 let originalFetch: typeof global.fetch;
 
 function setupFetchMock(
-  mockHandler: (url: string, init?: RequestInit) => Promise<Response>,
+  mockHandler: (
+    url: string,
+    init?: RequestInit,
+  ) => Promise<Response> | Response,
 ) {
   originalFetch = global.fetch;
-  global.fetch = mockHandler;
+  global.fetch = (url: RequestInfo | URL, init?: RequestInit) => {
+    let urlStr = '';
+    if (typeof url === 'string') {
+      urlStr = url;
+    } else if (url instanceof URL) {
+      urlStr = url.toString();
+    } else if ('url' in url) {
+      urlStr = url.url;
+    }
+    return Promise.resolve(mockHandler(urlStr, init));
+  };
 }
 
 function restoreFetchMock() {
@@ -239,7 +254,7 @@ export async function runAndroidBridgeTests() {
 
   // 9. API Client Ping Probe
   await test('9. AndroidBridgeApiClient ping returns status & device metadata', async () => {
-    setupFetchMock(async (url) => {
+    setupFetchMock((url) => {
       assert.ok(url.includes('/ping'));
       return new Response(
         JSON.stringify({ status: 'ok', device: 'Android Native MCP' }),
@@ -249,17 +264,15 @@ export async function runAndroidBridgeTests() {
 
     const client = new AndroidBridgeApiClient();
     const probe = await client.ping('http://127.0.0.1:8080');
-
     assert.strictEqual(probe.status, 'connected');
     assert.strictEqual(probe.device, 'Android Native MCP');
     assert.ok(probe.latencyMs >= 0);
-
     restoreFetchMock();
   });
 
   // 10. API Client Usage Telemetry
   await test('10. AndroidBridgeApiClient getUsage and getUsageSummary fetch telemetry correctly', async () => {
-    setupFetchMock(async (url) => {
+    setupFetchMock((url) => {
       if (url.includes('/mcp/tools/get_usage_summary')) {
         return new Response(
           JSON.stringify({
@@ -294,19 +307,17 @@ export async function runAndroidBridgeTests() {
 
     const client = new AndroidBridgeApiClient();
     const usage = await client.getUsage('http://127.0.0.1:8080');
+    const summary = await client.getUsageSummary('http://127.0.0.1:8080');
     assert.strictEqual(usage.length, 1);
     assert.strictEqual(usage[0].packageName, 'com.instagram.android');
-
-    const summary = await client.getUsageSummary('http://127.0.0.1:8080');
     assert.strictEqual(summary.date, '2026-08-25');
     assert.strictEqual(summary.mostUsedApp, 'com.google.android.youtube');
-
     restoreFetchMock();
   });
 
   // 11. API Client Foreground App Detection
   await test('11. AndroidBridgeApiClient getForegroundApp detects active application', async () => {
-    setupFetchMock(async (url) => {
+    setupFetchMock((url) => {
       assert.ok(url.includes('/mcp/tools/get_foreground_app'));
       return new Response(
         JSON.stringify({ currentForegroundApp: 'com.whatsapp' }),
@@ -317,18 +328,12 @@ export async function runAndroidBridgeTests() {
     const client = new AndroidBridgeApiClient();
     const res = await client.getForegroundApp('http://127.0.0.1:8080');
     assert.strictEqual(res.currentForegroundApp, 'com.whatsapp');
-
     restoreFetchMock();
   });
 
   // 12. API Client Focus Controls (Limit, Block, Restrictions, DND)
   await test('12. AndroidBridgeApiClient focus controls dispatch correct payloads', async () => {
-    const capturedCalls: Array<{ url: string; body?: unknown }> = [];
-
-    setupFetchMock(async (url, init) => {
-      const body = init?.body ? JSON.parse(init.body as string) : undefined;
-      capturedCalls.push({ url, body });
-
+    setupFetchMock((url) => {
       if (url.includes('/mcp/tools/set_app_limit')) {
         return new Response(
           JSON.stringify({
@@ -414,7 +419,7 @@ export async function runAndroidBridgeTests() {
 
   // 13. End-to-End Connector Tool Execution
   await test('13. AndroidBridgeMcpConnector routes all tools via executeTool safely', async () => {
-    setupFetchMock(async (url) => {
+    setupFetchMock((url) => {
       if (url.includes('/ping')) {
         return new Response(
           JSON.stringify({ status: 'ok', device: 'Android Pixel 8' }),
@@ -554,7 +559,7 @@ export async function runAndroidBridgeTests() {
 
   // 15. Offline Device Probe Handling
   await test('15. AndroidBridgeMcpConnector ping probe handles offline device without throwing', async () => {
-    setupFetchMock(async () => {
+    setupFetchMock(() => {
       throw new Error('fetch failed (ECONNREFUSED)');
     });
 
@@ -576,11 +581,11 @@ export async function runAndroidBridgeTests() {
   // 16. Android Pairing Service - Session Creation
   await test('16. AndroidPairingService creates pairing session with valid QR payload and PIN', async () => {
     const mockIntegrationsService = {
-      updateIntegration: async () => null,
-    } as any;
+      updateIntegration: () => Promise.resolve(null),
+    } as unknown as IntegrationsService;
     const mockRegistry = {
       getServer: () => null,
-    } as any;
+    } as unknown as McpRegistryService;
 
     const { AndroidPairingService } =
       await import('../modules/ecosystem/services/android-pairing.service');
@@ -608,15 +613,18 @@ export async function runAndroidBridgeTests() {
     let savedEndpoint = '';
     let savedStatus = '';
     const mockIntegrationsService = {
-      updateIntegration: async (_id: string, updates: any) => {
-        savedEndpoint = updates.endpoint;
-        savedStatus = updates.status;
-        return null;
+      updateIntegration: (
+        _id: string,
+        updates: { endpoint?: string; status?: string },
+      ) => {
+        savedEndpoint = updates.endpoint || '';
+        savedStatus = updates.status || '';
+        return Promise.resolve(null);
       },
-    } as any;
+    } as unknown as IntegrationsService;
     const mockRegistry = {
       getServer: () => null,
-    } as any;
+    } as unknown as McpRegistryService;
 
     const { AndroidPairingService } =
       await import('../modules/ecosystem/services/android-pairing.service');
@@ -647,14 +655,17 @@ export async function runAndroidBridgeTests() {
   await test('18. AndroidPairingService verifies device pairing via 6-digit PIN', async () => {
     let savedEndpoint = '';
     const mockIntegrationsService = {
-      updateIntegration: async (_id: string, updates: any) => {
-        savedEndpoint = updates.endpoint;
-        return null;
+      updateIntegration: (
+        _id: string,
+        updates: { endpoint?: string; status?: string },
+      ) => {
+        savedEndpoint = updates.endpoint || '';
+        return Promise.resolve(null);
       },
-    } as any;
+    } as unknown as IntegrationsService;
     const mockRegistry = {
       getServer: () => null,
-    } as any;
+    } as unknown as McpRegistryService;
 
     const { AndroidPairingService } =
       await import('../modules/ecosystem/services/android-pairing.service');

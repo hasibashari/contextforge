@@ -76,7 +76,11 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     try {
       const res = await this.pool.query<T>(text, params);
       const duration = Date.now() - start;
-      if (duration > 300) {
+      const slowQueryThreshold = this.configService.get<number>(
+        'database.slowQueryThreshold',
+        1000,
+      );
+      if (duration > slowQueryThreshold) {
         this.logger.warn(
           `⚠️ Slow query (${duration}ms): ${text.replace(/\s+/g, ' ').slice(0, 120)}...`,
         );

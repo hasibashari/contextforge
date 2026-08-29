@@ -4,6 +4,7 @@ import { DatabaseService } from '../../common/database/database.service';
 export interface KnowledgeSourceRow {
   id: string;
   user_id?: string;
+  guest_id?: string;
   type: string;
   name: string;
   description: string;
@@ -50,6 +51,7 @@ export class KnowledgeRepository implements OnModuleInit {
         CREATE TABLE IF NOT EXISTS knowledge_sources (
           id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
           user_id UUID,
+          guest_id VARCHAR(100) DEFAULT 'default_guest',
           type VARCHAR(50) NOT NULL,
           name VARCHAR(150) NOT NULL,
           description TEXT,
@@ -64,6 +66,9 @@ export class KnowledgeRepository implements OnModuleInit {
           created_at TIMESTAMPTZ DEFAULT NOW(),
           updated_at TIMESTAMPTZ DEFAULT NOW()
         );
+
+        ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS guest_id VARCHAR(100) DEFAULT 'default_guest';
+        CREATE INDEX IF NOT EXISTS idx_knowledge_sources_guest ON knowledge_sources(guest_id);
 
         CREATE TABLE IF NOT EXISTS knowledge_chunks (
           id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -83,14 +88,31 @@ export class KnowledgeRepository implements OnModuleInit {
     }
   }
 
-  async getAllSources(): Promise<KnowledgeSourceRow[]> {
+  async getAllSources(guestId?: string): Promise<KnowledgeSourceRow[]> {
+    if (guestId) {
+      const res = await this.db.query<KnowledgeSourceRow>(
+        `SELECT * FROM knowledge_sources WHERE guest_id = $1 ORDER BY last_synced DESC;`,
+        [guestId],
+      );
+      return res.rows;
+    }
     const res = await this.db.query<KnowledgeSourceRow>(
       `SELECT * FROM knowledge_sources ORDER BY last_synced DESC;`,
     );
     return res.rows;
   }
 
-  async getSourceById(id: string): Promise<KnowledgeSourceRow | null> {
+  async getSourceById(
+    id: string,
+    guestId?: string,
+  ): Promise<KnowledgeSourceRow | null> {
+    if (guestId) {
+      const res = await this.db.query<KnowledgeSourceRow>(
+        `SELECT * FROM knowledge_sources WHERE id = $1 AND (guest_id = $2 OR guest_id = 'default_guest');`,
+        [id, guestId],
+      );
+      return res.rows[0] || null;
+    }
     const res = await this.db.query<KnowledgeSourceRow>(
       `SELECT * FROM knowledge_sources WHERE id = $1;`,
       [id],
@@ -98,18 +120,22 @@ export class KnowledgeRepository implements OnModuleInit {
     return res.rows[0] || null;
   }
 
-  async createSource(data: {
-    type: string;
-    name: string;
-    description: string;
-    location: string;
-    meta?: string;
-    iconType?: string;
-    color?: string;
-  }): Promise<KnowledgeSourceRow> {
+  async createSource(
+    data: {
+      type: string;
+      name: string;
+      description: string;
+      location: string;
+      meta?: string;
+      iconType?: string;
+      color?: string;
+    },
+    guestId?: string,
+  ): Promise<KnowledgeSourceRow> {
+    const effectiveGuestId = guestId || 'default_guest';
     const res = await this.db.query<KnowledgeSourceRow>(
-      `INSERT INTO knowledge_sources (type, name, description, location, meta, icon_type, color, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'synced')
+      `INSERT INTO knowledge_sources (type, name, description, location, meta, icon_type, color, status, guest_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'synced', $8)
        RETURNING *;`,
       [
         data.type,
@@ -119,6 +145,7 @@ export class KnowledgeRepository implements OnModuleInit {
         data.meta || '',
         data.iconType || 'file',
         data.color || 'text-primary',
+        effectiveGuestId,
       ],
     );
     return res.rows[0];
@@ -229,15 +256,24 @@ export class KnowledgeRepository implements OnModuleInit {
     }));
   }
 
-  async getAllChunksWithEmbeddings(): Promise<KnowledgeChunkRow[]> {
-    const res = await this.db.query<KnowledgeChunkRow>(
-      `SELECT c.id, c.source_id, c.file_path, c.chunk_index, c.chunk_content, c.embedding, c.metadata, c.created_at,
+  async getAllChunksWithEmbeddings(
+    guestId?: string,
+  ): Promise<KnowledgeChunkRow[]> {
+    let query = `SELECT c.id, c.source_id, c.file_path, c.chunk_index, c.chunk_content, c.embedding, c.metadata, c.created_at,
               s.name as source_name, s.type as source_type
        FROM knowledge_chunks c
        JOIN knowledge_sources s ON c.source_id = s.id
-       WHERE s.status = 'synced'
-       ORDER BY c.created_at DESC;`,
-    );
+       WHERE s.status = 'synced'`;
+    const params: unknown[] = [];
+
+    if (guestId) {
+      query += ` AND (s.guest_id = $1 OR s.guest_id = 'default_guest')`;
+      params.push(guestId);
+    }
+
+    query += ` ORDER BY c.created_at DESC;`;
+
+    const res = await this.db.query<KnowledgeChunkRow>(query, params);
     return res.rows.map((row) => ({
       ...row,
       embedding:
@@ -252,8 +288,9 @@ export class KnowledgeRepository implements OnModuleInit {
     limit = 5,
     minSimilarity = 0.15,
     queryText?: string,
+    guestId?: string,
   ): Promise<SearchResultChunk[]> {
-    const chunks = await this.getAllChunksWithEmbeddings();
+    const chunks = await this.getAllChunksWithEmbeddings(guestId);
     if (chunks.length === 0) return [];
 
     const scored: SearchResultChunk[] = [];

@@ -171,12 +171,12 @@ Mental Model & Responsibilities:
   }
 
   // Inject Dynamic Language Mirroring Guidelines (Global Industry Standard)
-  basePrompt += `\n\n### 🌐 Language & Communication Guidelines (Dynamic Language Mirroring):
-1. **Match the User's Language**:
-   - ALWAYS detect and respond in the language used by the user in their prompt or conversation.
-   - If the user asks in **Indonesian**, provide all explanations, summaries, and conversational responses in natural, professional **Indonesian**.
-   - If the user asks in **English**, respond entirely in **English**.
-   - If the user writes in any other language, mirror and adapt to that language naturally.
+  basePrompt += `\n\n### 🌐 Language & Communication Guidelines (Strict Dynamic Language Mirroring):
+1. **Strictly Match the User's Current Language**:
+   - ALWAYS detect and respond in the EXACT language of the user's latest message.
+   - If the user's latest message is in **English**, you MUST respond entirely in **English**, regardless of whether previous conversation history or memories contain Indonesian!
+   - If the user's latest message is in **Indonesian**, you MUST respond entirely in natural, professional **Indonesian**, regardless of whether previous conversation history or memories contain English!
+   - If the user asks in any other language, mirror and adapt to that language immediately.
 2. **Code & Technical Identifiers**:
    - Keep programming code, API endpoints, variable names, CLI commands, and standardized global tech terms (e.g. *OAuth, Webhook, Frontmatter, Payload, MCP*) in English.
 3. **Artifacts & Generated Notes**:

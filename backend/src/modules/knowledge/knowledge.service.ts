@@ -22,24 +22,30 @@ export class KnowledgeService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getAllSources(): Promise<KnowledgeSourceRow[]> {
-    return this.repo.getAllSources();
+  async getAllSources(guestId?: string): Promise<KnowledgeSourceRow[]> {
+    return this.repo.getAllSources(guestId);
   }
 
-  async getSourceById(id: string): Promise<KnowledgeSourceRow | null> {
-    return this.repo.getSourceById(id);
+  async getSourceById(
+    id: string,
+    guestId?: string,
+  ): Promise<KnowledgeSourceRow | null> {
+    return this.repo.getSourceById(id, guestId);
   }
 
-  async createSource(data: {
-    type: string;
-    name: string;
-    description: string;
-    location: string;
-    meta?: string;
-    iconType?: string;
-    color?: string;
-  }): Promise<KnowledgeSourceRow> {
-    const source = await this.repo.createSource(data);
+  async createSource(
+    data: {
+      type: string;
+      name: string;
+      description: string;
+      location: string;
+      meta?: string;
+      iconType?: string;
+      color?: string;
+    },
+    guestId?: string,
+  ): Promise<KnowledgeSourceRow> {
+    const source = await this.repo.createSource(data, guestId);
     // Trigger initial indexing in background
     this.syncSource(source.id).catch((err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
@@ -57,25 +63,29 @@ export class KnowledgeService {
     }>,
     name: string,
     sourceId?: string,
+    guestId?: string,
   ): Promise<KnowledgeSourceRow> {
     let source: KnowledgeSourceRow;
 
     if (sourceId) {
-      const existing = await this.repo.getSourceById(sourceId);
+      const existing = await this.repo.getSourceById(sourceId, guestId);
       if (!existing) {
         throw new Error(`Knowledge source ${sourceId} not found`);
       }
       source = existing;
     } else {
-      source = await this.repo.createSource({
-        type: 'document_upload',
-        name: name || `Uploaded Documents (${files.length} files)`,
-        description: `Direct document uploads indexed into 1536-dim vector embeddings.`,
-        location: `upload://documents/${Date.now()}`,
-        iconType: 'upload',
-        color: 'text-primary',
-        meta: `${files.length} files uploaded`,
-      });
+      source = await this.repo.createSource(
+        {
+          type: 'document_upload',
+          name: name || `Uploaded Documents (${files.length} files)`,
+          description: `Direct document uploads indexed into 1536-dim vector embeddings.`,
+          location: `upload://documents/${Date.now()}`,
+          iconType: 'upload',
+          color: 'text-primary',
+          meta: `${files.length} files uploaded`,
+        },
+        guestId,
+      );
     }
 
     // Convert in-memory buffer directly to text documents (Zero disk duplication)
@@ -87,7 +97,7 @@ export class KnowledgeService {
 
     await this.indexDocumentsList(source, documents);
 
-    return (await this.repo.getSourceById(source.id)) || source;
+    return (await this.repo.getSourceById(source.id, guestId)) || source;
   }
 
   async updateStatus(
@@ -113,10 +123,17 @@ export class KnowledgeService {
   async searchKnowledge(
     query: string,
     limit = 5,
+    guestId?: string,
   ): Promise<SearchResultChunk[]> {
     if (!query || query.trim().length === 0) return [];
     const queryEmbedding = await this.embedding.embedText(query);
-    return this.repo.searchSimilarChunks(queryEmbedding, limit, 0.15, query);
+    return this.repo.searchSimilarChunks(
+      queryEmbedding,
+      limit,
+      0.15,
+      query,
+      guestId,
+    );
   }
 
   /**

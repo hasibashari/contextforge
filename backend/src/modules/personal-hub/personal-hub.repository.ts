@@ -33,9 +33,14 @@ export class PersonalHubRepository implements OnModuleInit {
           embedding JSONB,
           updated_at TIMESTAMPTZ DEFAULT NOW()
         );
+
+        CREATE INDEX IF NOT EXISTS idx_user_memories_user_id ON user_memories(user_id);
+        CREATE INDEX IF NOT EXISTS idx_user_memories_updated_at ON user_memories(updated_at DESC);
       `);
 
-      this.logger.log('✨ User memories table verified in PostgreSQL');
+      this.logger.log(
+        '✨ User memories table and indexes verified in PostgreSQL',
+      );
     } catch (err: unknown) {
       this.logger.error('Failed to initialize user_memories table', err);
     }

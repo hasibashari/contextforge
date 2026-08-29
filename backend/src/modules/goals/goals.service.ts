@@ -77,40 +77,44 @@ export class GoalsService {
   ) {}
 
   // --- Goal CRUD ---
-  async getAllGoals(): Promise<GoalRow[]> {
-    return this.repo.getAllGoals();
+  async getAllGoals(guestId?: string): Promise<GoalRow[]> {
+    return this.repo.getAllGoals(guestId);
   }
 
-  async getGoalById(id: string): Promise<GoalRow> {
-    const goal = await this.repo.getGoalById(id);
+  async getGoalById(id: string, guestId?: string): Promise<GoalRow> {
+    const goal = await this.repo.getGoalById(id, guestId);
     if (!goal) {
       throw new NotFoundException(`Goal with ID "${id}" not found`);
     }
     return goal;
   }
 
-  async createGoal(dto: CreateGoalDto): Promise<GoalRow> {
+  async createGoal(dto: CreateGoalDto, guestId?: string): Promise<GoalRow> {
     if (!dto.title || dto.title.trim() === '') {
       throw new BadRequestException('Goal title is required');
     }
 
-    const createdGoal = await this.repo.createGoal({
-      title: dto.title.trim(),
-      description: dto.description || '',
-      category: dto.category || 'productivity',
-      target_metrics: dto.targetMetrics || {
-        max_daily_screentime_mins: 90,
-        weekly_focus_hours: 10,
+    const createdGoal = await this.repo.createGoal(
+      {
+        title: dto.title.trim(),
+        description: dto.description || '',
+        category: dto.category || 'productivity',
+        target_metrics: dto.targetMetrics || {
+          max_daily_screentime_mins: 90,
+          weekly_focus_hours: 10,
+        },
+        cron_evaluation: dto.cronEvaluation || '0 21 * * *',
+        linked_mcp_servers: dto.linkedMcpServers || [
+          'android-bridge',
+          'google-calendar',
+          'notion',
+        ],
+        notion_parent_page_id: dto.notionParentPageId,
+        notion_database_id: dto.notionDatabaseId,
+        guest_id: guestId || 'default_guest',
       },
-      cron_evaluation: dto.cronEvaluation || '0 21 * * *',
-      linked_mcp_servers: dto.linkedMcpServers || [
-        'android-bridge',
-        'google-calendar',
-        'notion',
-      ],
-      notion_parent_page_id: dto.notionParentPageId,
-      notion_database_id: dto.notionDatabaseId,
-    });
+      guestId,
+    );
 
     // Create initial sub-tasks if provided
     if (dto.initialTasks && dto.initialTasks.length > 0) {

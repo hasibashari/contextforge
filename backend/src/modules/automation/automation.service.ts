@@ -25,12 +25,15 @@ export class AutomationService {
     private readonly orchestrator: CoreOrchestratorService,
   ) {}
 
-  async getAllAutomations(): Promise<AutomationWorkflowRow[]> {
-    return this.repo.getAllAutomations();
+  async getAllAutomations(guestId?: string): Promise<AutomationWorkflowRow[]> {
+    return this.repo.getAllAutomations(guestId);
   }
 
-  async getAutomationById(id: string): Promise<AutomationWorkflowRow> {
-    const workflow = await this.repo.getAutomationById(id);
+  async getAutomationById(
+    id: string,
+    guestId?: string,
+  ): Promise<AutomationWorkflowRow> {
+    const workflow = await this.repo.getAutomationById(id, guestId);
     if (!workflow) {
       throw new NotFoundException(`Automation with ID "${id}" not found`);
     }
@@ -39,8 +42,9 @@ export class AutomationService {
 
   async createAutomation(
     data: Partial<AutomationWorkflowRow>,
+    guestId?: string,
   ): Promise<AutomationWorkflowRow> {
-    return this.repo.createAutomation(data);
+    return this.repo.createAutomation(data, guestId);
   }
 
   async updateAutomation(

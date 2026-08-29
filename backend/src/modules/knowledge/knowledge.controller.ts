@@ -13,20 +13,21 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { KnowledgeService } from './knowledge.service';
+import { GuestId } from '../../common/decorators/guest-id.decorator';
 
 @Controller('api/knowledge')
 export class KnowledgeController {
   constructor(private readonly service: KnowledgeService) {}
 
   @Get('sources')
-  async getAllSources() {
-    const data = await this.service.getAllSources();
+  async getAllSources(@GuestId() guestId?: string) {
+    const data = await this.service.getAllSources(guestId);
     return { success: true, data };
   }
 
   @Get('sources/:id')
-  async getSourceById(@Param('id') id: string) {
-    const data = await this.service.getSourceById(id);
+  async getSourceById(@Param('id') id: string, @GuestId() guestId?: string) {
+    const data = await this.service.getSourceById(id, guestId);
     return { success: true, data };
   }
 
@@ -42,8 +43,9 @@ export class KnowledgeController {
       iconType?: string;
       color?: string;
     },
+    @GuestId() guestId?: string,
   ) {
-    const data = await this.service.createSource(body);
+    const data = await this.service.createSource(body, guestId);
     return { success: true, data };
   }
 
@@ -99,6 +101,7 @@ export class KnowledgeController {
     }>,
     @Body('name') name: string,
     @Body('sourceId') sourceId?: string,
+    @GuestId() guestId?: string,
   ) {
     if (!files || files.length === 0) {
       throw new BadRequestException('No files provided for upload.');
@@ -107,6 +110,7 @@ export class KnowledgeController {
       files,
       name,
       sourceId,
+      guestId,
     );
     return { success: true, data };
   }
@@ -131,9 +135,14 @@ export class KnowledgeController {
   async searchKnowledge(
     @Query('q') query: string,
     @Query('limit') limit?: string,
+    @GuestId() guestId?: string,
   ) {
     const parsedLimit = limit ? parseInt(limit, 10) : 5;
-    const results = await this.service.searchKnowledge(query, parsedLimit);
+    const results = await this.service.searchKnowledge(
+      query,
+      parsedLimit,
+      guestId,
+    );
     return { success: true, count: results.length, data: results };
   }
 }

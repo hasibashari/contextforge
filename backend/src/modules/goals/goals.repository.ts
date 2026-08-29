@@ -4,11 +4,12 @@ import { DatabaseService } from '../../common/database/database.service';
 export interface GoalRow {
   id: string;
   user_id?: string;
+  guest_id?: string;
   title: string;
   description: string;
   category: 'productivity' | 'learning' | 'health' | 'finance' | 'custom';
   status: 'active' | 'paused' | 'completed' | 'abandoned';
-  target_metrics: Record<string, any>;
+  target_metrics: Record<string, unknown>;
   current_progress_pct: number;
   streak_days: number;
   cron_evaluation: string;
@@ -34,7 +35,7 @@ export interface GoalTaskRow {
     | 'verified_completed'
     | 'incomplete'
     | 'unverified';
-  verification_evidence: Record<string, any>;
+  verification_evidence: Record<string, unknown>;
   verification_notes?: string;
   risk_level: 'low_risk' | 'medium_risk' | 'high_risk';
   requires_user_approval: boolean;
@@ -123,6 +124,8 @@ export class GoalsRepository implements OnModuleInit {
           created_at TIMESTAMPTZ DEFAULT NOW()
         );
 
+        ALTER TABLE goals ADD COLUMN IF NOT EXISTS guest_id VARCHAR(100) DEFAULT 'default_guest';
+        CREATE INDEX IF NOT EXISTS idx_goals_guest ON goals(guest_id);
         CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status, category);
         CREATE INDEX IF NOT EXISTS idx_goal_tasks_goal ON goal_tasks(goal_id, status);
         CREATE INDEX IF NOT EXISTS idx_goal_evaluations_goal ON goal_evaluations(goal_id, evaluation_date DESC);
@@ -159,14 +162,28 @@ export class GoalsRepository implements OnModuleInit {
   }
 
   // --- Goals CRUD ---
-  async getAllGoals(): Promise<GoalRow[]> {
+  async getAllGoals(guestId?: string): Promise<GoalRow[]> {
+    if (guestId) {
+      const res = await this.db.query<GoalRow>(
+        `SELECT * FROM goals WHERE guest_id = $1 ORDER BY created_at DESC;`,
+        [guestId],
+      );
+      return res.rows.map((r) => this.normalizeGoal(r));
+    }
     const res = await this.db.query<GoalRow>(
       `SELECT * FROM goals ORDER BY created_at DESC;`,
     );
     return res.rows.map((r) => this.normalizeGoal(r));
   }
 
-  async getGoalById(id: string): Promise<GoalRow | null> {
+  async getGoalById(id: string, guestId?: string): Promise<GoalRow | null> {
+    if (guestId) {
+      const res = await this.db.query<GoalRow>(
+        `SELECT * FROM goals WHERE id = $1 AND (guest_id = $2 OR guest_id = 'default_guest');`,
+        [id, guestId],
+      );
+      return res.rows[0] ? this.normalizeGoal(res.rows[0]) : null;
+    }
     const res = await this.db.query<GoalRow>(
       `SELECT * FROM goals WHERE id = $1;`,
       [id],
@@ -174,13 +191,14 @@ export class GoalsRepository implements OnModuleInit {
     return res.rows[0] ? this.normalizeGoal(res.rows[0]) : null;
   }
 
-  async createGoal(data: Partial<GoalRow>): Promise<GoalRow> {
+  async createGoal(data: Partial<GoalRow>, guestId?: string): Promise<GoalRow> {
+    const effectiveGuestId = guestId || data.guest_id || 'default_guest';
     const res = await this.db.query<GoalRow>(
       `INSERT INTO goals (
         title, description, category, status, target_metrics, 
         current_progress_pct, streak_days, cron_evaluation, linked_mcp_servers,
-        notion_parent_page_id, notion_database_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        notion_parent_page_id, notion_database_id, guest_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *;`,
       [
         data.title,
@@ -198,6 +216,7 @@ export class GoalsRepository implements OnModuleInit {
         ],
         data.notion_parent_page_id || null,
         data.notion_database_id || null,
+        effectiveGuestId,
       ],
     );
     return this.normalizeGoal(res.rows[0]);
@@ -377,24 +396,24 @@ export class GoalsRepository implements OnModuleInit {
     return this.normalizeEvaluation(res.rows[0]);
   }
 
-  /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument */
-  private normalizeGoal(row: any): GoalRow {
+  private normalizeGoal(row: GoalRow): GoalRow {
     return {
       id: String(row.id || ''),
       user_id: row.user_id ? String(row.user_id) : undefined,
+      guest_id: row.guest_id ? String(row.guest_id) : undefined,
       title: String(row.title || ''),
       description: String(row.description || ''),
-      category: (row.category as GoalRow['category']) || 'productivity',
-      status: (row.status as GoalRow['status']) || 'active',
+      category: row.category || 'productivity',
+      status: row.status || 'active',
       target_metrics:
         typeof row.target_metrics === 'string'
           ? (JSON.parse(row.target_metrics) as Record<string, unknown>)
-          : (row.target_metrics as Record<string, unknown>) || {},
+          : row.target_metrics || {},
       current_progress_pct: Number(row.current_progress_pct || 0),
       streak_days: Number(row.streak_days || 0),
       cron_evaluation: String(row.cron_evaluation || '0 21 * * *'),
       linked_mcp_servers: Array.isArray(row.linked_mcp_servers)
-        ? (row.linked_mcp_servers as string[])
+        ? row.linked_mcp_servers
         : [],
       notion_parent_page_id: row.notion_parent_page_id
         ? String(row.notion_parent_page_id)
@@ -407,8 +426,7 @@ export class GoalsRepository implements OnModuleInit {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private normalizeTask(row: any): GoalTaskRow {
+  private normalizeTask(row: GoalTaskRow): GoalTaskRow {
     return {
       id: String(row.id || ''),
       goal_id: String(row.goal_id || ''),
@@ -422,26 +440,23 @@ export class GoalsRepository implements OnModuleInit {
       mcp_resource_id: row.mcp_resource_id
         ? String(row.mcp_resource_id)
         : undefined,
-      status: (row.status as GoalTaskRow['status']) || 'pending',
+      status: row.status || 'pending',
       verification_evidence:
         typeof row.verification_evidence === 'string'
           ? (JSON.parse(row.verification_evidence) as Record<string, unknown>)
-          : (row.verification_evidence as Record<string, unknown>) || {},
+          : row.verification_evidence || {},
       verification_notes: row.verification_notes
         ? String(row.verification_notes)
         : undefined,
-      risk_level: (row.risk_level as GoalTaskRow['risk_level']) || 'low_risk',
+      risk_level: row.risk_level || 'low_risk',
       requires_user_approval: Boolean(row.requires_user_approval),
-      user_approval_status:
-        (row.user_approval_status as GoalTaskRow['user_approval_status']) ||
-        'none',
+      user_approval_status: row.user_approval_status || 'none',
       created_at: String(row.created_at || ''),
       updated_at: String(row.updated_at || ''),
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private normalizeEvaluation(row: any): GoalEvaluationRow {
+  private normalizeEvaluation(row: GoalEvaluationRow): GoalEvaluationRow {
     return {
       id: String(row.id || ''),
       goal_id: String(row.goal_id || ''),
@@ -454,11 +469,11 @@ export class GoalsRepository implements OnModuleInit {
       insights:
         typeof row.insights === 'string'
           ? (JSON.parse(row.insights) as string[])
-          : (row.insights as string[]) || [],
+          : row.insights || [],
       adaptations_proposed:
         typeof row.adaptations_proposed === 'string'
           ? (JSON.parse(row.adaptations_proposed) as string[])
-          : (row.adaptations_proposed as string[]) || [],
+          : row.adaptations_proposed || [],
       notion_page_url: row.notion_page_url
         ? String(row.notion_page_url)
         : undefined,

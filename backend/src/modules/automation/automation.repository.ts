@@ -3,6 +3,7 @@ import { DatabaseService } from '../../common/database/database.service';
 
 export interface AutomationWorkflowRow {
   id: string;
+  guest_id?: string;
   name: string;
   description: string;
   agent_id: string;
@@ -56,6 +57,7 @@ export class AutomationRepository implements OnModuleInit {
       await this.db.query(`
         CREATE TABLE IF NOT EXISTS automations (
           id VARCHAR(100) PRIMARY KEY,
+          guest_id VARCHAR(100) DEFAULT 'default_guest',
           name VARCHAR(255) NOT NULL,
           description TEXT NOT NULL,
           agent_id VARCHAR(100) NOT NULL,
@@ -75,6 +77,9 @@ export class AutomationRepository implements OnModuleInit {
           created_at TIMESTAMPTZ DEFAULT NOW(),
           updated_at TIMESTAMPTZ DEFAULT NOW()
         );
+
+        ALTER TABLE automations ADD COLUMN IF NOT EXISTS guest_id VARCHAR(100) DEFAULT 'default_guest';
+        CREATE INDEX IF NOT EXISTS idx_automations_guest ON automations(guest_id);
 
         CREATE TABLE IF NOT EXISTS automation_runs (
           id VARCHAR(100) PRIMARY KEY,
@@ -110,14 +115,31 @@ export class AutomationRepository implements OnModuleInit {
     }
   }
 
-  async getAllAutomations(): Promise<AutomationWorkflowRow[]> {
+  async getAllAutomations(guestId?: string): Promise<AutomationWorkflowRow[]> {
+    if (guestId) {
+      const res = await this.db.query<AutomationWorkflowRow>(
+        `SELECT * FROM automations WHERE guest_id = $1 ORDER BY created_at DESC;`,
+        [guestId],
+      );
+      return res.rows;
+    }
     const res = await this.db.query<AutomationWorkflowRow>(
       `SELECT * FROM automations ORDER BY created_at DESC;`,
     );
     return res.rows;
   }
 
-  async getAutomationById(id: string): Promise<AutomationWorkflowRow | null> {
+  async getAutomationById(
+    id: string,
+    guestId?: string,
+  ): Promise<AutomationWorkflowRow | null> {
+    if (guestId) {
+      const res = await this.db.query<AutomationWorkflowRow>(
+        `SELECT * FROM automations WHERE id = $1 AND (guest_id = $2 OR guest_id = 'default_guest');`,
+        [id, guestId],
+      );
+      return res.rows[0] || null;
+    }
     const res = await this.db.query<AutomationWorkflowRow>(
       `SELECT * FROM automations WHERE id = $1;`,
       [id],
@@ -127,14 +149,16 @@ export class AutomationRepository implements OnModuleInit {
 
   async createAutomation(
     data: Partial<AutomationWorkflowRow>,
+    guestId?: string,
   ): Promise<AutomationWorkflowRow> {
     const id = data.id || `auto-${Date.now()}`;
+    const effectiveGuestId = guestId || data.guest_id || 'default_guest';
     const res = await this.db.query<AutomationWorkflowRow>(
       `INSERT INTO automations (
         id, name, description, agent_id, agent_name, mcp_server_id, mcp_tools,
         trigger_type, schedule_cron, schedule_label, event_source, prompt_template,
-        guardrail_strict_hitl, is_active, total_runs
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        guardrail_strict_hitl, is_active, total_runs, guest_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *;`,
       [
         id,
@@ -152,6 +176,7 @@ export class AutomationRepository implements OnModuleInit {
         data.guardrail_strict_hitl ?? false,
         data.is_active ?? true,
         0,
+        effectiveGuestId,
       ],
     );
     return res.rows[0];

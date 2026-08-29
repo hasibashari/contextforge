@@ -16,25 +16,26 @@ import {
   CreateGoalTaskDto,
   UpdateGoalTaskStatusDto,
 } from './dto/goal-task.dto';
+import { GuestId } from '../../common/decorators/guest-id.decorator';
 
 @Controller('api/goals')
 export class GoalsController {
   constructor(private readonly goalsService: GoalsService) {}
 
   @Get()
-  async getAllGoals() {
-    return this.goalsService.getAllGoals();
+  async getAllGoals(@GuestId() guestId?: string) {
+    return this.goalsService.getAllGoals(guestId);
   }
 
   @Get(':id')
-  async getGoalById(@Param('id') id: string) {
-    return this.goalsService.getGoalById(id);
+  async getGoalById(@Param('id') id: string, @GuestId() guestId?: string) {
+    return this.goalsService.getGoalById(id, guestId);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createGoal(@Body() dto: CreateGoalDto) {
-    return this.goalsService.createGoal(dto);
+  async createGoal(@Body() dto: CreateGoalDto, @GuestId() guestId?: string) {
+    return this.goalsService.createGoal(dto, guestId);
   }
 
   @Patch(':id')

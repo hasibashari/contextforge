@@ -78,10 +78,12 @@ export class IntegrationsService {
     // Run parallel live health probe on all integrations
     const probed: WorkspaceIntegrationRow[] = await Promise.all(
       rows.map(async (row): Promise<WorkspaceIntegrationRow> => {
-        // Special check: Android Bridge live WebSocket connection
+        // 1. Special check: Android Bridge live WebSocket connection
         if (row.id === 'int-android-bridge-mcp') {
-          if (this.androidBridgeGateway?.isBridgeConnected()) {
-            const devInfo = this.androidBridgeGateway.getDeviceInfo();
+          const isConnected =
+            this.androidBridgeGateway?.isBridgeConnected() ?? false;
+          if (isConnected) {
+            const devInfo = this.androidBridgeGateway!.getDeviceInfo();
             return {
               ...row,
               status: 'connected',
@@ -95,15 +97,111 @@ export class IntegrationsService {
                 batteryLevel: devInfo.batteryLevel,
               },
             };
+          } else {
+            return {
+              ...row,
+              status: 'disconnected',
+              health_message:
+                'Android device not connected. Scan QR code to pair.',
+              latency_ms: 0,
+              last_ping_ms: 0,
+            };
           }
         }
 
-        // If the user has explicitly disconnected the connector in DB, honor it
+        // 2. Special check: Obsidian Vault live browser bridge
+        if (row.id === 'int-obsidian-vault-mcp') {
+          const pathAccess = await this.obsidianVaultService.verifyPathAccess();
+          if (pathAccess.isAccessible && pathAccess.isClientPaired) {
+            return {
+              ...row,
+              status: 'connected',
+              health_message:
+                pathAccess.reason ||
+                `Connected to Vault "${pathAccess.vaultName}"`,
+              latency_ms: 4,
+              last_ping_ms: 4,
+            };
+          } else {
+            return {
+              ...row,
+              status: 'disconnected',
+              health_message: 'Obsidian vault not paired on this device',
+              latency_ms: 0,
+              last_ping_ms: 0,
+            };
+          }
+        }
+
+        // 3. Special check: Google Calendar OAuth tokens
+        if (row.id === 'int-google-calendar-mcp') {
+          const authCfg = (row.auth_config as Record<string, unknown>) || {};
+          const hasToken = Boolean(
+            authCfg.accessToken || authCfg.refreshToken || authCfg.tokens,
+          );
+          if (!hasToken) {
+            return {
+              ...row,
+              status: 'disconnected',
+              health_message:
+                'Google Calendar not connected. Click Connect to authorize.',
+              latency_ms: 0,
+              last_ping_ms: 0,
+            };
+          }
+          const probe = await this.mcpGateway.pingServer(row.id);
+          const isConnected = probe.status === 'connected';
+          return {
+            ...row,
+            status: isConnected ? 'connected' : 'disconnected',
+            health_message: isConnected
+              ? 'Google Calendar MCP Connected & Ready'
+              : probe.message || 'Google Calendar auth expired',
+            latency_ms: isConnected ? probe.latencyMs || 20 : 0,
+            last_ping_ms: isConnected ? probe.latencyMs || 20 : 0,
+          };
+        }
+
+        // 4. Special check: Notion API key or OAuth tokens
+        if (row.id === 'int-notion-mcp') {
+          const authCfg = (row.auth_config as Record<string, unknown>) || {};
+          const hasToken = Boolean(
+            process.env.NOTION_API_KEY ||
+            authCfg.accessToken ||
+            authCfg.botId ||
+            authCfg.token,
+          );
+          if (!hasToken) {
+            return {
+              ...row,
+              status: 'disconnected',
+              health_message:
+                'Notion Workspace not connected. Click Connect to authorize.',
+              latency_ms: 0,
+              last_ping_ms: 0,
+            };
+          }
+          const probe = await this.mcpGateway.pingServer(row.id);
+          const isConnected = probe.status === 'connected';
+          return {
+            ...row,
+            status: isConnected ? 'connected' : 'disconnected',
+            health_message: isConnected
+              ? 'Notion Workspace MCP Connected & Ready'
+              : probe.message || 'Notion auth expired',
+            latency_ms: isConnected ? probe.latencyMs || 24 : 0,
+            last_ping_ms: isConnected ? probe.latencyMs || 24 : 0,
+          };
+        }
+
+        // 5. If the user has explicitly disconnected the connector in DB, honor it
         if (row.status === 'disconnected') {
           return {
             ...row,
             status: 'disconnected',
             health_message: 'Disconnected by user',
+            latency_ms: 0,
+            last_ping_ms: 0,
           };
         }
 
@@ -111,36 +209,28 @@ export class IntegrationsService {
           const probe = await this.mcpGateway.pingServer(row.id);
           const isProbeSuccess = probe.status === 'connected';
 
-          // Preserve connected status if already configured/paired in DB
-          const effectiveStatus: WorkspaceIntegrationRow['status'] =
-            row.status === 'connected'
-              ? 'connected'
-              : isProbeSuccess
-                ? 'connected'
-                : 'disconnected';
-
-          const effectiveLatency = probe.latencyMs || row.latency_ms || 12;
-
           return {
             ...row,
-            status: effectiveStatus,
+            status: isProbeSuccess ? 'connected' : 'disconnected',
             health_message:
               probe.message ||
-              (effectiveStatus === 'connected'
+              (isProbeSuccess
                 ? 'MCP Server Connected & Ready'
                 : 'Disconnected'),
-            latency_ms: effectiveLatency,
-            last_ping_ms: effectiveLatency,
+            latency_ms: isProbeSuccess
+              ? probe.latencyMs || row.latency_ms || 12
+              : 0,
+            last_ping_ms: isProbeSuccess
+              ? probe.latencyMs || row.latency_ms || 12
+              : 0,
           };
         } catch {
           return {
             ...row,
-            status: row.status,
-            health_message:
-              row.status === 'connected'
-                ? 'MCP server active'
-                : 'MCP connection probe unavailable',
-            latency_ms: row.latency_ms || 14,
+            status: 'disconnected',
+            health_message: 'MCP connection probe failed or server unreachable',
+            latency_ms: 0,
+            last_ping_ms: 0,
           };
         }
       }),

@@ -12,6 +12,7 @@ import type { Response } from 'express';
 import { AutomationService } from './automation.service';
 import { AutomationSchedulerService } from './automation-scheduler.service';
 import { CreateAutomationDto, UpdateAutomationDto } from './dto/automation.dto';
+import { GuestId } from '../../common/decorators/guest-id.decorator';
 
 @Controller('api/automations')
 export class AutomationController {
@@ -21,8 +22,8 @@ export class AutomationController {
   ) {}
 
   @Get()
-  async getAll() {
-    const data = await this.service.getAllAutomations();
+  async getAll(@GuestId() guestId?: string) {
+    const data = await this.service.getAllAutomations(guestId);
     return { success: true, data };
   }
 
@@ -50,15 +51,15 @@ export class AutomationController {
   }
 
   @Get(':id')
-  async getById(@Param('id') id: string) {
-    const data = await this.service.getAutomationById(id);
+  async getById(@Param('id') id: string, @GuestId() guestId?: string) {
+    const data = await this.service.getAutomationById(id, guestId);
     return { success: true, data };
   }
 
   @Post()
-  async create(@Body() body: CreateAutomationDto) {
+  async create(@Body() body: CreateAutomationDto, @GuestId() guestId?: string) {
     const entity = CreateAutomationDto.toEntity(body);
-    const data = await this.service.createAutomation(entity);
+    const data = await this.service.createAutomation(entity, guestId);
     return { success: true, data };
   }
 
