@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Globe,
   ExternalLink,
+  Calendar,
 } from 'lucide-react'
 
 interface MarkdownRendererProps {
@@ -53,8 +54,120 @@ function preprocessMarkdown(text: string): string {
 }
 
 /**
- * Perplexity-style Inline Source Pill Component
- * Displays a sleek, clickable badge with website favicon and publisher/domain name
+ * Clean Document Link for Notion Workspace Pages & Databases
+ */
+const NotionDocumentLink: React.FC<{ href: string; label: string }> = ({
+  href,
+  label,
+}) => {
+  const displayTitle = label.trim() || 'Notion Page'
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`Open Notion Page: ${displayTitle}`}
+      className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-primary transition-colors cursor-pointer no-underline group my-0.5 align-baseline"
+    >
+      <span className="inline-flex items-center justify-center w-4 h-4 rounded bg-canvas-soft border border-hairline shrink-0 text-[10px] font-bold text-ink group-hover:border-primary/40 group-hover:text-primary transition-colors select-none">
+        N
+      </span>
+      <span className="underline decoration-hairline-strong underline-offset-3 group-hover:decoration-primary group-hover:text-primary transition-colors wrap-break-word">
+        {displayTitle}
+      </span>
+      <ExternalLink
+        size={10}
+        className="text-muted group-hover:text-primary opacity-60 group-hover:opacity-100 shrink-0 transition-opacity"
+      />
+    </a>
+  )
+}
+
+/**
+ * Clean Event Link for Google Calendar
+ */
+const GoogleCalendarLink: React.FC<{ href: string; label: string }> = ({
+  href,
+  label,
+}) => {
+  const displayTitle = label.trim() || 'Google Calendar Event'
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`Open Google Calendar: ${displayTitle}`}
+      className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-primary transition-colors cursor-pointer no-underline group my-0.5 align-baseline"
+    >
+      <Calendar
+        size={13}
+        className="text-[#4285f4] shrink-0 group-hover:text-primary transition-colors"
+      />
+      <span className="underline decoration-hairline-strong underline-offset-3 group-hover:decoration-primary group-hover:text-primary transition-colors wrap-break-word">
+        {displayTitle}
+      </span>
+      <ExternalLink
+        size={10}
+        className="text-muted group-hover:text-primary opacity-60 group-hover:opacity-100 shrink-0 transition-opacity"
+      />
+    </a>
+  )
+}
+
+/**
+ * Standard Web Link for Documentation, Articles, and Outgoing Links
+ */
+const StandardWebLink: React.FC<{ href: string; label: string }> = ({
+  href,
+  label,
+}) => {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={href}
+      className="text-primary font-medium hover:underline underline-offset-2 inline-flex items-center gap-1 wrap-break-word transition-colors cursor-pointer"
+    >
+      <span>{label}</span>
+      <ExternalLink size={10} className="text-muted opacity-60 shrink-0" />
+    </a>
+  )
+}
+
+/**
+ * Checks if a link is an inline web search citation pill
+ */
+function isWebCitationPill(href: string, label: string): boolean {
+  const clean = label.trim()
+  if (!clean) return true
+  // Domain pattern: e.g. "kompas.com", "reuters.com", "detik.com"
+  if (/^[a-z0-9-]+\.[a-z]{2,}(?:\.[a-z]{2,})?$/i.test(clean)) return true
+  // Bracketed number or plain number: e.g. "[1]", "1"
+  if (/^\[?\d+\]?$/.test(clean)) return true
+  // Explicit parenthesized domain: e.g. "CNN (cnn.com)"
+  if (/\([a-z0-9-]+\.[a-z]{2,}\)$/i.test(clean)) return true
+  // Single publisher word matching hostname: e.g. "Reuters", "Wikipedia", "Antara"
+  try {
+    const urlObj = new URL(href)
+    const hostname = urlObj.hostname.replace(/^www\./, '')
+    const brand = hostname.split('.')[0]?.toLowerCase()
+    if (
+      brand &&
+      clean.length <= 25 &&
+      !clean.includes(' ') &&
+      (clean.toLowerCase() === brand || hostname.includes(clean.toLowerCase()))
+    ) {
+      return true
+    }
+  } catch {
+    // ignore
+  }
+  return false
+}
+
+/**
+ * Perplexity-style Inline Source Pill Component for Web Search Citations
  */
 const InlineSourcePill: React.FC<{ href: string; label: string }> = ({
   href,
@@ -128,7 +241,7 @@ const InlineSourcePill: React.FC<{ href: string; label: string }> = ({
       ) : (
         <Globe size={11} className="text-[#3b82f6] shrink-0" />
       )}
-      <span className="max-w-32 sm:max-w-40 truncate text-[11px] font-semibold text-ink group-hover:text-primary transition-colors">
+      <span className="max-w-40 sm:max-w-56 truncate text-[11px] font-semibold text-ink group-hover:text-primary transition-colors">
         {displayLabel}
       </span>
       <ExternalLink
@@ -347,14 +460,29 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
               )
             }
 
-            // 4. Perplexity-style Inline Source Pill for External Web Links
             const labelText = typeof children === 'string'
               ? children
               : Array.isArray(children)
                 ? children.map(c => typeof c === 'string' ? c : '').join('')
                 : String(children || '')
 
-            return <InlineSourcePill href={hrefStr} label={labelText} />
+            // 4. Notion Workspace Document Link
+            if (hrefStr.includes('notion.so') || hrefStr.includes('notion.site')) {
+              return <NotionDocumentLink href={hrefStr} label={labelText} />
+            }
+
+            // 5. Google Calendar Link
+            if (hrefStr.includes('calendar.google.com')) {
+              return <GoogleCalendarLink href={hrefStr} label={labelText} />
+            }
+
+            // 6. Web Search Source Citation Pill (short domain citations / [1] pills)
+            if (isWebCitationPill(hrefStr, labelText)) {
+              return <InlineSourcePill href={hrefStr} label={labelText} />
+            }
+
+            // 7. Standard Web Link (Documentation, Articles, Repositories)
+            return <StandardWebLink href={hrefStr} label={labelText} />
           },
           code: ({ className: codeClassName, children, ...props }) => {
             const match = /language-(\w+)/.exec(codeClassName || '')
