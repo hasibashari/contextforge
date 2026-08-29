@@ -34,7 +34,6 @@ export async function runNotionAndObsidianTests() {
     assert.strictEqual(obsidianServer.hasTool('obsidian_read_note'), true);
     assert.strictEqual(obsidianServer.hasTool('obsidian_create_note'), true);
     assert.strictEqual(obsidianServer.hasTool('obsidian_update_note'), true);
-    assert.strictEqual(obsidianServer.hasTool('obsidian_write_note'), false);
     assert.strictEqual(obsidianServer.hasTool('obsidian_delete_file'), true);
     assert.strictEqual(obsidianServer.hasTool('obsidian_search_files'), true);
     assert.strictEqual(

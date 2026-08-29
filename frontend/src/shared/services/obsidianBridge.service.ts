@@ -194,13 +194,12 @@ class ObsidianBridgeService {
           resultData = { path: filePath, content }
           break
         }
-        case 'create_note':
-        case 'write_note': {
+        case 'create_note': {
           if (!handle) throw new Error('No local vault paired')
           const filePath = (req.payload?.path as string) || ''
           const content = (req.payload?.content as string) || ''
           const ok = await fs.writeNoteToLocalVault(handle, filePath, content)
-          if (!ok) throw new Error(`Failed to write note to local vault at: ${filePath}`)
+          if (!ok) throw new Error(`Failed to create note in local vault at: ${filePath}`)
           resultData = { success: true, path: filePath }
           break
         }

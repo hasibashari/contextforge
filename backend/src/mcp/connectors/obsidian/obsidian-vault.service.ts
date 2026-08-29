@@ -360,7 +360,7 @@ export class ObsidianVaultService {
     const obsidianUri = `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${cleanFileUri}`;
 
     // Dispatch write over Browser Bridge
-    await this.bridgeGateway.dispatchBridgeRequest('write_note', {
+    await this.bridgeGateway.dispatchBridgeRequest('create_note', {
       path: cleanRelPath,
       title,
       content: formattedContent,
@@ -369,7 +369,7 @@ export class ObsidianVaultService {
 
     const durationMs = Date.now() - startTime;
     this.logger.log(
-      `✅ [Browser Bridge] Successfully written note: "${cleanRelPath}" (${bytesWritten} bytes)`,
+      `✅ [Browser Bridge] Successfully created note: "${cleanRelPath}" (${bytesWritten} bytes)`,
     );
 
     return {
