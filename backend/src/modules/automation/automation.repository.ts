@@ -98,13 +98,6 @@ export class AutomationRepository implements OnModuleInit {
           output_artifact_url TEXT,
           created_at TIMESTAMPTZ DEFAULT NOW()
         );
-
-        -- Normalize legacy agent IDs
-        UPDATE automations SET agent_id = 'agent-personal-assistant' WHERE agent_id IN ('agent-action-worker', 'agent-action', 'agent-conversational');
-        UPDATE automations SET agent_id = 'agent-research' WHERE agent_id = 'agent-researcher';
-        UPDATE automations SET mcp_tools = ARRAY['obsidian_read_note', 'obsidian_write_note']
-        WHERE mcp_tools = ARRAY['obsidian_vault_reader', 'obsidian_vault_writer']
-           OR mcp_tools = ARRAY['obsidian_read_vault', 'obsidian_write_note'];
       `);
 
       this.logger.log(

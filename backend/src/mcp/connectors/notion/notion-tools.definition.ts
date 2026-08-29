@@ -99,4 +99,45 @@ export const NOTION_MCP_TOOLS: McpToolDefinition[] = [
     },
     readOnly: false,
   },
+  {
+    id: 't-notion-5',
+    name: 'notion_update_page',
+    description:
+      'Updates an existing Notion page or note. Supports updating title, appending or replacing markdown content blocks, updating database properties, and archiving notes.',
+    parametersSchema: {
+      type: 'object',
+      properties: {
+        pageId: {
+          type: 'string',
+          description: 'The 32-character Notion Page ID or UUID to update',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional updated title for the page',
+        },
+        content: {
+          type: 'string',
+          description: 'Optional markdown text content to append or replace',
+        },
+        mode: {
+          type: 'string',
+          enum: ['append', 'replace'],
+          description:
+            'Content insertion mode: "append" (default, adds blocks to the bottom of the page) or "replace" (removes existing content blocks and writes new content)',
+        },
+        properties: {
+          type: 'object',
+          description:
+            'Optional custom properties object for database entries (e.g. {"Status": "Done"})',
+        },
+        archived: {
+          type: 'boolean',
+          description:
+            'Optional boolean flag to archive (trash) or unarchive the page',
+        },
+      },
+      required: ['pageId'],
+    },
+    readOnly: false,
+  },
 ];

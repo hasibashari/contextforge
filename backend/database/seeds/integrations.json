@@ -85,14 +85,29 @@
         "readOnly": true
       },
       {
-        "id": "t-obsidian-8",
-        "name": "obsidian_write_note",
-        "description": "Create or update a Markdown note with YAML frontmatter in the vault",
+        "id": "t-obsidian-8a",
+        "name": "obsidian_create_note",
+        "description": "Create a new Markdown note with YAML frontmatter in the vault",
         "parametersSchema": {
           "title": "string",
           "path": "string",
           "content": "string",
+          "tags": "array",
+          "preventOverwrite": "boolean",
           "createMissingFolders": "boolean"
+        },
+        "readOnly": false
+      },
+      {
+        "id": "t-obsidian-8b",
+        "name": "obsidian_update_note",
+        "description": "Append or replace content in an existing Markdown note in the vault",
+        "parametersSchema": {
+          "path": "string",
+          "content": "string",
+          "mode": "string",
+          "section": "string",
+          "title": "string"
         },
         "readOnly": false
       },

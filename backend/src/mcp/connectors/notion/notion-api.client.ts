@@ -437,6 +437,197 @@ export class NotionApiClient {
   }
 
   // ==========================================
+  // UPDATE PAGE
+  // ==========================================
+
+  async updatePage(
+    authHeaders: Record<string, string>,
+    pageId: string,
+    options: {
+      title?: string;
+      content?: string;
+      mode?: 'append' | 'replace';
+      properties?: Record<string, unknown>;
+      archived?: boolean;
+    },
+  ): Promise<{
+    id: string;
+    title: string;
+    url: string;
+    lastEditedTime: string;
+    archived?: boolean;
+    blocksAppended?: number;
+  }> {
+    const cleanPageId = pageId.replace(/-/g, '');
+    const updatePayload: Record<string, unknown> = {};
+
+    // 1. If archiving/unarchiving
+    if (typeof options.archived === 'boolean') {
+      updatePayload.archived = options.archived;
+    }
+
+    // 2. If title or properties provided, resolve page schema/title property
+    let pageTitle = options.title || '';
+    if (options.title || options.properties) {
+      const propertiesPayload: Record<string, unknown> = {};
+
+      if (options.title) {
+        try {
+          const pageGetRes = await fetch(
+            `https://api.notion.com/v1/pages/${cleanPageId}`,
+            { headers: authHeaders },
+          );
+          if (pageGetRes.ok) {
+            const pageObj = (await pageGetRes.json()) as NotionRawObject;
+            let titlePropKey = 'title';
+            if (pageObj.properties) {
+              for (const [k, v] of Object.entries(pageObj.properties)) {
+                if (
+                  v &&
+                  typeof v === 'object' &&
+                  'type' in v &&
+                  v.type === 'title'
+                ) {
+                  titlePropKey = k;
+                  break;
+                }
+              }
+            }
+            propertiesPayload[titlePropKey] = {
+              title: splitIntoRichText(options.title),
+            };
+          } else {
+            propertiesPayload['title'] = {
+              title: splitIntoRichText(options.title),
+            };
+          }
+        } catch {
+          propertiesPayload['title'] = {
+            title: splitIntoRichText(options.title),
+          };
+        }
+      }
+
+      // Merge additional custom properties if supplied
+      if (options.properties) {
+        for (const [key, val] of Object.entries(options.properties)) {
+          if (typeof val === 'object' && val !== null) {
+            propertiesPayload[key] = val;
+          } else if (typeof val === 'string') {
+            propertiesPayload[key] = {
+              status: { name: val },
+            };
+          }
+        }
+      }
+
+      if (Object.keys(propertiesPayload).length > 0) {
+        updatePayload.properties = propertiesPayload;
+      }
+    }
+
+    // 3. Send PATCH to update page properties / metadata if any payload exists
+    let updatedPageJson: NotionRawObject | undefined;
+    if (Object.keys(updatePayload).length > 0) {
+      const updateRes = await fetch(
+        `https://api.notion.com/v1/pages/${cleanPageId}`,
+        {
+          method: 'PATCH',
+          headers: authHeaders,
+          body: JSON.stringify(updatePayload),
+        },
+      );
+
+      if (!updateRes.ok) {
+        const errText = await updateRes.text();
+        throw new Error(
+          `Failed to update Notion page properties (HTTP ${updateRes.status}): ${errText}`,
+        );
+      }
+
+      updatedPageJson = (await updateRes.json()) as NotionRawObject;
+    } else {
+      const getRes = await fetch(
+        `https://api.notion.com/v1/pages/${cleanPageId}`,
+        { headers: authHeaders },
+      );
+      if (getRes.ok) {
+        updatedPageJson = (await getRes.json()) as NotionRawObject;
+      }
+    }
+
+    if (!pageTitle && updatedPageJson) {
+      pageTitle = extractTitle(updatedPageJson);
+    }
+
+    // 4. Update content blocks if markdown content provided
+    let blocksAppendedCount = 0;
+    if (typeof options.content === 'string' && options.content.trim()) {
+      const mode = options.mode || 'append';
+
+      // If mode is 'replace', remove existing child blocks first
+      if (mode === 'replace') {
+        try {
+          const blocksRes = await fetch(
+            `https://api.notion.com/v1/blocks/${cleanPageId}/children?page_size=100`,
+            { headers: authHeaders },
+          );
+          if (blocksRes.ok) {
+            const blocksJson = (await blocksRes.json()) as {
+              results?: NotionBlock[];
+            };
+            for (const b of blocksJson.results || []) {
+              if (b.id) {
+                await fetch(`https://api.notion.com/v1/blocks/${b.id}`, {
+                  method: 'DELETE',
+                  headers: authHeaders,
+                }).catch(() => null);
+              }
+            }
+          }
+        } catch (delErr) {
+          this.logger.warn(
+            `Failed to clear existing blocks on page ${cleanPageId}: ${String(delErr)}`,
+          );
+        }
+      }
+
+      // Convert new markdown content to blocks and append in batches
+      const blocksToAppend = convertMarkdownToBlocks(options.content);
+      blocksAppendedCount = blocksToAppend.length;
+
+      for (let i = 0; i < blocksToAppend.length; i += 90) {
+        const batch = blocksToAppend.slice(i, i + 90);
+        const appendRes = await fetch(
+          `https://api.notion.com/v1/blocks/${cleanPageId}/children`,
+          {
+            method: 'PATCH',
+            headers: authHeaders,
+            body: JSON.stringify({ children: batch }),
+          },
+        );
+
+        if (!appendRes.ok) {
+          const errText = await appendRes.text();
+          this.logger.warn(
+            `Failed to append blocks to page ${cleanPageId}: ${errText}`,
+          );
+        }
+      }
+    }
+
+    return {
+      id: updatedPageJson?.id || cleanPageId,
+      title: pageTitle || 'Untitled Note',
+      url: updatedPageJson?.url || `https://notion.so/${cleanPageId}`,
+      lastEditedTime:
+        updatedPageJson?.last_edited_time || new Date().toISOString(),
+      archived: updatedPageJson?.archived,
+      blocksAppended: blocksAppendedCount,
+    };
+  }
+
+  // ==========================================
   // PAGINATION TRAVERSAL
   // ==========================================
 

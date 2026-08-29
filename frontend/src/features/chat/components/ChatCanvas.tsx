@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react'
 import { useWorkspace } from '@/shared'
 import { ChatInputBar } from './ChatInputBar'
 import { ChatMessageItem } from './ChatMessageItem'
-import type { ChatMessage, Artifact } from '@/shared/types/workspace'
+import type { ChatMessage } from '@/shared/types/workspace'
 
 const DYNAMIC_GREETINGS = [
   "What's on the agenda today?",
@@ -18,7 +18,6 @@ function getGreetingForSession(sessionId?: string): string {
   let hash = 0
   for (let i = 0; i < sessionId.length; i++) {
     hash = (hash << 5) - hash + sessionId.charCodeAt(i)
-    hash |= 0
   }
   const index = Math.abs(hash) % DYNAMIC_GREETINGS.length
   return DYNAMIC_GREETINGS[index]
@@ -32,10 +31,6 @@ export default function ChatCanvas() {
     sendChatMessage,
     agents,
     skills,
-    setAsideOpen,
-    setActiveArtifact,
-    artifacts,
-    showToast,
   } = useWorkspace()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -47,12 +42,6 @@ export default function ChatCanvas() {
   useEffect(() => {
     scrollToBottom()
   }, [activeSession?.messages, isGeneratingResponse, liveReasoningState?.steps?.length])
-
-  const handleOpenArtifact = (art: Artifact) => {
-    setActiveArtifact(art)
-    setAsideOpen(true)
-    showToast('Opened in Workspace Aside', 'info')
-  }
 
   const isInitialState =
     !activeSession?.messages || activeSession.messages.length === 0
@@ -100,9 +89,7 @@ export default function ChatCanvas() {
               <ChatMessageItem
                 key={msg.id}
                 msg={msg}
-                artifacts={artifacts}
                 isStreaming={isMessageStreaming}
-                onOpenArtifact={handleOpenArtifact}
               />
             )
           })}

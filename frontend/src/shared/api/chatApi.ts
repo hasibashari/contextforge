@@ -50,7 +50,6 @@ export const chatApi = {
       title: s.title,
       createdAt: s.created_at,
       messages: [],
-      activeArtifactId: s.active_artifact_id,
     }));
   },
 
@@ -65,7 +64,6 @@ export const chatApi = {
       title: data.session.title,
       createdAt: data.session.created_at,
       messages,
-      activeArtifactId: data.session.active_artifact_id,
     };
     return { session, messages };
   },
@@ -82,7 +80,6 @@ export const chatApi = {
       title: s.title,
       createdAt: s.created_at,
       messages: [],
-      activeArtifactId: s.active_artifact_id,
     };
   },
 
@@ -98,7 +95,6 @@ export const chatApi = {
       title: s.title,
       createdAt: s.created_at,
       messages: [],
-      activeArtifactId: s.active_artifact_id,
     };
   },
 

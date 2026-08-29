@@ -1,22 +1,17 @@
 import React from 'react'
 import { Zap } from 'lucide-react'
 import { MarkdownRenderer } from '@/shared'
-import { CompactArtifactPill } from './CompactArtifactPill'
 import { ThinkingIndicator } from './ThinkingIndicator'
-import type { ChatMessage, Artifact } from '@/shared/types/workspace'
+import type { ChatMessage } from '@/shared/types/workspace'
 
 interface ChatMessageItemProps {
   msg: ChatMessage
-  artifacts: Artifact[]
   isStreaming?: boolean
-  onOpenArtifact: (artifact: Artifact) => void
 }
 
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   msg,
-  artifacts,
   isStreaming = false,
-  onOpenArtifact,
 }) => {
   const isUser = msg.role === 'user'
 
@@ -35,11 +30,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     )
   }
 
-  // Assistant Response
-  const attachedArtifact = msg.artifactId
-    ? artifacts.find((a) => a.id === msg.artifactId)
-    : undefined
-
   const isPlaceholderGenerating =
     isStreaming && (!msg.content || msg.content.trim() === '')
 
@@ -52,16 +42,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       {msg.content && (
         <div className="relative leading-relaxed text-ink font-sans transition-opacity duration-300 ease-out animate-in fade-in">
           <MarkdownRenderer content={msg.content} />
-        </div>
-      )}
-
-      {/* Attached Obsidian Note / Action Artifact */}
-      {attachedArtifact && (
-        <div className="pt-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-          <CompactArtifactPill
-            artifact={attachedArtifact}
-            onOpen={() => onOpenArtifact(attachedArtifact)}
-          />
         </div>
       )}
 

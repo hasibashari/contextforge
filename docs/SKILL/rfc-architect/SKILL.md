@@ -6,7 +6,8 @@ icon: book-open
 assignedTools:
   - web_search
   - search_knowledge_vault
-  - obsidian_write_note
+  - obsidian_create_note
+  - obsidian_update_note
 ---
 
 # Architecture RFC & Technical Decision Records

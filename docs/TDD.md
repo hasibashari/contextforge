@@ -185,9 +185,8 @@ sequenceDiagram
     Core->>Nest: Emit Event: timeline_stage("editing")
     Nest->>Side: Spawn Ephemeral Obsidian Vault Worker
     
-    Side->>Tools: Call MCP Tool: obsidian_vault_writer(path="Vault/Notes/rfc.md", content="...")
-    Tools->>DB: INSERT INTO artifacts (type="markdown_doc", title="RFC", service_origin="obsidian")
-    Tools-->>Side: Artifact Created (id: art-123)
+    Side->>Tools: Call MCP Tool: obsidian_create_note(path="Vault/Notes/rfc.md", content="...")
+    Tools-->>Side: Note Created at relative path
     Side->>DB: INSERT INTO side_agent_executions (status="completed", logs=[...])
     Side-->>Core: Return Worker Result & Artifact ID
     

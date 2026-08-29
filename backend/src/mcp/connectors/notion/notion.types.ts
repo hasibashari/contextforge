@@ -57,9 +57,12 @@ export interface NotionRawObject {
   properties?: Record<string, NotionProperty>;
   title?: NotionRichText[];
   icon?: { type: string; emoji?: string };
+  archived?: boolean;
+  in_trash?: boolean;
 }
 
 export interface NotionBlock {
+  id?: string;
   type: string;
   [key: string]: unknown;
 }

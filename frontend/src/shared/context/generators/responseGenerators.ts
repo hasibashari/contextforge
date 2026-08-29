@@ -1,5 +1,4 @@
 import type {
-  Artifact,
   SideAgentExecution,
   AutomationWorkflow,
 } from '@/shared/types/workspace'
@@ -19,7 +18,6 @@ export interface GeneratedAssistantOutput {
     summaryText: string
   }
   sideAgent?: SideAgentExecution
-  artifact?: Artifact
   sourceDomains?: string[]
   createdAutomation?: Omit<AutomationWorkflow, 'id' | 'totalRuns' | 'createdAt'>
 }

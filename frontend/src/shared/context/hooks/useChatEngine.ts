@@ -2,14 +2,12 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import type {
   ChatSession,
   ChatMessage,
-  Artifact,
   ActionCardData,
   ActivityLogEntry,
   AutomationWorkflow,
   ReasoningStep,
 } from '@/shared/types/workspace';
 import { chatApi } from '@/shared/api/chatApi';
-import { artifactsApi } from '@/shared/api/artifactsApi';
 import { obsidianBridgeService } from '@/shared/services/obsidianBridge.service';
 import { resetGuestSession } from '@/shared/utils/guestSession';
 import { generateGeneralReasoningOutput } from '../generators/responseGenerators';
@@ -17,13 +15,10 @@ import { generateGeneralReasoningOutput } from '../generators/responseGenerators
 export function useChatEngine(
   showToast: (msg: string) => void,
   setActivities?: React.Dispatch<React.SetStateAction<ActivityLogEntry[]>>,
-  setIsAsideOpen?: (open: boolean) => void,
   addAutomationToState?: (automation: AutomationWorkflow) => void,
 ) {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
-  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
-  const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState<boolean>(false);
   const [selectedAgentMode, setSelectedAgentMode] = useState<string>('auto');
   const [liveReasoningState, setLiveReasoningState] = useState<{
@@ -38,23 +33,15 @@ export function useChatEngine(
     steps: [],
   });
 
-  // Load initial sessions and artifacts from backend on mount
+  // Load initial sessions from backend on mount
   useEffect(() => {
     let isMounted = true;
 
     async function loadInitialData() {
       try {
-        const [backendSessions, backendArtifacts] = await Promise.all([
-          chatApi.getSessions().catch(() => null),
-          artifactsApi.getAll().catch(() => null),
-        ]);
+        const backendSessions = await chatApi.getSessions().catch(() => null);
 
         if (!isMounted) return;
-
-        if (backendArtifacts && backendArtifacts.length > 0) {
-          setArtifacts(backendArtifacts);
-          setActiveArtifact(backendArtifacts[0]);
-        }
 
         if (backendSessions && backendSessions.length > 0) {
           setChatSessions(backendSessions);
@@ -114,7 +101,6 @@ export function useChatEngine(
       const newSession = await chatApi.createSession('New Investigation');
       setChatSessions((prev) => [newSession, ...prev]);
       setActiveSessionId(newSession.id);
-      setActiveArtifact(null);
       showToast('✨ New chat session started');
       return newSession.id;
     } catch {
@@ -128,7 +114,6 @@ export function useChatEngine(
       };
       setChatSessions((prev) => [fallbackSession, ...prev]);
       setActiveSessionId(newSessionId);
-      setActiveArtifact(null);
       showToast('✨ New chat session started (local)');
       return newSessionId;
     }
@@ -137,8 +122,6 @@ export function useChatEngine(
   const resetDemoSession = useCallback(async () => {
     try {
       resetGuestSession();
-      setArtifacts([]);
-      setActiveArtifact(null);
       setIsGeneratingResponse(false);
       setLiveReasoningState({
         isThinking: false,
@@ -184,13 +167,8 @@ export function useChatEngine(
           // ignore error
         }
       }
-
-      if (targetSession?.activeArtifactId) {
-        const art = artifacts.find((a) => a.id === targetSession.activeArtifactId);
-        if (art) setActiveArtifact(art);
-      }
     },
-    [chatSessions, artifacts],
+    [chatSessions],
   );
 
   const deleteChatSession = useCallback(
@@ -217,8 +195,6 @@ export function useChatEngine(
         }
         return remaining;
       });
-
-      setActiveArtifact(null);
 
       try {
         await chatApi.deleteSession(sessionId);
@@ -251,133 +227,25 @@ export function useChatEngine(
     [showToast],
   );
 
-  const saveArtifactContent = useCallback(
-    async (artifactId: string, newContent: string) => {
-      // Optimistic update
-      setArtifacts((prev) =>
-        prev.map((art) => {
-          if (art.id === artifactId) {
-            const updated = {
-              ...art,
-              content: newContent,
-              updatedAt: 'Just now',
-              wordCount: newContent.split(/\s+/).filter(Boolean).length,
-            };
-            if (activeArtifact?.id === artifactId) {
-              setActiveArtifact(updated);
-            }
-            return updated;
-          }
-          return art;
-        }),
-      );
-
-      try {
-        await artifactsApi.updateContent(artifactId, newContent);
-
-        // Direct Browser Folder Auto-Sync (HTML5 File System Access)
-        if (obsidianBridgeService.getPairedDirectoryHandle()) {
-          const art =
-            artifacts.find((a) => a.id === artifactId) || activeArtifact;
-          const fileName = art?.locationPath || `${art?.title || 'Note'}.md`;
-          await obsidianBridgeService.writeNoteToLocalVault(
-            fileName,
-            newContent,
-          );
-        }
-
-        showToast('✓ Document changes synced to database & Obsidian');
-      } catch {
-        showToast('✓ Document changes synced locally');
-      }
-    },
-    [activeArtifact, artifacts, showToast],
-  );
-
-  const deleteArtifact = useCallback(
-    async (artifactId: string) => {
-      setArtifacts((prev) => {
-        const remaining = prev.filter((a) => a.id !== artifactId);
-        if (activeArtifact?.id === artifactId) {
-          setActiveArtifact(remaining.length > 0 ? remaining[0] : null);
-        }
-        return remaining;
-      });
-      try {
-        await artifactsApi.delete(artifactId);
-        showToast('🗑️ Document removed from workspace');
-      } catch {
-        showToast('Document removed');
-      }
-    },
-    [activeArtifact, showToast],
-  );
-
   const executeCardAction = useCallback(
     (actionKey: string, card: ActionCardData) => {
-      if (actionKey === 'open_aside' || actionKey === 'open_schedule') {
-        setIsAsideOpen?.(true);
-        showToast('📌 Opened in Workspace Aside');
-      } else if (actionKey === 'open_in_obsidian') {
-        const art =
-          artifacts.find(
-            (a) =>
-              a.id === card.targetResource ||
-              a.locationPath === card.targetResource,
-          ) || activeArtifact;
+      if (actionKey === 'open_in_obsidian') {
         const pathName =
           card.locationPath ||
-          art?.locationPath ||
           card.subtitle ||
           `${card.title}.md`;
         obsidianBridgeService.openInObsidianApp(
           '',
           pathName,
-          art?.content,
         );
         showToast('🚀 Opening note in Obsidian Desktop...');
-      } else if (actionKey === 'write_to_local_disk') {
-        const art =
-          artifacts.find(
-            (a) =>
-              a.id === card.targetResource ||
-              a.locationPath === card.targetResource,
-          ) || activeArtifact;
-        if (art) {
-          const pathName =
-            card.locationPath || art.locationPath || `${art.title}.md`;
-          if (obsidianBridgeService.getPairedDirectoryHandle()) {
-            obsidianBridgeService
-              .writeNoteToLocalVault(pathName, art.content)
-              .then((ok) => {
-                if (ok) {
-                  showToast(`✅ Saved directly to local vault: ${pathName}`);
-                } else {
-                  obsidianBridgeService.downloadMarkdownFile(pathName, art.content);
-                  showToast(`📥 Downloaded as Markdown file: ${pathName}`);
-                }
-              });
-          } else {
-            obsidianBridgeService
-              .requestVaultDirectory()
-              .then((res) => {
-                if (res) {
-                  obsidianBridgeService.writeNoteToLocalVault(pathName, art.content);
-                  showToast(`✅ Connected folder & saved note to: ${pathName}`);
-                }
-              })
-              .catch(() => {
-                obsidianBridgeService.downloadMarkdownFile(pathName, art.content);
-              });
-          }
-        }
       } else if (actionKey === 'copy_content' || actionKey === 'copy_citations') {
         showToast('📋 Copied content to clipboard');
       } else {
         showToast(`Action "${actionKey}" executed on ${card.title}`);
       }
     },
-    [activeArtifact, artifacts, setIsAsideOpen, showToast],
+    [showToast],
   );
 
   const triggerMorningBriefing = useCallback(async () => {
@@ -688,51 +556,6 @@ export function useChatEngine(
               };
               setActivities?.((prev) => [newAct, ...prev]);
             },
-            onArtifactCreated: (createdArtifact) => {
-              setArtifacts((prev) => [
-                createdArtifact,
-                ...prev.filter((a) => a.id !== createdArtifact.id),
-              ]);
-              setActiveArtifact(createdArtifact);
-              setIsAsideOpen?.(true);
-
-              // Immediately attach artifactId to current streaming message so CompactArtifactPill appears in real-time
-              setChatSessions((prev) =>
-                prev.map((session) =>
-                  session.id === currentTargetSessionId ||
-                  session.id === activeSessionId
-                    ? {
-                        ...session,
-                        activeArtifactId: createdArtifact.id,
-                        messages: session.messages.map((m) =>
-                          m.id === assistantMsgId
-                            ? { ...m, artifactId: createdArtifact.id }
-                            : m,
-                        ),
-                      }
-                    : session,
-                ),
-              );
-
-              // Auto-sync directly to browser-selected folder (HTML5 File System Access)
-              const fileName =
-                createdArtifact.locationPath ||
-                `${createdArtifact.title || 'Note'}.md`;
-              obsidianBridgeService
-                .writeNoteToLocalVault(
-                  fileName,
-                  createdArtifact.content,
-                )
-                .then((ok) => {
-                  if (ok) {
-                    showToast(
-                      `📁 Saved directly to local folder: "${fileName}"`,
-                    );
-                  }
-                });
-
-              showToast(`📦 Note Created Successfully: ${createdArtifact.title}`);
-            },
             onAutomationCreated: (createdAuto) => {
               addAutomationToState?.(createdAuto);
               showToast(`⏰ Automation Scheduled: "${createdAuto.name}"`);
@@ -744,8 +567,6 @@ export function useChatEngine(
                   session.id === activeSessionId
                     ? {
                         ...session,
-                        activeArtifactId:
-                          backendMsg.artifactId || session.activeArtifactId,
                         messages: session.messages.map((m) =>
                           m.id === assistantMsgId
                             ? { ...m, ...backendMsg }
@@ -803,7 +624,6 @@ export function useChatEngine(
       isGeneratingResponse,
       selectedAgentMode,
       setActivities,
-      setIsAsideOpen,
       showToast,
     ],
   );
@@ -812,15 +632,10 @@ export function useChatEngine(
     chatSessions,
     activeSessionId,
     activeSession,
-    artifacts,
-    activeArtifact,
     isGeneratingResponse,
     liveReasoningState,
     selectedAgentMode,
-    setActiveArtifact,
     setSelectedAgentMode,
-    saveArtifactContent,
-    deleteArtifact,
     executeCardAction,
     triggerMorningBriefing,
     sendChatMessage,

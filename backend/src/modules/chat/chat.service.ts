@@ -209,16 +209,8 @@ export class ChatService {
         intent: result.intent,
         sideAgent: result.sideAgent,
         actionCard: result.actionCard,
-        artifactId: result.artifact?.id,
         sourceDomains: result.sourceDomains,
       });
-
-      if (result.artifact?.id) {
-        await this.chatRepo.updateActiveArtifact(
-          targetSessionId,
-          result.artifact.id,
-        );
-      }
 
       sendSse('assistant_message', {
         id: assistantMsg.id,
@@ -228,7 +220,6 @@ export class ChatService {
         intent: result.intent,
         sideAgent: result.sideAgent,
         actionCard: result.actionCard,
-        artifactId: assistantMsg.artifact_id,
         sourceDomains: result.sourceDomains || assistantMsg.source_domains,
         timestamp: new Date().toLocaleTimeString([], {
           hour: '2-digit',

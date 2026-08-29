@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ObsidianBridgeGatewayService } from './obsidian-bridge.gateway';
 
-export interface VaultWriteResult {
+export interface VaultNoteResult {
   relativePath: string;
   bytesWritten: number;
   lineCount: number;
@@ -233,6 +233,85 @@ export class ObsidianVaultService {
   }
 
   /**
+   * Explicitly creates a new Markdown note in the Obsidian Vault.
+   * If preventOverwrite is true and the file already exists, throws an error.
+   */
+  async createNote(
+    title: string,
+    targetRelPath: string,
+    rawContent: string,
+    metadata: Record<string, unknown> = {},
+    preventOverwrite = false,
+    createMissingFolders = true,
+  ): Promise<VaultNoteResult> {
+    const cleanRelPath = this.sanitizeVaultRelativePath(
+      targetRelPath,
+      `${title}.md`,
+    );
+
+    if (preventOverwrite) {
+      const existing = await this.readNote(cleanRelPath);
+      if (existing !== null) {
+        throw new Error(
+          `Note already exists at path "${cleanRelPath}". Set preventOverwrite to false or use obsidian_update_note to modify it.`,
+        );
+      }
+    }
+
+    return this.writeNote(
+      title,
+      cleanRelPath,
+      rawContent,
+      metadata,
+      createMissingFolders,
+    );
+  }
+
+  /**
+   * Updates an existing note in the Obsidian Vault.
+   * Supports 'append' mode (adds content to existing note) or 'replace' mode (replaces content).
+   */
+  async updateNote(
+    targetRelPath: string,
+    content: string,
+    options: {
+      title?: string;
+      mode?: 'append' | 'replace';
+      section?: string;
+      tags?: string[];
+    } = {},
+  ): Promise<VaultNoteResult> {
+    const cleanRelPath = this.sanitizeVaultRelativePath(targetRelPath);
+    const existingContent = await this.readNote(cleanRelPath);
+
+    const mode = options.mode || 'append';
+    const fallbackTitle =
+      options.title ||
+      cleanRelPath.replace(/\.md$/, '').split('/').pop() ||
+      'Note';
+
+    if (existingContent === null) {
+      return this.writeNote(fallbackTitle, cleanRelPath, content, {
+        tags: options.tags,
+      });
+    }
+
+    let newFullContent: string;
+    if (mode === 'replace') {
+      newFullContent = content;
+    } else {
+      const sectionHeading = options.section
+        ? `\n\n## ${options.section}\n`
+        : '\n\n';
+      newFullContent = `${existingContent.trim()}${sectionHeading}${content.trim()}`;
+    }
+
+    return this.writeNote(fallbackTitle, cleanRelPath, newFullContent, {
+      tags: options.tags,
+    });
+  }
+
+  /**
    * Writes/updates a Markdown note with frontmatter and bi-directional linking via Browser Bridge
    */
   async writeNote(
@@ -241,7 +320,7 @@ export class ObsidianVaultService {
     rawContent: string,
     metadata: Record<string, unknown> = {},
     createMissingFolders = true,
-  ): Promise<VaultWriteResult> {
+  ): Promise<VaultNoteResult> {
     const startTime = Date.now();
     const cleanRelPath = this.sanitizeVaultRelativePath(
       targetRelPath,
@@ -312,7 +391,7 @@ export class ObsidianVaultService {
     section = 'Log Activity',
     text = '',
     targetDate?: string,
-  ): Promise<VaultWriteResult> {
+  ): Promise<VaultNoteResult> {
     const today = targetDate || new Date().toISOString().slice(0, 10);
     const dailyPath = `DailyNotes/${today}.md`;
 

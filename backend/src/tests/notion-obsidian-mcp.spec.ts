@@ -32,7 +32,10 @@ export async function runNotionAndObsidianTests() {
     assert.strictEqual(obsidianServer.id, 'int-obsidian-vault-mcp');
     assert.strictEqual(obsidianServer.isInternal, true);
     assert.strictEqual(obsidianServer.hasTool('obsidian_read_note'), true);
-    assert.strictEqual(obsidianServer.hasTool('obsidian_write_note'), true);
+    assert.strictEqual(obsidianServer.hasTool('obsidian_create_note'), true);
+    assert.strictEqual(obsidianServer.hasTool('obsidian_update_note'), true);
+    assert.strictEqual(obsidianServer.hasTool('obsidian_write_note'), false);
+    assert.strictEqual(obsidianServer.hasTool('obsidian_delete_file'), true);
     assert.strictEqual(obsidianServer.hasTool('obsidian_search_files'), true);
     assert.strictEqual(
       obsidianServer.hasTool('dispatch_obsidian_worker'),
@@ -41,9 +44,17 @@ export async function runNotionAndObsidianTests() {
 
     const tools = obsidianServer.getTools();
     assert.ok(
-      tools.length >= 8,
-      `Expected at least 8 tools, got ${tools.length}`,
+      tools.length >= 10,
+      `Expected at least 10 tools, got ${tools.length}`,
     );
+
+    const createTool = tools.find((t) => t.name === 'obsidian_create_note');
+    assert.ok(createTool, 'obsidian_create_note tool must exist');
+    assert.strictEqual(createTool?.readOnly, false);
+
+    const updateTool = tools.find((t) => t.name === 'obsidian_update_note');
+    assert.ok(updateTool, 'obsidian_update_note tool must exist');
+    assert.strictEqual(updateTool?.readOnly, false);
   });
 
   await test('2. Obsidian ping probe handles offline bridge gracefully', async () => {
@@ -73,12 +84,18 @@ export async function runNotionAndObsidianTests() {
     assert.strictEqual(notionServer.hasTool('notion_get_tasks'), true);
     assert.strictEqual(notionServer.hasTool('notion_read_page'), true);
     assert.strictEqual(notionServer.hasTool('notion_create_page'), true);
+    assert.strictEqual(notionServer.hasTool('notion_update_page'), true);
 
     const tools = notionServer.getTools();
     assert.ok(
-      tools.length >= 5,
-      `Expected at least 5 tools, got ${tools.length}`,
+      tools.length >= 6,
+      `Expected at least 6 tools, got ${tools.length}`,
     );
+
+    const updateTool = tools.find((t) => t.name === 'notion_update_page');
+    const reqFields = (updateTool?.parametersSchema as { required?: string[] })
+      ?.required;
+    assert.ok(reqFields && reqFields.includes('pageId'));
   });
 
   await test('4. Notion connector returns disconnected guidance when token is not present', async () => {
@@ -104,6 +121,16 @@ export async function runNotionAndObsidianTests() {
         'unauthenticated',
       );
       assert.ok(result.summary.includes('Disconnected'));
+
+      const updateResult = await notionServer.executeTool(
+        'notion_update_page',
+        {
+          pageId: 'test-page-123',
+          title: 'Updated Test Page',
+        },
+      );
+      assert.strictEqual(updateResult.success, false);
+      assert.ok(updateResult.summary.includes('Disconnected'));
     } finally {
       if (savedApiKey) process.env.NOTION_API_KEY = savedApiKey;
       if (savedToken) process.env.NOTION_TOKEN = savedToken;

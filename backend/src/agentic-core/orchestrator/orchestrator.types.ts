@@ -1,5 +1,3 @@
-import { ArtifactRow } from '../../modules/artifacts/artifacts.repository';
-
 export interface StreamEvent {
   event:
     | 'timeline_stage'
@@ -8,7 +6,6 @@ export interface StreamEvent {
     | 'tool_call_result'
     | 'thought_step'
     | 'side_agent_log'
-    | 'artifact_created'
     | 'automation_created'
     | 'execution_done'
     | 'error';
@@ -24,7 +21,6 @@ export interface OrchestrationResult {
     summaryText: string;
   };
   sideAgent?: Record<string, unknown>;
-  artifact?: ArtifactRow;
   actionCard?: Record<string, unknown>;
   sourceDomains?: string[];
   rawResult?: unknown;

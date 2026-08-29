@@ -10,7 +10,6 @@ import { DatabaseModule } from './common/database/database.module';
 import { SecurityModule } from './common/security/security.module';
 import { AgenticCoreModule } from './agentic-core/agentic-core.module';
 import { ChatModule } from './modules/chat/chat.module';
-import { ArtifactsModule } from './modules/artifacts/artifacts.module';
 import { PersonalHubModule } from './modules/personal-hub/personal-hub.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { ActivityModule } from './modules/activity/activity.module';
@@ -36,7 +35,6 @@ import { AppController } from './app.controller';
     DatabaseModule,
     AgenticCoreModule,
     ChatModule,
-    ArtifactsModule,
     PersonalHubModule,
     KnowledgeModule,
     ActivityModule,

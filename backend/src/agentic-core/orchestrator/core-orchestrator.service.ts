@@ -197,10 +197,6 @@ export class CoreOrchestratorService {
               };
             }
 
-            // Accumulate artifacts, cards, or source domains
-            if (toolOutput.artifact) {
-              finalResult.artifact = toolOutput.artifact;
-            }
             if (toolOutput.actionCard) {
               finalResult.actionCard = toolOutput.actionCard;
             }
@@ -301,17 +297,7 @@ export class CoreOrchestratorService {
 
       // Ensure rich text summary is always present and emitted to the user
       if (!finalResult.textContent || finalResult.textContent.trim() === '') {
-        if (finalResult.artifact) {
-          const art = finalResult.artifact;
-          const locPath = art.location_path || 'Work/Notes/';
-          const snippet =
-            art.content && art.content.length > 600
-              ? `${art.content.slice(0, 600)}\n\n*(Open full document in the aside panel)*`
-              : art.content ||
-                'Compiled with standard YAML frontmatter and bi-directional backlinks.';
-          finalResult.textContent = `Document **${art.title}** has been compiled and saved to your Obsidian Vault at path: \`${locPath}\`.\n\n### 📋 Document Summary:\n${snippet}`;
-          this.streamFinalText(finalResult.textContent, emit);
-        } else if (finalResult.intent?.summaryText) {
+        if (finalResult.intent?.summaryText) {
           finalResult.textContent = finalResult.intent.summaryText;
           this.streamFinalText(finalResult.textContent, emit);
         } else {
@@ -352,7 +338,6 @@ export class CoreOrchestratorService {
         event: 'execution_done',
         data: {
           turnsCount: turn,
-          hasArtifact: Boolean(finalResult.artifact),
           hasActionCard: Boolean(finalResult.actionCard),
         },
       });
@@ -462,10 +447,9 @@ export class CoreOrchestratorService {
       case 'google_calendar_check_availability':
       case 'dispatch_action_worker':
       case 'dispatch_obsidian_worker':
-      case 'obsidian_write_note':
+      case 'obsidian_create_note':
+      case 'obsidian_update_note':
       case 'obsidian_read_note':
-      case 'obsidian_vault_writer':
-      case 'obsidian_vault_reader':
       case 'obsidian_create_daily_note':
       case 'android_get_device_status':
       case 'android_get_usage':

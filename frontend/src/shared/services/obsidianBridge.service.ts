@@ -194,6 +194,7 @@ class ObsidianBridgeService {
           resultData = { path: filePath, content }
           break
         }
+        case 'create_note':
         case 'write_note': {
           if (!handle) throw new Error('No local vault paired')
           const filePath = (req.payload?.path as string) || ''

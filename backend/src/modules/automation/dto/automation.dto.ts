@@ -40,14 +40,6 @@ export class CreateAutomationDto {
           ? 'agent-research'
           : rawAgentId;
 
-    const rawTools = dto.mcp_tools || dto.mcpTools || [];
-    // Standardize legacy tool names
-    const normalizedTools = rawTools.map((t) => {
-      if (t === 'obsidian_read_vault') return 'obsidian_vault_reader';
-      if (t === 'obsidian_write_note') return 'obsidian_vault_writer';
-      return t;
-    });
-
     return {
       id: dto.id,
       name: dto.name,
@@ -55,7 +47,7 @@ export class CreateAutomationDto {
       agent_id: normalizedAgentId,
       agent_name: dto.agent_name || dto.agentName || 'Action Agent',
       mcp_server_id: dto.mcp_server_id || dto.mcpServerId || undefined,
-      mcp_tools: normalizedTools,
+      mcp_tools: dto.mcp_tools || dto.mcpTools || [],
       trigger_type: dto.trigger_type || dto.triggerType || 'schedule',
       schedule_cron: dto.schedule_cron || dto.scheduleCron || '0 8 * * *',
       schedule_label:
@@ -127,11 +119,7 @@ export class UpdateAutomationDto {
 
     const tools = dto.mcp_tools ?? dto.mcpTools;
     if (tools !== undefined) {
-      updates.mcp_tools = tools.map((t) => {
-        if (t === 'obsidian_read_vault') return 'obsidian_vault_reader';
-        if (t === 'obsidian_write_note') return 'obsidian_vault_writer';
-        return t;
-      });
+      updates.mcp_tools = tools;
     }
 
     const triggerType = dto.trigger_type ?? dto.triggerType;

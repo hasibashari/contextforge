@@ -117,7 +117,8 @@ function AutomationFormContent({
   const [selectedTools, setSelectedTools] = useState<string[]>(
     initialWorkflow?.mcpTools || [
       'obsidian_create_daily_note',
-      'obsidian_write_note',
+      'obsidian_create_note',
+      'obsidian_update_note',
       'obsidian_read_note',
     ]
   )
@@ -213,7 +214,8 @@ function AutomationFormContent({
     } else if (newServerId === 'int-obsidian-vault-mcp') {
       setSelectedTools([
         'obsidian_create_daily_note',
-        'obsidian_write_note',
+        'obsidian_create_note',
+        'obsidian_update_note',
         'obsidian_read_note',
       ])
     } else if (newServerId === 'int-google-calendar-mcp') {
@@ -261,7 +263,8 @@ function AutomationFormContent({
   const selectedIntegration = integrations.find((i) => i.id === mcpServerId)
   const availableMcpTools = selectedIntegration?.tools || [
     { id: 'obsidian_create_daily_note', name: 'obsidian_create_daily_note', description: 'Create daily note in Obsidian' },
-    { id: 'obsidian_write_note', name: 'obsidian_write_note', description: 'Write or append markdown note' },
+    { id: 'obsidian_create_note', name: 'obsidian_create_note', description: 'Create markdown note with frontmatter' },
+    { id: 'obsidian_update_note', name: 'obsidian_update_note', description: 'Update or append content in note' },
     { id: 'obsidian_read_note', name: 'obsidian_read_note', description: 'Read vault notes & backlinks' },
   ]
 

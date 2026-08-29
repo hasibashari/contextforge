@@ -5,7 +5,6 @@ import type {
   KnowledgeSource,
   Integration,
   McpTool,
-  Artifact,
   ChatSession,
   ActionCardData,
   UserMemoryItem,
@@ -37,10 +36,6 @@ export interface WorkspaceContextType {
   chatSessions: ChatSession[]
   activeSessionId: string
   activeSession: ChatSession | undefined
-  activeArtifact: Artifact | null
-  artifacts: Artifact[]
-  deleteArtifact: (id: string) => Promise<void>
-  isAsideOpen: boolean
   isGeneratingResponse: boolean
   liveReasoningState: {
     isThinking: boolean
@@ -108,11 +103,7 @@ export interface WorkspaceContextType {
   switchChatSession: (sessionId: string) => void
   renameChatSession: (sessionId: string, newTitle: string) => Promise<void>
   deleteChatSession: (sessionId: string) => Promise<void>
-  setActiveArtifact: (artifact: Artifact | null) => void
-  saveArtifactContent: (artifactId: string, newContent: string) => void
   executeCardAction: (actionKey: string, card: ActionCardData) => void
-  toggleAside: () => void
-  setAsideOpen: (open: boolean) => void
   setSelectedAgentMode: (mode: string) => void
   toggleSourceFilter: (sourceId: string) => void
 

@@ -4,7 +4,6 @@ export { default as DashboardLayout } from './layouts/DashboardLayout'
 export { default as WorkspaceLayout } from './layouts/WorkspaceLayout'
 export { default as WorkspaceSidebar } from './layouts/shell/WorkspaceSidebar'
 export { default as WorkspaceHeader } from './layouts/shell/WorkspaceHeader'
-export { default as WorkspaceContextAside } from './layouts/shell/WorkspaceContextAside'
 
 // Context & State
 export { WorkspaceProvider } from './context/WorkspaceContext'

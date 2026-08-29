@@ -12,7 +12,6 @@ export class AppController {
       database: 'PostgreSQL Native (pg.Pool)',
       endpoints: {
         chatSessions: '/api/chat/sessions',
-        artifacts: '/api/artifacts',
         personalHubMemories: '/api/personal-hub/memories',
         knowledgeSources: '/api/knowledge/sources',
         ecosystemAgents: '/api/ecosystem/agents',

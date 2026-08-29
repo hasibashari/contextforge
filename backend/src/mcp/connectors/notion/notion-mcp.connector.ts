@@ -146,6 +146,51 @@ export class NotionMcpConnector extends BaseMcpConnector {
           };
         }
 
+        case 'notion_update_page': {
+          const pageId = (params.pageId as string) || (params.id as string);
+          if (!pageId) {
+            throw new Error(
+              'Parameter "pageId" is required to update a Notion page.',
+            );
+          }
+
+          const title = params.title as string | undefined;
+          const content = params.content as string | undefined;
+          const mode = params.mode as 'append' | 'replace' | undefined;
+          const properties =
+            (params.properties as Record<string, unknown>) || undefined;
+          const archived =
+            typeof params.archived === 'boolean' ? params.archived : undefined;
+
+          const updatedPage = await this.apiClient.updatePage(
+            authHeaders,
+            pageId,
+            {
+              title,
+              content,
+              mode,
+              properties,
+              archived,
+            },
+          );
+
+          let actionSummary = `Page "${updatedPage.title}" (ID: ${updatedPage.id}) successfully updated in Notion.`;
+          if (updatedPage.archived) {
+            actionSummary = `Page "${updatedPage.title}" (ID: ${updatedPage.id}) has been archived in Notion.`;
+          } else if (
+            updatedPage.blocksAppended &&
+            updatedPage.blocksAppended > 0
+          ) {
+            actionSummary += ` (${updatedPage.blocksAppended} block(s) ${mode === 'replace' ? 'replaced' : 'appended'}).`;
+          }
+          actionSummary += ` URL: ${updatedPage.url}`;
+
+          return {
+            data: updatedPage as unknown as Record<string, unknown>,
+            summary: actionSummary,
+          };
+        }
+
         default:
           throw new Error(
             `Tool "${toolName}" is not supported by Notion MCP Server.`,

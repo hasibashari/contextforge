@@ -252,7 +252,7 @@ Semantic search pipeline using 1536-dimensional embeddings with PostgreSQL pgvec
 
         // Also write to physical Obsidian Vault if available
         await this.obsidianVault
-          .writeNote(p.title, p.path, p.content, p.frontmatter)
+          .createNote(p.title, p.path, p.content, p.frontmatter)
           .catch(() => {});
       }
 
@@ -434,7 +434,7 @@ Semantic search pipeline using 1536-dimensional embeddings with PostgreSQL pgvec
 
       // Write to mounted Obsidian Vault if configured
       await this.obsidianVault
-        .writeNote(p.title, targetPath, p.content, { tags: p.tags })
+        .createNote(p.title, targetPath, p.content, { tags: p.tags })
         .catch(() => {});
 
       if (existing) {
@@ -456,7 +456,7 @@ Semantic search pipeline using 1536-dimensional embeddings with PostgreSQL pgvec
         outlinks: this.extractWikilinks(updatedIndexContent),
       });
       await this.obsidianVault
-        .writeNote('Knowledge Wiki Index', 'index.md', updatedIndexContent)
+        .createNote('Knowledge Wiki Index', 'index.md', updatedIndexContent)
         .catch(() => {});
     }
 
@@ -473,7 +473,7 @@ Semantic search pipeline using 1536-dimensional embeddings with PostgreSQL pgvec
         outlinks: this.extractWikilinks(updatedLogContent),
       });
       await this.obsidianVault
-        .writeNote('Knowledge Audit Log', 'log.md', updatedLogContent)
+        .createNote('Knowledge Audit Log', 'log.md', updatedLogContent)
         .catch(() => {});
     }
 
@@ -617,7 +617,7 @@ Semantic search pipeline using 1536-dimensional embeddings with PostgreSQL pgvec
 
     // Write to physical vault if available
     await this.obsidianVault
-      .writeNote(data.title, cleanPath, data.content, { tags: data.tags })
+      .createNote(data.title, cleanPath, data.content, { tags: data.tags })
       .catch(() => {});
 
     // Update log
@@ -635,7 +635,7 @@ Semantic search pipeline using 1536-dimensional embeddings with PostgreSQL pgvec
         outlinks: this.extractWikilinks(updatedLog),
       });
       await this.obsidianVault
-        .writeNote('Knowledge Audit Log', 'log.md', updatedLog)
+        .createNote('Knowledge Audit Log', 'log.md', updatedLog)
         .catch(() => {});
     }
 

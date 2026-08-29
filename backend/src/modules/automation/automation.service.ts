@@ -155,11 +155,6 @@ export class AutomationService {
             }
           } else if (evt.event === 'thought_step') {
             turnCount = (evt.data?.turn as number) || turnCount + 1;
-          } else if (evt.event === 'artifact_created') {
-            const loc = evt.data?.locationPath as string;
-            if (loc) {
-              outputArtifactUrl = loc;
-            }
           }
         },
         workflow.agent_id || 'agent-personal-assistant',
@@ -167,9 +162,6 @@ export class AutomationService {
 
       outputSummary =
         result.textContent || 'Workflow automation completed successfully.';
-      if (result.artifact?.location_path) {
-        outputArtifactUrl = result.artifact.location_path;
-      }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Error during automation run: ${errorMsg}`);

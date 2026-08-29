@@ -5,7 +5,10 @@ import {
   McpToolCallResult,
   BaseMcpConnector,
 } from '../../core';
-import { ObsidianVaultService } from './obsidian-vault.service';
+import {
+  ObsidianVaultService,
+  VaultNoteResult,
+} from './obsidian-vault.service';
 import { OBSIDIAN_MCP_TOOLS } from './obsidian-tools.definition';
 
 @Injectable()
@@ -26,7 +29,7 @@ export class ObsidianMcpServer extends BaseMcpConnector {
 
   hasTool(toolName: string): boolean {
     return (
-      toolName.startsWith('obsidian_') ||
+      OBSIDIAN_MCP_TOOLS.some((t) => t.name === toolName) ||
       toolName === 'dispatch_action_worker' ||
       toolName === 'dispatch_obsidian_worker'
     );
@@ -112,8 +115,7 @@ export class ObsidianMcpServer extends BaseMcpConnector {
           };
         }
 
-        case 'obsidian_read_note':
-        case 'obsidian_vault_reader': {
+        case 'obsidian_read_note': {
           const notePath =
             (params.path as string) || (params.relativePath as string) || '';
           if (!notePath) {
@@ -135,8 +137,69 @@ export class ObsidianMcpServer extends BaseMcpConnector {
           };
         }
 
-        case 'obsidian_write_note':
-        case 'obsidian_vault_writer':
+        case 'obsidian_create_note': {
+          const notePath =
+            (params.path as string) || (params.relativePath as string) || '';
+          const title = (params.title as string) || 'Note';
+          const content = (params.content as string) || '';
+          const tags = Array.isArray(params.tags) ? params.tags : undefined;
+          const preventOverwrite = Boolean(params.preventOverwrite);
+          const createMissingFolders = params.createMissingFolders !== false;
+
+          if (!notePath && !title) {
+            throw new Error('Parameter "path" atau "title" wajib disertakan.');
+          }
+
+          const result: VaultNoteResult = await this.vaultService.createNote(
+            title,
+            notePath,
+            content,
+            { tags },
+            preventOverwrite,
+            createMissingFolders,
+          );
+
+          return {
+            data: result as unknown as Record<string, unknown>,
+            summary: `New note "${result.title}" created in Obsidian vault at "${result.relativePath}".`,
+            filesModified: [result.relativePath],
+          };
+        }
+
+        case 'obsidian_update_note': {
+          const notePath =
+            (params.path as string) || (params.relativePath as string) || '';
+          const content = (params.content as string) || '';
+          const mode = (params.mode as 'append' | 'replace') || 'append';
+          const section = params.section as string | undefined;
+          const title = params.title as string | undefined;
+
+          if (!notePath) {
+            throw new Error(
+              'Parameter "path" wajib disertakan untuk update catatan.',
+            );
+          }
+          if (!content) {
+            throw new Error('Parameter "content" tidak boleh kosong.');
+          }
+
+          const result: VaultNoteResult = await this.vaultService.updateNote(
+            notePath,
+            content,
+            {
+              title,
+              mode,
+              section,
+            },
+          );
+
+          return {
+            data: result as unknown as Record<string, unknown>,
+            summary: `Note at "${result.relativePath}" successfully updated (${mode === 'replace' ? 'content replaced' : 'content appended'}).`,
+            filesModified: [result.relativePath],
+          };
+        }
+
         case 'dispatch_action_worker':
         case 'dispatch_obsidian_worker': {
           const notePath =
@@ -149,17 +212,18 @@ export class ObsidianMcpServer extends BaseMcpConnector {
             throw new Error('Parameter "path" atau "title" wajib disertakan.');
           }
 
-          const writeResult = await this.vaultService.writeNote(
-            title,
-            notePath,
-            content,
-            metadata,
-          );
+          const createResult: VaultNoteResult =
+            await this.vaultService.createNote(
+              title,
+              notePath,
+              content,
+              metadata,
+            );
 
           return {
-            data: writeResult as unknown as Record<string, unknown>,
-            summary: `Note "${writeResult.title}" successfully written to Obsidian vault at "${writeResult.relativePath}".`,
-            filesModified: [writeResult.relativePath],
+            data: createResult as unknown as Record<string, unknown>,
+            summary: `Note "${createResult.title}" successfully created in Obsidian vault at "${createResult.relativePath}".`,
+            filesModified: [createResult.relativePath],
           };
         }
 
@@ -169,16 +233,13 @@ export class ObsidianMcpServer extends BaseMcpConnector {
             (params.text as string) || (params.content as string) || '';
           const date = params.date as string | undefined;
 
-          const writeResult = await this.vaultService.createDailyNote(
-            section,
-            text,
-            date,
-          );
+          const dailyResult: VaultNoteResult =
+            await this.vaultService.createDailyNote(section, text, date);
 
           return {
-            data: writeResult as unknown as Record<string, unknown>,
-            summary: `Daily note updated at "${writeResult.relativePath}".`,
-            filesModified: [writeResult.relativePath],
+            data: dailyResult as unknown as Record<string, unknown>,
+            summary: `Daily note updated at "${dailyResult.relativePath}".`,
+            filesModified: [dailyResult.relativePath],
           };
         }
 

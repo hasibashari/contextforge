@@ -10,7 +10,6 @@ import { useAutomationManager } from './hooks/useAutomationManager'
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastNotification[]>([])
   const [toastMessage, setToastMessage] = useState<string | null>(null)
-  const [isAsideOpen, setIsAsideOpen] = useState<boolean>(false)
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -48,14 +47,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setToasts([])
   }, [])
 
-  const toggleAside = useCallback(() => {
-    setIsAsideOpen((prev) => !prev)
-  }, [])
-
-  const setAsideOpen = useCallback((open: boolean) => {
-    setIsAsideOpen(open)
-  }, [])
-
   // Domain Hooks
   const userMemory = useUserMemory(showToast)
   const ecosystem = useEcosystemManager(showToast)
@@ -64,7 +55,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const chatEngine = useChatEngine(
     showToast,
     undefined,
-    setAsideOpen,
     automationManager.addAutomationToState
   )
 
@@ -104,12 +94,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         chatSessions: chatEngine.chatSessions,
         activeSessionId: chatEngine.activeSessionId,
         activeSession: chatEngine.activeSession,
-        activeArtifact: chatEngine.activeArtifact,
-        artifacts: chatEngine.artifacts,
         isGeneratingResponse: chatEngine.isGeneratingResponse,
         liveReasoningState: chatEngine.liveReasoningState,
         selectedAgentMode: chatEngine.selectedAgentMode,
-        isAsideOpen,
 
         // Conversational Actions
         sendChatMessage: chatEngine.sendChatMessage,
@@ -118,19 +105,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         switchChatSession: chatEngine.switchChatSession,
         renameChatSession: chatEngine.renameChatSession,
         deleteChatSession: chatEngine.deleteChatSession,
-        setActiveArtifact: chatEngine.setActiveArtifact,
-        saveArtifactContent: chatEngine.saveArtifactContent,
-        deleteArtifact: chatEngine.deleteArtifact,
         executeCardAction: chatEngine.executeCardAction,
         triggerMorningBriefing: chatEngine.triggerMorningBriefing,
         setSelectedAgentMode: chatEngine.setSelectedAgentMode,
 
-        // Toast & Layout Actions
+        // Toast & Actions
         showToast,
         dismissToast,
         clearToast,
-        toggleAside,
-        setAsideOpen,
 
         // Knowledge Source Filter Grounding State
         activeSourceFilters: knowledge.activeSourceFilters,

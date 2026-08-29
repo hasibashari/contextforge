@@ -136,10 +136,10 @@ export const OBSIDIAN_MCP_TOOLS: McpToolDefinition[] = [
     readOnly: true,
   },
   {
-    id: 't-obsidian-write-note',
-    name: 'obsidian_write_note',
+    id: 't-obsidian-create-note',
+    name: 'obsidian_create_note',
     description:
-      'Creates or updates a Markdown document with YAML frontmatter and bi-directional [[wikilinks]] inside the Obsidian Vault. Automatically creates missing parent folders.',
+      'Creates a new Markdown document with YAML frontmatter, headings, and [[wikilinks]] inside the Obsidian Vault. Prevents accidental overwriting if the file already exists.',
     parametersSchema: {
       type: 'object',
       properties: {
@@ -150,12 +150,22 @@ export const OBSIDIAN_MCP_TOOLS: McpToolDefinition[] = [
         path: {
           type: 'string',
           description:
-            'Target vault-relative file path e.g. "Projects/Active/architecture.md"',
+            'Target vault-relative file path e.g. "Concepts/Microservices.md"',
         },
         content: {
           type: 'string',
           description:
             'Complete Markdown content including headings, callouts, and [[wikilinks]]',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional list of tags to add to note YAML frontmatter',
+        },
+        preventOverwrite: {
+          type: 'boolean',
+          description:
+            'If true, errors if file already exists at target path to prevent data loss (defaults to false).',
         },
         createMissingFolders: {
           type: 'boolean',
@@ -164,6 +174,44 @@ export const OBSIDIAN_MCP_TOOLS: McpToolDefinition[] = [
         },
       },
       required: ['title', 'content'],
+    },
+    readOnly: false,
+  },
+  {
+    id: 't-obsidian-update-note',
+    name: 'obsidian_update_note',
+    description:
+      'Updates an existing Markdown note in the Obsidian Vault. Supports appending sections or replacing content.',
+    parametersSchema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description:
+            'Target vault-relative file path to update, e.g. "Projects/ContextForge/architecture.md"',
+        },
+        content: {
+          type: 'string',
+          description:
+            'Markdown content text to append or replace in the existing note',
+        },
+        mode: {
+          type: 'string',
+          enum: ['append', 'replace'],
+          description:
+            'Update mode: "append" (default, adds content to the bottom of the note under an optional section) or "replace" (replaces the entire note content)',
+        },
+        section: {
+          type: 'string',
+          description:
+            'Optional section title heading (e.g. "Key Updates" or "Action Items") when appending content',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional updated document title',
+        },
+      },
+      required: ['path', 'content'],
     },
     readOnly: false,
   },

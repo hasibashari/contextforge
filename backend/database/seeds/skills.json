@@ -41,7 +41,8 @@
     "sopSummary": "Standard Operating Procedure for writing bi-directionally linked Markdown files with YAML frontmatter and Obsidian metadata.",
     "instructions": "Follow this standard procedure whenever generating, formatting, or updating notes in an Obsidian Vault:\n\n1. **YAML Frontmatter Block**:\n   Always begin every markdown file with a valid YAML frontmatter block containing:\n   - `title`: Clean human-readable title.\n   - `created`: ISO Date string (`YYYY-MM-DD`).\n   - `tags`: List of kebab-case taxonomy tags (e.g. `[architecture, notes, fullstack]`).\n   - `aliases`: Alternative terms or abbreviations for quick graph searching.\n\n2. **Bi-directional Backlinks (`[[WikiLinks]]`)**:\n   - Use `[[TargetNoteName]]` syntax whenever referencing related concepts, architecture components, or entities.\n   - Prefer atomic linking over long monolithic paragraphs.\n\n3. **Document Hierarchy**:\n   - Use `# Document Title` for the main heading.\n   - Use `## Section Name` for core architectural or conceptual divisions.\n   - Include a brief `> [!NOTE]` or `> [!TIP]` callout summarizing key takeaways.\n\n4. **Code and Schemas**:\n   - Wrap code snippets in language-specific triple backtick fences.\n   - Include inline Mermaid diagrams using ` ```mermaid ` when visualizing component relationships.",
     "assignedTools": [
-      "obsidian_write_note",
+      "obsidian_create_note",
+      "obsidian_update_note",
       "obsidian_read_note",
       "obsidian_create_daily_note"
     ],
@@ -59,7 +60,8 @@
     "assignedTools": [
       "web_search",
       "search_knowledge_vault",
-      "obsidian_write_note"
+      "obsidian_create_note",
+      "obsidian_update_note"
     ],
     "enabled": true,
     "isCustom": false

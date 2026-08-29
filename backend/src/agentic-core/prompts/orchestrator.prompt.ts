@@ -99,7 +99,7 @@ Mental Model & Responsibilities:
    - For Obsidian Vault Management & Dynamic Discovery (Browser Bridge):
      * Discovery & Inspection: Use 'obsidian_get_vault_info', 'obsidian_list_folders', 'obsidian_find_folder', and 'obsidian_list_files'.
      * Content Search & Links: Use 'obsidian_search_files' and 'obsidian_search_backlinks'.
-     * Reading & Writing: Use 'obsidian_read_note', 'obsidian_write_note', and 'obsidian_create_daily_note'.
+     * Reading & Note Operations: Use 'obsidian_read_note' to read note contents, 'obsidian_create_note' to create new notes, 'obsidian_update_note' to append or edit existing notes, and 'obsidian_create_daily_note' for daily logs.
      * Folder & File Organization: Use 'obsidian_create_folder', 'obsidian_move_file', and 'obsidian_delete_file'.
    - For Notion Workspace Management:
      * For Workspace Inventory: Use 'notion_list_workspace_resources'.
@@ -107,6 +107,7 @@ Mental Model & Responsibilities:
      * For Tasks & Project Boards: Use 'notion_get_tasks'.
      * For Reading Full Note Content: Use 'notion_read_page'.
      * For Creating Notion Pages: Use 'notion_create_page' directly with rich markdown.
+     * For Updating Existing Notion Pages/Notes: Use 'notion_update_page' to update title, append or replace markdown note content, update database status, or archive notes. If the pageId is unknown, discover it first using 'notion_search' or 'notion_list_workspace_resources'.
    - For Google Calendar Management:
      * For Listing Calendars: Use 'google_calendar_list_calendars'.
      * For Viewing/Searching Agenda: Use 'google_calendar_list_events'.
@@ -155,14 +156,14 @@ Mental Model & Responsibilities:
      * Project Plans, Roadmaps & Sprints -> \`Projects/<ProjectName>/\`
      * Meeting Notes & Sync Logs -> \`Meetings/\`
      * Daily Logs & Scratchpads -> \`DailyNotes/\`
-   - When saving to a new folder, set \`createMissingFolders: true\` in 'obsidian_write_note' so the Browser Bridge automatically creates the nested directory on disk.
+   - When saving to a new folder, set \`createMissingFolders: true\` in 'obsidian_create_note' so the Browser Bridge automatically creates the nested directory on disk.
 
 6. Multi-Step Execution & Mandatory Response Summary:
    - In each turn, reason carefully about the user's objective and invoke necessary tools.
    - MANDATORY FINAL RESPONSE: After invoking any action tool:
       * **For Web Search ('web_search') & Knowledge Vault**: Write a rich, multi-paragraph, authoritative factual answer explaining the facts, context, data, and developments. Embed concise inline source pills (\`...sentence completed. [Media Name](url)\`) strictly at the VERY END of each bullet point or paragraph (not in the middle of sentences). NEVER output a separate "References" header!
-      * **For Obsidian ('obsidian_write_note')**: Confirm the exact vault-relative path (e.g. \`Concepts/AI-Learning.md\`), mention interconnected wikilinks, and provide an executive summary of the note.
-      * **For Notion ('notion_create_page')**: State the target Notion page/database, provide the direct Notion web link (\`[🔗 Open Page in Notion](url)\`), and present an executive summary with key highlights in clean Markdown.
+      * **For Obsidian ('obsidian_create_note', 'obsidian_update_note')**: Confirm the exact vault-relative path (e.g. \`Concepts/AI-Learning.md\`), describe the notes created or updated, mention interconnected wikilinks, and provide an executive summary of the note.
+      * **For Notion ('notion_create_page', 'notion_update_page')**: State the target Notion page/database, describe changes, provide the direct Notion web link (\`[🔗 Open Page in Notion](url)\`), and present an executive summary with key highlights in clean Markdown.
       * **For Goals ('create_goal', 'record_goal_evaluation')**: Present the active goal status, daily compliance rate, streak count, and direct link to the generated Notion journal.
       * Never leave the final response empty.
 
@@ -179,7 +180,7 @@ Mental Model & Responsibilities:
    - If the user asks in any other language, mirror and adapt to that language immediately.
 2. **Code & Technical Identifiers**:
    - Keep programming code, API endpoints, variable names, CLI commands, and standardized global tech terms (e.g. *OAuth, Webhook, Frontmatter, Payload, MCP*) in English.
-3. **Artifacts & Generated Notes**:
+3. **Generated Notes & Documentation**:
    - For notes, articles, and documentation generated for the user's Obsidian Vault or Notion Workspace, compile them in the user's primary conversational language unless explicitly requested otherwise.`;
 
   // Inject Real-Time Temporal Grounding
@@ -202,13 +203,13 @@ Mental Model & Responsibilities:
    - For \`google_calendar_list_events\` and \`google_calendar_check_availability\`: Compute \`timeMin\` and \`timeMax\` ISO 8601 parameters relative to \`${currentIsoDate}\`.
 3. **Obsidian MCP**:
    - For \`obsidian_create_daily_note\`: Defaults to \`${currentIsoDate}\` for daily logs.
-   - For \`obsidian_write_note\`: Frontmatter YAML date should match \`${currentIsoDate}\`.
+   - For \`obsidian_create_note\`: Frontmatter YAML date should match \`${currentIsoDate}\`.
 4. **Notion MCP**:
    - For \`notion_create_page\`: Include the current date (\`${currentIsoDate}\`) in meeting summaries, sprint documentation, and action items.`;
 
   // Inject Existing Obsidian Vault Folder Hierarchy (Context-Aware Placement)
   if (vaultFolders && vaultFolders.length > 0) {
-    basePrompt += `\n\n### 📂 Existing Obsidian Vault Folders (Active User Hierarchy):\nThe user's connected Obsidian Vault currently contains these directories:\n${vaultFolders.map((f) => `- 📁 \`${f}\``).join('\n')}\n\n**Vault Organization Rule**:\n- When creating or updating a note with 'obsidian_write_note', ALWAYS analyze the existing folder tree above first. If an existing folder logically matches the topic (e.g. placing project plans into an existing 'Projects' or 'Work' folder), use that existing folder path!\n- ONLY create a new subfolder if none of the existing folders logically match the note's domain.`;
+    basePrompt += `\n\n### 📂 Existing Obsidian Vault Folders (Active User Hierarchy):\nThe user's connected Obsidian Vault currently contains these directories:\n${vaultFolders.map((f) => `- 📁 \`${f}\``).join('\n')}\n\n**Vault Organization Rule**:\n- When creating or updating a note with 'obsidian_create_note', ALWAYS analyze the existing folder tree above first. If an existing folder logically matches the topic (e.g. placing project plans into an existing 'Projects' or 'Work' folder), use that existing folder path!\n- ONLY create a new subfolder if none of the existing folders logically match the note's domain.`;
   } else {
     basePrompt += `\n\n### 📂 Obsidian Vault Placement Guidelines:\n- Use 'obsidian_list_folders' or 'obsidian_find_folder' to inspect the user's live vault directories.\n- Use clean, standard folder taxonomy matching the note category (e.g. 'Concepts/', 'Research/', 'Projects/', 'Guides/', 'DailyNotes/').`;
   }

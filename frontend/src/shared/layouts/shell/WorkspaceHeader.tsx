@@ -1,21 +1,15 @@
 import {
   Menu,
-  PanelRightClose,
-  PanelRightOpen,
   RotateCcw,
 } from 'lucide-react'
 import { useWorkspace } from '@/shared'
 
 interface WorkspaceHeaderProps {
   onOpenMobileMenu: () => void
-  isAsideOpen?: boolean
-  onToggleAside?: () => void
 }
 
 export default function WorkspaceHeader({
   onOpenMobileMenu,
-  isAsideOpen = true,
-  onToggleAside,
 }: WorkspaceHeaderProps) {
   const { activeSession, resetDemoSession } = useWorkspace()
 
@@ -57,22 +51,6 @@ export default function WorkspaceHeader({
             <span>Reset Demo</span>
           </button>
         </div>
-
-        {/* Aside Inspector Toggle */}
-        {onToggleAside && (
-          <button
-            onClick={onToggleAside}
-            title={isAsideOpen ? 'Close Document Panel' : 'Open Document Panel'}
-            className={`p-1.5 rounded-xl border transition-colors cursor-pointer hidden md:flex ${
-              isAsideOpen
-                ? 'bg-primary-soft border-primary-subtle text-primary shadow-2xs'
-                : 'bg-surface-card border-hairline text-muted hover:text-ink hover:border-hairline-strong'
-            }`}
-            aria-label="Toggle Document Panel"
-          >
-            {isAsideOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
-          </button>
-        )}
       </div>
     </header>
   )

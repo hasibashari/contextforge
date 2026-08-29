@@ -18,7 +18,8 @@
     "assignedTools": [
       "web_search",
       "search_knowledge_vault",
-      "obsidian_write_note",
+      "obsidian_create_note",
+      "obsidian_update_note",
       "obsidian_read_note",
       "obsidian_create_daily_note",
       "notion_get_tasks",

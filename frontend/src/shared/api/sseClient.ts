@@ -1,4 +1,4 @@
-import type { Artifact, ChatMessage, AutomationWorkflow } from '@/shared/types/workspace';
+import type { ChatMessage, AutomationWorkflow } from '@/shared/types/workspace';
 import { getApiHeaders } from './config';
 
 export interface SseEventHandlers {
@@ -11,7 +11,6 @@ export interface SseEventHandlers {
   onToolCallResult?: (data: { toolName: string; summary: string; durationMs?: number }) => void;
   onThoughtStep?: (data: { turn: number; status: string }) => void;
   onSideAgentLog?: (data: { sideAgentId: string; log: string; riskLevel: string }) => void;
-  onArtifactCreated?: (artifact: Artifact) => void;
   onAutomationCreated?: (automation: AutomationWorkflow) => void;
   onAssistantMessage?: (message: ChatMessage) => void;
   onExecutionDone?: (data: { messageId?: string; sessionId?: string; status: string }) => void;
@@ -99,9 +98,6 @@ export async function consumeSseStream(
               break;
             case 'side_agent_log':
               handlers.onSideAgentLog?.(parsedData);
-              break;
-            case 'artifact_created':
-              handlers.onArtifactCreated?.(parsedData);
               break;
             case 'automation_created':
               handlers.onAutomationCreated?.(parsedData);
