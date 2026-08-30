@@ -181,9 +181,24 @@ export class CoreOrchestratorService {
                 data: { toolName, input: args, turn },
               });
 
-              // Execute the selected tool with automatic 1-shot transient retry
+              // Execute the selected tool with automatic 1-shot transient retry.
+              // Android device errors (disconnected / device-side timeout) are
+              // structurally non-retryable — the device won't reconnect in 300ms,
+              // so we fast-fail them to avoid wasting an extra 12s per attempt.
               let toolOutput: OrchestrationResult | undefined;
               let executionError: Error | null = null;
+
+              const isAndroidNonRetryable = (err: Error): boolean => {
+                const msg = err.message.toLowerCase();
+                return (
+                  msg.includes('android device is not connected') ||
+                  msg.includes('android device is currently disconnected') ||
+                  msg.includes('not connected via websocket') ||
+                  msg.includes('android device request for') ||
+                  msg.includes('failed to transmit request') ||
+                  msg.includes('android bridge gateway is shutting down')
+                );
+              };
 
               for (let attempt = 1; attempt <= 2; attempt++) {
                 try {
@@ -200,6 +215,15 @@ export class CoreOrchestratorService {
                     toolErr instanceof Error
                       ? toolErr
                       : new Error(String(toolErr));
+
+                  // Skip retry for Android non-retryable errors
+                  if (isAndroidNonRetryable(executionError)) {
+                    this.logger.warn(
+                      `[Attempt ${attempt} Failed] Tool "${toolName}": ${executionError.message}. Non-retryable Android error, skipping retry.`,
+                    );
+                    break;
+                  }
+
                   if (attempt === 1) {
                     this.logger.warn(
                       `[Attempt 1 Failed] Tool "${toolName}": ${executionError.message}. Retrying...`,

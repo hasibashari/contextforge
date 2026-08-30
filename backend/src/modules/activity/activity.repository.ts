@@ -41,6 +41,7 @@ export class ActivityRepository implements OnModuleInit {
           details JSONB,
           status VARCHAR(20) DEFAULT 'info'
         );
+        CREATE INDEX IF NOT EXISTS idx_activity_logs_timestamp ON activity_logs (timestamp DESC);
       `);
 
       this.logger.log('✨ Activity logs table verified in PostgreSQL');
@@ -83,5 +84,17 @@ export class ActivityRepository implements OnModuleInit {
       ],
     );
     return res.rows[0];
+  }
+
+  /**
+   * Prunes activity logs older than specified retention days
+   */
+  async pruneOldLogs(retentionDays = 30): Promise<number> {
+    const res = await this.db.query(
+      `DELETE FROM activity_logs 
+       WHERE timestamp < NOW() - ($1 || ' days')::INTERVAL;`,
+      [retentionDays],
+    );
+    return res.rowCount ?? 0;
   }
 }

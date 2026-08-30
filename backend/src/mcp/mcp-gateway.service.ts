@@ -218,15 +218,37 @@ export class McpGatewayService implements OnModuleInit {
   }
 
   /**
-   * Resilient execution wrapper with Exponential Backoff + Timeout Circuit Breaker
+   * Determines if an error from an Android Bridge operation is non-retryable.
+   * Device disconnection and device-side timeouts are permanent failures that
+   * will not resolve between retry attempts — retrying only wastes time.
+   */
+  private isAndroidNonRetryableError(err: Error): boolean {
+    const msg = err.message.toLowerCase();
+    return (
+      msg.includes('android device is not connected') ||
+      msg.includes('android device is currently disconnected') ||
+      msg.includes('not connected via websocket') ||
+      msg.includes('android device request for') ||
+      msg.includes('failed to transmit request') ||
+      msg.includes('android bridge gateway is shutting down')
+    );
+  }
+
+  /**
+   * Resilient execution wrapper with Exponential Backoff + Timeout Circuit Breaker.
+   * For Android Bridge operations, non-retryable device errors (not connected,
+   * device-side timeout) are fast-failed immediately without wasting retry cycles.
    */
   private async executeWithRetryAndTimeout<T>(
     operationName: string,
     serverName: string,
     fn: () => Promise<T>,
-    timeoutMs = 12000,
+    timeoutMs = 15000,
     maxRetries = 3,
   ): Promise<T> {
+    const isAndroidOp =
+      serverName.toLowerCase().includes('android') ||
+      operationName.startsWith('android_');
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -245,6 +267,16 @@ export class McpGatewayService implements OnModuleInit {
         return await Promise.race([fn(), timeoutPromise]);
       } catch (err: unknown) {
         lastError = err instanceof Error ? err : new Error(String(err));
+
+        // Fast-fail for Android device errors that are structurally non-retryable:
+        // The device won't suddenly reconnect between retry attempts.
+        if (isAndroidOp && this.isAndroidNonRetryableError(lastError)) {
+          this.logger.warn(
+            `[MCP Gateway] Non-retryable Android error for "${operationName}": ${lastError.message}. Skipping retries.`,
+          );
+          break;
+        }
+
         if (attempt < maxRetries) {
           const baseDelay = 300 * Math.pow(2, attempt - 1);
           const jitter = Math.floor(Math.random() * 150);

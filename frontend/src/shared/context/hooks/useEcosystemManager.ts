@@ -37,7 +37,18 @@ export function useEcosystemManager(
     [],
   );
 
-  useEcosystemEvents(handleRealtimeIntegrationUpdate);
+  const refreshIntegrations = useCallback(async () => {
+    try {
+      const fresh = await ecosystemApi.getIntegrations();
+      if (fresh && fresh.length > 0) {
+        setIntegrations(fresh);
+      }
+    } catch (err: unknown) {
+      console.error('Failed to refresh integrations:', err);
+    }
+  }, []);
+
+  useEcosystemEvents(handleRealtimeIntegrationUpdate, refreshIntegrations);
 
   useEffect(() => {
     let isMounted = true;
@@ -378,17 +389,6 @@ export function useEcosystemManager(
     },
     [showToast],
   );
-
-  const refreshIntegrations = useCallback(async () => {
-    try {
-      const fresh = await ecosystemApi.getIntegrations();
-      if (fresh && fresh.length > 0) {
-        setIntegrations(fresh);
-      }
-    } catch (err: unknown) {
-      console.error('Failed to refresh integrations:', err);
-    }
-  }, []);
 
   return {
     agents,

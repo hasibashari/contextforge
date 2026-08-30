@@ -54,7 +54,8 @@ export class AndroidBridgeGatewayService
   private activeClients: Set<WsClient> = new Set();
   private pendingRequests: Map<string, PendingRpcRequest> = new Map();
   private heartbeatTimer: NodeJS.Timeout | null = null;
-  private readonly HEARTBEAT_INTERVAL_MS = 15000;
+  private readonly HEARTBEAT_INTERVAL_MS = 30000;
+  private readonly CLIENT_TIMEOUT_MS = 60000;
 
   private activeDeviceInfo: AndroidDeviceInfo = {
     connected: false,
@@ -81,6 +82,16 @@ export class AndroidBridgeGatewayService
     this.deviceDisconnectedListeners.push(listener);
   }
 
+  private notifyConnected(info: AndroidDeviceInfo) {
+    this.deviceConnectedListeners.forEach((fn) => {
+      try {
+        fn(info);
+      } catch (e) {
+        this.logger.warn(`Device connected listener error: ${String(e)}`);
+      }
+    });
+  }
+
   private notifyDisconnected() {
     this.deviceDisconnectedListeners.forEach((fn) => {
       try {
@@ -105,7 +116,7 @@ export class AndroidBridgeGatewayService
   }
 
   /**
-   * Explicitly disconnects all active Android clients (e.g. user clicked Disconnect in UI)
+   * Explicitly disconnects and unpairs all active Android clients
    */
   public disconnectAllClients(reason = 'User disconnected from Desktop') {
     this.bridgeEnabled = false;
@@ -116,15 +127,20 @@ export class AndroidBridgeGatewayService
       return;
     }
 
-    this.logger.log(`🔌 Disconnecting all Android clients: ${reason}`);
+    this.logger.log(
+      `🔌 Disconnecting and unpairing Android clients: ${reason}`,
+    );
 
     for (const ws of this.activeClients) {
       try {
         if (ws.readyState === WsClient.OPEN) {
-          // Send explicit disconnect message to trigger immediate exit on Android
+          // Send explicit unpair & disconnect message to trigger reset on Android companion app
           ws.send(
             JSON.stringify({
               type: 'server_disconnect',
+              action: 'disconnect',
+              requireRePairing: true,
+              unpair: true,
               reason,
               timestamp: Date.now(),
             }),
@@ -137,7 +153,10 @@ export class AndroidBridgeGatewayService
     }
 
     this.activeClients.clear();
-    this.activeDeviceInfo.connected = false;
+    this.activeDeviceInfo = {
+      connected: false,
+      deviceName: 'Android Mobile Device',
+    };
     if (wasConnected) {
       this.notifyDisconnected();
     }
@@ -178,33 +197,14 @@ export class AndroidBridgeGatewayService
       this.wss.on('connection', (ws: WsClient, req) => {
         const clientIp = req.socket.remoteAddress || 'unknown';
 
-        if (!this.bridgeEnabled) {
-          this.logger.warn(
-            `🚫 [Android WebSocket Bridge] Incoming connection rejected from ${clientIp}: Bridge is disabled in ContextForge Workspace.`,
-          );
-          try {
-            ws.send(
-              JSON.stringify({
-                type: 'server_disconnect',
-                reason: 'Android Bridge is disabled in ContextForge Workspace',
-                timestamp: Date.now(),
-              }),
-            );
-            ws.close(
-              4003,
-              'Android Bridge is disabled in ContextForge Workspace',
-            );
-          } catch {
-            // Ignore safe
-          }
-          return;
-        }
+        // Auto-enable bridge on any incoming device connection attempt
+        this.bridgeEnabled = true;
 
         const extWs = ws as ExtendedWsClient;
         extWs.isAlive = true;
 
         this.logger.log(
-          `📱 [Android WebSocket Bridge] Device connected from ${clientIp}`,
+          `📱 [Android WebSocket Bridge] Device connection accepted from ${clientIp}`,
         );
         this.activeClients.add(ws);
 
@@ -215,6 +215,9 @@ export class AndroidBridgeGatewayService
           connectedAt: Date.now(),
           lastPingAt: Date.now(),
         };
+
+        // Notify modules immediately so Web UI instantly shows Connected
+        this.notifyConnected(this.activeDeviceInfo);
 
         ws.on('pong', () => {
           extWs.isAlive = true;
@@ -276,22 +279,26 @@ export class AndroidBridgeGatewayService
   }
 
   /**
-   * Proactively pings active clients every 15s to detect dead peer sockets (e.g. phone died, wifi lost, sleep)
+   * Proactively pings active clients every 30s to detect dead peer sockets (with 60s grace timeout)
    */
   private startHeartbeatDaemon() {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = setInterval(() => {
+      const now = Date.now();
       for (const ws of this.activeClients) {
         const extWs = ws as ExtendedWsClient;
-        if (extWs.isAlive === false) {
+        const lastPing = this.activeDeviceInfo.lastPingAt || 0;
+        const isTimeOut = now - lastPing > this.CLIENT_TIMEOUT_MS;
+
+        if (extWs.isAlive === false && isTimeOut) {
           this.logger.warn(
-            '🔌 [Android Bridge Gateway] Dead peer detected (missed heartbeat pong). Terminating socket...',
+            '🔌 [Android Bridge Gateway] Dead peer detected (missed heartbeat for >60s). Terminating socket...',
           );
           this.activeClients.delete(ws);
           try {
             ws.terminate();
           } catch {
-            // Ignore
+            // Ignore safe
           }
           if (
             this.activeClients.size === 0 &&
@@ -332,22 +339,131 @@ export class AndroidBridgeGatewayService
 
       const message = JSON.parse(text) as Record<string, unknown>;
 
-      // 1. Handshake or Device Info report from Android app
+      const _logType = String(message.type);
+      const _logId =
+        typeof message.id === 'string' || typeof message.id === 'number'
+          ? String(message.id)
+          : '-';
+      const _logAction =
+        typeof message.action === 'string' ? message.action : '-';
+      const _logSuccess =
+        typeof message.success === 'boolean' ? String(message.success) : '-';
+      this.logger.log(
+        `📥 [Bridge RPC] Received from device: type="${_logType}" id="${_logId}" action="${_logAction}" success=${_logSuccess}`,
+      );
+
+      // ─────────────────────────────────────────────────────────────────────
+      // IMPORTANT: RPC response detection supports TWO wire formats:
+      //
+      // Standard (original):  { id, type: "mcp_bridge_response", success: true/false, data }
+      // Android companion app: { id, action: "...", status: "success"|"ok"|"error", data }
+      //
+      // Android format does NOT have a `type` field — the only reliable
+      // identifier is the presence of `id` matching a pending request.
+      // We check pending requests first so we never miss a real RPC response.
+      // ─────────────────────────────────────────────────────────────────────
+
+      // 1. Handle RPC response for dispatched tool calls (highest priority)
+      if (message.id) {
+        const rawId = message.id;
+        const reqId =
+          typeof rawId === 'string'
+            ? rawId
+            : typeof rawId === 'number'
+              ? String(rawId)
+              : null;
+        const pending = reqId ? this.pendingRequests.get(reqId) : undefined;
+
+        if (pending) {
+          // Matches a live pending request — this IS a tool-call response.
+          const isStandardFormat = message.type === 'mcp_bridge_response';
+          const isAndroidFormat =
+            typeof message.action === 'string' && message.status !== undefined;
+
+          if (isStandardFormat || isAndroidFormat) {
+            clearTimeout(pending.timer);
+            this.pendingRequests.delete(reqId!);
+
+            // Normalize success flag:
+            // Standard format: success boolean
+            // Android format:  status string "success" | "ok" | "error" | ...
+            const statusStr =
+              typeof message.status === 'string'
+                ? message.status.toLowerCase()
+                : '';
+            const isSuccess =
+              message.success === true ||
+              statusStr === 'success' ||
+              statusStr === 'ok';
+
+            if (isSuccess) {
+              pending.resolve(message.data);
+            } else {
+              const errMsg =
+                (typeof message.error === 'string' ? message.error : '') ||
+                (typeof message.message === 'string' ? message.message : '') ||
+                `Bridge RPC error for action ${pending.action} (status: ${statusStr || String(message.success)})`;
+              pending.reject(new Error(errMsg));
+            }
+            return;
+          }
+        }
+
+        // No pending request for this id — fall through to handshake check.
+        // Handles Android replying to the initial get_device_status probe
+        // (sent on connect without a pendingRequests entry).
+      }
+
+      // 2. Handshake or Device Info report from Android app
       if (
         message.type === 'android_handshake' ||
-        message.type === 'device_status'
+        message.type === 'device_status' ||
+        message.type === 'handshake' ||
+        message.type === 'client_hello' ||
+        message.type === 'register_device' ||
+        message.action === 'handshake' ||
+        message.action === 'get_device_status' ||
+        (message.type === 'mcp_bridge_response' &&
+          typeof message.data === 'object' &&
+          message.data !== null &&
+          'deviceName' in (message.data as Record<string, unknown>))
       ) {
+        // Android companion app wraps device info inside `data` field.
+        // Standard format may also use `data`. Extract accordingly.
+        const hasNestedData =
+          typeof message.data === 'object' && message.data !== null;
+        const payload = hasNestedData
+          ? (message.data as Record<string, unknown>)
+          : message;
+
+        const devName =
+          (payload.deviceName as string) ||
+          (payload.device as string) ||
+          (payload.name as string) ||
+          (payload.model as string) ||
+          'Android Mobile Device';
+
+        const androidVer =
+          (payload.androidVersion as string) ||
+          (payload.osVersion as string) ||
+          (payload.version as string) ||
+          undefined;
+
+        let battery: number | undefined;
+        if (typeof payload.batteryLevel === 'number') {
+          battery = payload.batteryLevel;
+        } else if (typeof payload.battery === 'number') {
+          battery = payload.battery;
+        } else if (typeof payload.batteryLevel === 'string') {
+          const parsed = parseInt(payload.batteryLevel, 10);
+          if (!isNaN(parsed)) battery = parsed;
+        }
+
         this.activeDeviceInfo = {
           connected: true,
-          deviceName:
-            (message.deviceName as string) ||
-            (message.device as string) ||
-            'Android Mobile Device',
-          androidVersion: message.androidVersion as string | undefined,
-          batteryLevel:
-            typeof message.batteryLevel === 'number'
-              ? message.batteryLevel
-              : undefined,
+          deviceName: devName,
+          androidVersion: androidVer,
+          batteryLevel: battery,
           clientIp: this.activeDeviceInfo.clientIp,
           connectedAt: this.activeDeviceInfo.connectedAt || Date.now(),
           lastPingAt: Date.now(),
@@ -358,46 +474,21 @@ export class AndroidBridgeGatewayService
         );
 
         // Acknowledge handshake
-        ws.send(
-          JSON.stringify({
-            type: 'handshake_ack',
-            success: true,
-            message: 'Connected to ContextForge MCP Bridge',
-            timestamp: Date.now(),
-          }),
-        );
-
-        // Notify all registered modules/services
-        this.deviceConnectedListeners.forEach((fn) => {
-          try {
-            fn(this.activeDeviceInfo);
-          } catch (e) {
-            this.logger.warn(`Device connected listener error: ${String(e)}`);
-          }
-        });
-
-        return;
-      }
-
-      // 2. Handle RPC response for dispatched tool calls
-      if (message.type === 'mcp_bridge_response' && message.id) {
-        const reqId = message.id as string;
-        const pending = this.pendingRequests.get(reqId);
-        if (pending) {
-          clearTimeout(pending.timer);
-          this.pendingRequests.delete(reqId);
-
-          if (message.success) {
-            pending.resolve(message.data);
-          } else {
-            pending.reject(
-              new Error(
-                (message.error as string) ||
-                  `Bridge RPC error for action ${pending.action}`,
-              ),
-            );
-          }
+        try {
+          ws.send(
+            JSON.stringify({
+              type: 'handshake_ack',
+              success: true,
+              message: 'Connected to ContextForge MCP Bridge',
+              timestamp: Date.now(),
+            }),
+          );
+        } catch {
+          // Ignore send errors
         }
+
+        // Notify all registered modules/services with rich device metadata
+        this.notifyConnected(this.activeDeviceInfo);
         return;
       }
 
@@ -407,6 +498,11 @@ export class AndroidBridgeGatewayService
         ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
         return;
       }
+
+      // 4. Unrecognized message — log for Android-side debugging
+      this.logger.debug(
+        `[Android Bridge] Unrecognized message from device (type: "${String(message.type)}", action: "${String(message.action)}"). Full: ${JSON.stringify(message).slice(0, 200)}`,
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(
@@ -484,9 +580,16 @@ export class AndroidBridgeGatewayService
       timestamp: Date.now(),
     };
 
+    this.logger.log(
+      `📤 [Bridge RPC] Sending "${action}" to device | id=${requestId} | payload=${JSON.stringify(payload).slice(0, 120)}`,
+    );
+
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pendingRequests.delete(requestId);
+        this.logger.error(
+          `⏱️ [Bridge RPC] Timeout waiting for "${action}" response | id=${requestId} | No mcp_bridge_response received from device within ${timeoutMs}ms. Check Android app logs — ensure the app is sending back { id: "${requestId}", type: "mcp_bridge_response", success: true/false, data: {...} }`,
+        );
         reject(
           new Error(
             `Timeout: Android device request for "${action}" exceeded ${timeoutMs}ms without response.`,

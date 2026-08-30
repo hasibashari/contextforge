@@ -30,10 +30,15 @@ export const ANDROID_BRIDGE_MCP_TOOLS: McpToolDefinition[] = [
           description:
             'Number of past days of usage data to query (e.g. 1 for today only, 7 for past week). Defaults to 1.',
         },
+        offsetDays: {
+          type: 'number',
+          description:
+            'How many days back to shift the query window. offsetDays=0 ends today, offsetDays=7 ends 7 days ago (useful for querying "last week"). Defaults to 0.',
+        },
         date: {
           type: 'string',
           description:
-            'Specific reference date in YYYY-MM-DD format. Defaults to current date.',
+            'Specific reference date in YYYY-MM-DD format. Overrides offsetDays when provided. Defaults to current date.',
         },
       },
       required: [],
@@ -53,10 +58,15 @@ export const ANDROID_BRIDGE_MCP_TOOLS: McpToolDefinition[] = [
           description:
             'Number of past days for historical baseline and trend analysis (e.g. 7 for a 7-day weekly trend, 14, 30). Defaults to 1.',
         },
+        offsetDays: {
+          type: 'number',
+          description:
+            'How many days back to shift the analysis window. offsetDays=0 ends today (default). offsetDays=7 analyzes the week that ended 7 days ago. Combine with days for ranges like "last week" (days=7, offsetDays=7).',
+        },
         date: {
           type: 'string',
           description:
-            'Specific date in YYYY-MM-DD format to analyze. Defaults to today.',
+            'Specific date in YYYY-MM-DD format to analyze. Overrides offsetDays when provided. Defaults to today.',
         },
       },
       required: [],

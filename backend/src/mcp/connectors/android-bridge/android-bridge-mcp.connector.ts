@@ -145,16 +145,27 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
       switch (toolName) {
         // 2. GET RAW USAGE STATS
         case 'android_get_usage': {
-          const usageParams = params as { days?: number; date?: string };
+          const usageParams = params as {
+            days?: number;
+            offsetDays?: number;
+            date?: string;
+          };
           const usageList = await this.gateway.dispatchBridgeRequest<
             AndroidAppUsageItem[]
-          >('get_usage', params);
+          >('get_usage', {
+            ...(usageParams.days !== undefined && { days: usageParams.days }),
+            ...(usageParams.offsetDays !== undefined && {
+              offsetDays: usageParams.offsetDays,
+            }),
+            ...(usageParams.date !== undefined && { date: usageParams.date }),
+          });
 
           const formattedText = formatRawUsageList(usageList);
 
           return {
             data: {
               daysRequested: usageParams?.days || 1,
+              offsetDays: usageParams?.offsetDays ?? 0,
               referenceDate: usageParams?.date,
               totalApps: usageList.length,
               apps: usageList.map((item) => ({
@@ -170,11 +181,25 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
 
         // 3. GET DIGITAL WELLBEING USAGE SUMMARY
         case 'android_get_usage_summary': {
-          const summaryParams = params as { days?: number; date?: string };
+          const summaryParams = params as {
+            days?: number;
+            offsetDays?: number;
+            date?: string;
+          };
           const summary =
             await this.gateway.dispatchBridgeRequest<AndroidUsageSummaryResponse>(
               'get_usage_summary',
-              params,
+              {
+                ...(summaryParams.days !== undefined && {
+                  days: summaryParams.days,
+                }),
+                ...(summaryParams.offsetDays !== undefined && {
+                  offsetDays: summaryParams.offsetDays,
+                }),
+                ...(summaryParams.date !== undefined && {
+                  date: summaryParams.date,
+                }),
+              },
             );
 
           const formattedReport = formatUsageSummaryReport(summary);
@@ -183,6 +208,7 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
             data: {
               date: summary.date,
               daysCount: summary.daysCount || summaryParams?.days || 1,
+              offsetDays: summaryParams?.offsetDays ?? 0,
               totalScreenTimeMs: summary.totalScreenTimeMs,
               formattedTotalScreenTime: formatDurationMs(
                 summary.totalScreenTimeMs,
@@ -345,6 +371,9 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
         }
 
         // 9. SEND PUSH NOTIFICATION
+        // Android companion app exposes a unified send_agent_message action.
+        // Map send_notification → send_agent_message with style "notification"
+        // (any non-modal style delivers a heads-up / system notification).
         case 'android_send_notification': {
           const title = (params.title as string) || 'ContextForge Agent';
           const message = (params.message as string) || '';
@@ -355,8 +384,12 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
 
           const res =
             await this.gateway.dispatchBridgeRequest<AndroidSendNotificationResponse>(
-              'send_notification',
-              { title: title.trim(), message: message.trim() },
+              'send_agent_message',
+              {
+                title: title.trim(),
+                message: message.trim(),
+                style: 'notification', // non-modal style → heads-up push notification
+              },
             );
 
           return {
@@ -425,24 +458,75 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
 
         // 12. GET COMPREHENSIVE SCREEN TIME STATUS
         case 'android_get_screen_time_status': {
-          const res =
-            await this.gateway.dispatchBridgeRequest<AndroidScreenTimeStatusResponse>(
-              'get_screen_time_status',
-              {},
-            );
+          const raw = await this.gateway.dispatchBridgeRequest<
+            AndroidScreenTimeStatusResponse & Record<string, unknown>
+          >('get_screen_time_status', {});
 
-          const formattedReport = formatScreenTimeStatus(res);
+          // Normalize Android companion app field names to canonical format.
+          // Android sends: totalScreenTimeMinutesToday, maxDailyScreenTimeMinutes,
+          //                isScreenTimeLimitExceeded, bedtimeCurfewEnabled,
+          //                bedtimeStart ("HH:MM"), bedtimeEnd ("HH:MM")
+          // Canonical:     totalScreenTimeMs, dailyLimitMs, isLimitExceeded,
+          //                bedtimeCurfewActive, bedtimeSchedule: { enabled, startTime, endTime }
+          const todayMinutes =
+            (raw.totalScreenTimeMinutesToday as number | undefined) ??
+            (raw.totalScreenTimeMs !== undefined
+              ? Math.round(raw.totalScreenTimeMs / 60000)
+              : 0);
+          const limitMinutes =
+            (raw.maxDailyScreenTimeMinutes as number | undefined) ??
+            (raw.dailyLimitMs !== undefined
+              ? Math.round((raw.dailyLimitMs as number) / 60000)
+              : 0);
+
+          const normalised: AndroidScreenTimeStatusResponse = {
+            totalScreenTimeMs: todayMinutes * 60000,
+            formattedTotalScreenTime: formatDurationMs(todayMinutes * 60000),
+            dailyLimitMs: limitMinutes * 60000,
+            formattedDailyLimit:
+              limitMinutes === 0
+                ? 'Unlimited'
+                : formatDurationMs(limitMinutes * 60000),
+            isLimitExceeded:
+              (raw.isScreenTimeLimitExceeded as boolean | undefined) ??
+              raw.isLimitExceeded ??
+              false,
+            bedtimeCurfewActive:
+              (raw.bedtimeCurfewEnabled as boolean | undefined) ??
+              raw.bedtimeCurfewActive ??
+              false,
+            bedtimeSchedule: {
+              enabled:
+                (raw.bedtimeCurfewEnabled as boolean | undefined) ??
+                (raw.bedtimeSchedule as { enabled?: boolean } | undefined)
+                  ?.enabled ??
+                false,
+              startTime:
+                (raw.bedtimeStart as string | undefined) ??
+                (raw.bedtimeSchedule as { startTime?: string } | undefined)
+                  ?.startTime ??
+                '22:00',
+              endTime:
+                (raw.bedtimeEnd as string | undefined) ??
+                (raw.bedtimeSchedule as { endTime?: string } | undefined)
+                  ?.endTime ??
+                '06:00',
+            },
+            activeRestrictionsCount: raw.activeRestrictionsCount ?? 0,
+          };
+
+          const formattedReport = formatScreenTimeStatus(normalised);
 
           return {
             data: {
-              totalScreenTimeMs: res.totalScreenTimeMs,
-              formattedTotalScreenTime: res.formattedTotalScreenTime,
-              dailyLimitMs: res.dailyLimitMs,
-              formattedDailyLimit: res.formattedDailyLimit,
-              isLimitExceeded: res.isLimitExceeded,
-              bedtimeCurfewActive: res.bedtimeCurfewActive,
-              bedtimeSchedule: res.bedtimeSchedule,
-              activeRestrictionsCount: res.activeRestrictionsCount,
+              totalScreenTimeMs: normalised.totalScreenTimeMs,
+              formattedTotalScreenTime: normalised.formattedTotalScreenTime,
+              dailyLimitMs: normalised.dailyLimitMs,
+              formattedDailyLimit: normalised.formattedDailyLimit,
+              isLimitExceeded: normalised.isLimitExceeded,
+              bedtimeCurfewActive: normalised.bedtimeCurfewActive,
+              bedtimeSchedule: normalised.bedtimeSchedule,
+              activeRestrictionsCount: normalised.activeRestrictionsCount,
             },
             summary: formattedReport,
           };
@@ -458,10 +542,23 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
           validateTimeFormat(startTime, 'startTime');
           validateTimeFormat(endTime, 'endTime');
 
+          // Android companion app expects individual hour/minute integers,
+          // not HH:MM strings. Parse and convert.
+          const [startHour = 22, startMin = 0] = startTime
+            .split(':')
+            .map(Number);
+          const [endHour = 6, endMin = 0] = endTime.split(':').map(Number);
+
           const res =
             await this.gateway.dispatchBridgeRequest<AndroidSetBedtimeScheduleResponse>(
               'set_bedtime_schedule',
-              { startTime, endTime, enabled },
+              {
+                enabled,
+                startHour: isNaN(startHour) ? 22 : startHour,
+                startMinute: isNaN(startMin) ? 0 : startMin,
+                endHour: isNaN(endHour) ? 6 : endHour,
+                endMinute: isNaN(endMin) ? 0 : endMin,
+              },
             );
 
           return {
@@ -537,24 +634,29 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
 
         // 16. TRIGGER INSTANT BEDTIME LOCK
         case 'android_trigger_bedtime_lock': {
-          const message =
+          const reason =
             typeof params.message === 'string' && params.message.trim()
               ? params.message.trim()
-              : 'Waktu tidur telah tiba. Istirahatkan mata dan pikiran Anda untuk pemulihan optimal.';
+              : typeof params.reason === 'string' && params.reason.trim()
+                ? params.reason.trim()
+                : 'Bedtime rest period. Take time to relax and recharge.';
 
           const res =
             await this.gateway.dispatchBridgeRequest<AndroidTriggerBedtimeLockResponse>(
               'trigger_bedtime_lock',
-              { message },
+              {
+                // Android expects 'reason', not 'message'
+                reason,
+              },
             );
 
           return {
             data: {
               lockTriggered: true,
-              message,
+              reason,
               status: res.status,
             },
-            summary: `🔒 **Instant Bedtime Lock Activated**: Layar HP dikunci dengan pesan: *"${message}"*.`,
+            summary: `🔒 **Instant Bedtime Lock Activated**: Layar HP dikunci dengan pesan: *"${reason}"*.`,
           };
         }
 

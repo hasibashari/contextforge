@@ -5,8 +5,6 @@ import {
   Sparkles,
   Edit2,
   Check,
-  Zap,
-  Usb,
   Copy,
   Radio,
 } from 'lucide-react'
@@ -17,9 +15,6 @@ import {
   IntegrationIconBox,
   Button,
   QrCodeBox,
-  Input,
-  FormField,
-  Badge,
 } from '@/shared'
 import { useWorkspace } from '@/shared'
 import { ecosystemApi } from '@/shared/api/ecosystemApi'
@@ -32,18 +27,9 @@ import type {
 export const AndroidBridgeConnectModal: FC<
   AndroidBridgeConnectModalProps
 > = ({ integration, isOpen, onClose, onSuccess }) => {
-  const { updateConnectorConfig, refreshIntegrations, showToast } =
-    useWorkspace()
+  const { refreshIntegrations, showToast } = useWorkspace()
 
-  // Connection mode tab ('qr' | 'usb_adb')
-  const [activeTab, setActiveTab] = useState<'qr' | 'usb_adb'>('qr')
-
-  const [deviceName, setDeviceName] = useState(
-    (integration.authConfig?.deviceName as string) || 'Android Mobile Device',
-  )
-  const [isDirectConnecting, setIsDirectConnecting] = useState(false)
   const [copiedWs, setCopiedWs] = useState(false)
-  const [copiedAdb, setCopiedAdb] = useState(false)
 
   // QR Pairing Session States
   const isCloudEnv =
@@ -69,7 +55,6 @@ export const AndroidBridgeConnectModal: FC<
     deviceName: string
     deviceEndpoint: string
   } | null>(null)
-
 
   // 1. Refresh Pairing Session (User-triggered or expiration)
   const refreshPairingSession = useCallback(
@@ -125,51 +110,6 @@ export const AndroidBridgeConnectModal: FC<
     setCopiedWs(true)
     setTimeout(() => setCopiedWs(false), 2000)
     showToast('WebSocket URL copied to clipboard', 'success')
-  }
-
-  const handleCopyAdbCommand = () => {
-    navigator.clipboard.writeText('adb reverse tcp:3001 tcp:3001')
-    setCopiedAdb(true)
-    setTimeout(() => setCopiedAdb(false), 2000)
-    showToast('ADB reverse command copied (port 3001)!', 'success')
-  }
-
-  // USB Connect Handler
-  const handleUsbAdbConnect = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsDirectConnecting(true)
-
-    try {
-      await updateConnectorConfig(integration.id, {
-        status: 'connected',
-        endpoint: 'ws://127.0.0.1:3001/api/android-bridge/ws',
-        authConfig: {
-          ...integration.authConfig,
-          deviceName: deviceName.trim() || 'Android Mobile Device (USB)',
-          pairedAt: Date.now(),
-          pairedVia: 'usb_adb',
-        },
-      })
-
-      await refreshIntegrations()
-      showToast('✨ Android Bridge connected via USB ADB!', 'success')
-
-      setIsPairingSuccess(true)
-      setPairedDeviceInfo({
-        deviceName: deviceName.trim() || 'Android Mobile Device (USB)',
-        deviceEndpoint: 'ws://127.0.0.1:3001/api/android-bridge/ws',
-      })
-
-      setTimeout(() => {
-        onSuccess?.()
-        onClose()
-      }, 1000)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Connection failed'
-      showToast(msg, 'error')
-    } finally {
-      setIsDirectConnecting(false)
-    }
   }
 
   // Initial session trigger on modal open
@@ -315,187 +255,93 @@ export const AndroidBridgeConnectModal: FC<
           </div>
         ) : (
           <>
-            {/* Mode Switcher Tabs */}
-            <div className="flex items-center gap-1.5 p-1 bg-canvas-soft rounded-xl border border-hairline font-sans text-xs">
-              <button
-                type="button"
-                onClick={() => setActiveTab('qr')}
-                className={`flex-1 py-1.5 px-2.5 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'qr'
-                    ? 'bg-canvas text-ink shadow-2xs border border-hairline'
-                    : 'text-muted hover:text-ink'
-                }`}
-              >
-                <Radio size={13} className="text-emerald-500" />
-                <span>WebSocket / QR</span>
-              </button>
+            {/* WEBSOCKET / QR PAIRING SECTION */}
+            <div className="p-4 rounded-2xl bg-canvas border border-hairline flex flex-col items-center justify-center shadow-2xs space-y-3">
+              {session ? (
+                <>
+                  <QrCodeBox
+                    value={session.qrPayloadJson}
+                    size={190}
+                    pinCode={session.pinCode}
+                    formattedPin={session.formattedPin}
+                    expiresInSeconds={secondsRemaining}
+                    isExpired={
+                      session.status === 'expired' || secondsRemaining <= 0
+                    }
+                    onRefresh={() => refreshPairingSession()}
+                    isRefreshing={isCreatingSession}
+                  />
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('usb_adb')}
-                className={`flex-1 py-1.5 px-2.5 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'usb_adb'
-                    ? 'bg-canvas text-ink shadow-2xs border border-hairline'
-                    : 'text-muted hover:text-ink'
-                }`}
-              >
-                <Usb size={13} className="text-amber-500" />
-                <span>USB Cable (ADB)</span>
-              </button>
-            </div>
+                  {/* WebSocket URL Copy Box */}
+                  <div className="w-full max-w-sm p-2.5 rounded-xl bg-canvas-soft border border-hairline flex flex-col gap-1.5 font-sans">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-1 text-muted">
+                        <Radio size={12} className="text-emerald-500" />
+                        <span>WebSocket Bridge URL:</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCopyWsUrl}
+                        className="text-emerald-600 dark:text-emerald-400 hover:underline text-[10px] flex items-center gap-0.5 cursor-pointer font-medium"
+                      >
+                        {copiedWs ? <Check size={10} /> : <Copy size={10} />}
+                        <span>{copiedWs ? 'Copied!' : 'Copy URL'}</span>
+                      </button>
+                    </div>
 
-            {/* TAB 1: WEBSOCKET / QR PAIRING */}
-            {activeTab === 'qr' && (
-              <div className="p-4 rounded-2xl bg-canvas border border-hairline flex flex-col items-center justify-center shadow-2xs space-y-3">
-                {session ? (
-                  <>
-                    <QrCodeBox
-                      value={session.qrPayloadJson}
-                      size={190}
-                      pinCode={session.pinCode}
-                      formattedPin={session.formattedPin}
-                      expiresInSeconds={secondsRemaining}
-                      isExpired={
-                        session.status === 'expired' || secondsRemaining <= 0
-                      }
-                      onRefresh={() => refreshPairingSession()}
-                      isRefreshing={isCreatingSession}
-                    />
+                    <div className="flex items-center justify-between font-mono text-[11px] text-ink font-semibold bg-canvas px-2.5 py-1.5 rounded-lg border border-hairline/60">
+                      <span className="truncate select-all">
+                        {getWebSocketUrl()}
+                      </span>
+                    </div>
 
-                    {/* WebSocket URL Copy Box */}
-                    <div className="w-full max-w-sm p-2.5 rounded-xl bg-canvas-soft border border-hairline flex flex-col gap-1.5 font-sans">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <div className="flex items-center gap-1 text-muted">
-                          <Radio size={12} className="text-emerald-500" />
-                          <span>WebSocket Bridge URL:</span>
-                        </div>
+                    {/* Desktop IP Customizer */}
+                    <div className="flex items-center justify-between text-[10px] text-muted pt-0.5">
+                      <span>Desktop Wi-Fi IP: <strong className="text-ink">{session.desktopHost}</strong></span>
+                      {!isEditingHost ? (
                         <button
                           type="button"
-                          onClick={handleCopyWsUrl}
-                          className="text-emerald-600 dark:text-emerald-400 hover:underline text-[10px] flex items-center gap-0.5 cursor-pointer font-medium"
+                          onClick={() => {
+                            setHostInput(customHost)
+                            setIsEditingHost(true)
+                          }}
+                          className="text-muted hover:text-ink flex items-center gap-0.5 cursor-pointer"
                         >
-                          {copiedWs ? <Check size={10} /> : <Copy size={10} />}
-                          <span>{copiedWs ? 'Copied!' : 'Copy URL'}</span>
+                          <Edit2 size={9} />
+                          <span>Edit IP</span>
                         </button>
-                      </div>
-
-                      <div className="flex items-center justify-between font-mono text-[11px] text-ink font-semibold bg-canvas px-2.5 py-1.5 rounded-lg border border-hairline/60">
-                        <span className="truncate select-all">
-                          {getWebSocketUrl()}
-                        </span>
-                      </div>
-
-                      {/* Desktop IP Customizer */}
-                      <div className="flex items-center justify-between text-[10px] text-muted pt-0.5">
-                        <span>Desktop Wi-Fi IP: <strong className="text-ink">{session.desktopHost}</strong></span>
-                        {!isEditingHost ? (
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={hostInput}
+                            onChange={(e) => setHostInput(e.target.value)}
+                            placeholder="192.168.1.8"
+                            className="px-1.5 py-0.5 rounded bg-canvas border border-hairline text-[10px] font-mono text-ink w-24"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveHost()
+                              if (e.key === 'Escape') setIsEditingHost(false)
+                            }}
+                            autoFocus
+                          />
                           <button
                             type="button"
-                            onClick={() => {
-                              setHostInput(customHost)
-                              setIsEditingHost(true)
-                            }}
-                            className="text-muted hover:text-ink flex items-center gap-0.5 cursor-pointer"
+                            onClick={handleSaveHost}
+                            className="px-1.5 py-0.5 rounded bg-emerald-600 text-white cursor-pointer text-[10px]"
                           >
-                            <Edit2 size={9} />
-                            <span>Edit IP</span>
+                            Save
                           </button>
-                        ) : (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="text"
-                              value={hostInput}
-                              onChange={(e) => setHostInput(e.target.value)}
-                              placeholder="192.168.1.8"
-                              className="px-1.5 py-0.5 rounded bg-canvas border border-hairline text-[10px] font-mono text-ink w-24"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveHost()
-                                if (e.key === 'Escape') setIsEditingHost(false)
-                              }}
-                              autoFocus
-                            />
-                            <button
-                              type="button"
-                              onClick={handleSaveHost}
-                              className="px-1.5 py-0.5 rounded bg-emerald-600 text-white cursor-pointer text-[10px]"
-                            >
-                              Save
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
-                  </>
-                ) : (
-                  <div className="h-60 flex items-center justify-center text-muted text-xs">
-                    Initializing secure pairing session...
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB 2: USB ADB CABLE CONNECT */}
-            {activeTab === 'usb_adb' && (
-              <form onSubmit={handleUsbAdbConnect} className="space-y-3.5">
-                <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-semibold text-ink text-xs font-sans">
-                      <Usb size={15} className="text-amber-500" />
-                      <span>USB Cable + ADB Forward (Zero Wi-Fi Needed)</span>
-                    </div>
-                    <Badge variant="neutral" size="xs">
-                      100% Reliable
-                    </Badge>
-                  </div>
-
-                  <p className="text-muted text-[11px] font-sans leading-relaxed">
-                    Connect your phone to PC via USB cable, enable <strong>USB Debugging</strong> in Android Developer Options, and run this terminal command:
-                  </p>
-
-                  <div className="p-2.5 rounded-lg bg-canvas border border-hairline flex items-center justify-between font-mono text-[11px] text-ink">
-                    <code>adb forward tcp:8080 tcp:8080</code>
-                    <button
-                      type="button"
-                      onClick={handleCopyAdbCommand}
-                      className="px-2 py-1 rounded bg-canvas-soft hover:bg-canvas-muted text-muted hover:text-ink text-[10px] flex items-center gap-1 cursor-pointer"
-                    >
-                      {copiedAdb ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
-                      <span>{copiedAdb ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <FormField label="Target Local Endpoint">
-                      <Input
-                        value="http://127.0.0.1:8080"
-                        disabled
-                        variant="mono"
-                      />
-                    </FormField>
-
-                    <FormField label="Device Name (Optional)">
-                      <Input
-                        value={deviceName}
-                        onChange={(e) => setDeviceName(e.target.value)}
-                        placeholder="Samsung Galaxy USB"
-                      />
-                    </FormField>
-                  </div>
+                </>
+              ) : (
+                <div className="h-60 flex items-center justify-center text-muted text-xs">
+                  Initializing secure pairing session...
                 </div>
-
-                <div className="flex items-center justify-end gap-2 pt-1">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="sm"
-                    isLoading={isDirectConnecting}
-                    leftIcon={<Zap size={13} />}
-                  >
-                    {isDirectConnecting ? 'Connecting...' : 'Connect via USB ADB'}
-                  </Button>
-                </div>
-              </form>
-            )}
+              )}
+            </div>
 
             {/* Android Permissions Checklist */}
             <div className="p-3 rounded-xl bg-canvas border border-hairline space-y-1.5 shadow-2xs">

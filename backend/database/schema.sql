@@ -64,69 +64,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Entitas Side Agent & Task Orchestration
-CREATE TABLE IF NOT EXISTS side_agent_executions (
-    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    message_id VARCHAR(100) REFERENCES chat_messages(id) ON DELETE SET NULL,
-    agent_id VARCHAR(100) NOT NULL,
-    agent_name VARCHAR(150) NOT NULL,
-    agent_role VARCHAR(150) NOT NULL,
-    task_goal TEXT NOT NULL,
-    action_type VARCHAR(50) NOT NULL,
-    target_resource TEXT NOT NULL,
-    status VARCHAR(30) NOT NULL CHECK (status IN ('queued', 'running', 'completed', 'failed')),
-    risk_level VARCHAR(20) NOT NULL CHECK (risk_level IN ('low_risk', 'medium_risk', 'high_risk')),
-    execution_time_ms INTEGER DEFAULT 0,
-    tokens_used JSONB,
-    logs TEXT[] DEFAULT '{}',
-    summary TEXT NOT NULL,
-    files_modified TEXT[],
-    diff_preview TEXT,
-    artifact_id VARCHAR(100) REFERENCES artifacts(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS tasks (
-    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    title VARCHAR(255) NOT NULL,
-    objective TEXT NOT NULL,
-    repo VARCHAR(255) DEFAULT '',
-    agent_id VARCHAR(100) NOT NULL,
-    status VARCHAR(30) NOT NULL CHECK (status IN ('queued', 'planning', 'running_tools', 'analyzing', 'waiting_approval', 'completed', 'failed')),
-    current_stage VARCHAR(30) NOT NULL CHECK (current_stage IN ('planning', 'context_retrieval', 'tool_execution', 'validation', 'deliverable')),
-    knowledge_sources TEXT[] DEFAULT '{}',
-    tools_used TEXT[] DEFAULT '{}',
-    deliverable JSONB,
-    tokens_used JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
-);
-
-CREATE TABLE IF NOT EXISTS execution_steps (
-    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    task_id VARCHAR(100) NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    stage VARCHAR(30) NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    status VARCHAR(30) NOT NULL CHECK (status IN ('pending', 'in_progress', 'completed', 'failed')),
-    logs TEXT[] DEFAULT '{}',
-    started_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
-);
-
-CREATE TABLE IF NOT EXISTS tool_calls (
-    id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    step_id VARCHAR(100) NOT NULL REFERENCES execution_steps(id) ON DELETE CASCADE,
-    tool_name VARCHAR(100) NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    description TEXT,
-    status VARCHAR(30) NOT NULL CHECK (status IN ('running', 'success', 'error')),
-    duration_ms INTEGER DEFAULT 0,
-    input_params JSONB,
-    output_result JSONB,
-    started_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 4. Entitas Personal Hub (User Memories)
+-- 3. Entitas Personal Hub (User Memories)
 CREATE TABLE IF NOT EXISTS user_memories (
     id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id UUID,
@@ -340,8 +278,6 @@ CREATE TABLE IF NOT EXISTS goal_evaluations (
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at ASC);
 CREATE INDEX IF NOT EXISTS idx_artifacts_session ON artifacts(session_id);
-CREATE INDEX IF NOT EXISTS idx_execution_steps_task ON execution_steps(task_id);
-CREATE INDEX IF NOT EXISTS idx_tool_calls_step ON tool_calls(step_id);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_time ON activity_logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source ON knowledge_chunks(source_id);
 CREATE INDEX IF NOT EXISTS idx_workspace_skills_category ON workspace_skills(category, enabled);
@@ -359,10 +295,6 @@ CREATE INDEX IF NOT EXISTS idx_goal_evaluations_goal ON goal_evaluations(goal_id
 ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE artifacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE side_agent_executions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE execution_steps ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tool_calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_memories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE knowledge_chunks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE knowledge_sources ENABLE ROW LEVEL SECURITY;
@@ -376,3 +308,4 @@ ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE goal_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE goal_evaluations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wiki_pages ENABLE ROW LEVEL SECURITY;
+

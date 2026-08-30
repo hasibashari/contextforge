@@ -98,6 +98,7 @@ export class AutomationRepository implements OnModuleInit {
           output_artifact_url TEXT,
           created_at TIMESTAMPTZ DEFAULT NOW()
         );
+        CREATE INDEX IF NOT EXISTS idx_automation_runs_workflow_time ON automation_runs(workflow_id, started_at DESC);
       `);
 
       this.logger.log(
@@ -241,5 +242,26 @@ export class AutomationRepository implements OnModuleInit {
       ],
     );
     return res.rows[0];
+  }
+
+  /**
+   * Prunes older automation runs exceeding maxPerWorkflow records per workflow.
+   */
+  async pruneOldRuns(maxPerWorkflow = 50): Promise<number> {
+    const res = await this.db.query(
+      `WITH ranked_runs AS (
+        SELECT id, ROW_NUMBER() OVER (
+          PARTITION BY workflow_id 
+          ORDER BY started_at DESC
+        ) AS rn
+        FROM automation_runs
+      )
+      DELETE FROM automation_runs
+      WHERE id IN (
+        SELECT id FROM ranked_runs WHERE rn > $1
+      );`,
+      [maxPerWorkflow],
+    );
+    return res.rowCount ?? 0;
   }
 }
