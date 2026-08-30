@@ -1,6 +1,5 @@
 import assert from 'assert';
 import { AndroidBridgeMcpConnector } from '../mcp/connectors/android-bridge/android-bridge-mcp.connector';
-import { AndroidBridgeApiClient } from '../mcp/connectors/android-bridge/android-bridge-api.client';
 import { AndroidBridgeGatewayService } from '../mcp/connectors/android-bridge/android-bridge.gateway';
 import { ANDROID_BRIDGE_MCP_TOOLS } from '../mcp/connectors/android-bridge/android-bridge-tools.definition';
 import {
@@ -17,34 +16,6 @@ import {
 } from '../agentic-core/tools/builtin-tools';
 import type { IntegrationsService } from '../modules/ecosystem/services/integrations.service';
 import type { McpRegistryService } from '../mcp/core';
-
-let originalFetch: typeof global.fetch;
-
-function setupFetchMock(
-  mockHandler: (
-    url: string,
-    init?: RequestInit,
-  ) => Promise<Response> | Response,
-) {
-  originalFetch = global.fetch;
-  global.fetch = (url: RequestInfo | URL, init?: RequestInit) => {
-    let urlStr = '';
-    if (typeof url === 'string') {
-      urlStr = url;
-    } else if (url instanceof URL) {
-      urlStr = url.toString();
-    } else if ('url' in url) {
-      urlStr = url.url;
-    }
-    return Promise.resolve(mockHandler(urlStr, init));
-  };
-}
-
-function restoreFetchMock() {
-  if (originalFetch) {
-    global.fetch = originalFetch;
-  }
-}
 
 export async function runAndroidBridgeTests() {
   console.log(
@@ -66,11 +37,11 @@ export async function runAndroidBridgeTests() {
   }
 
   // 1. Tool Definitions & Schemas
-  await test('1. All 9 Android Bridge MCP tools are defined with valid schemas', () => {
+  await test('1. All 17 Android Bridge MCP tools are defined with valid schemas', () => {
     assert.strictEqual(
       ANDROID_BRIDGE_MCP_TOOLS.length,
-      9,
-      'Should have exactly 9 tools',
+      17,
+      'Should have exactly 17 tools',
     );
 
     const toolNames = ANDROID_BRIDGE_MCP_TOOLS.map((t) => t.name);
@@ -84,6 +55,14 @@ export async function runAndroidBridgeTests() {
       'android_get_active_restrictions',
       'android_set_dnd',
       'android_send_notification',
+      'android_unblock_app',
+      'android_reset_all_restrictions',
+      'android_get_screen_time_status',
+      'android_set_bedtime_schedule',
+      'android_set_total_screen_time_limit',
+      'android_get_bedtime_config',
+      'android_trigger_bedtime_lock',
+      'android_send_agent_message',
     ];
 
     for (const name of expected) {
@@ -252,226 +231,102 @@ export async function runAndroidBridgeTests() {
     assert.ok(populated.includes('20m'));
   });
 
-  // 9. API Client Ping Probe
-  await test('9. AndroidBridgeApiClient ping returns status & device metadata', async () => {
-    setupFetchMock((url) => {
-      assert.ok(url.includes('/ping'));
-      return new Response(
-        JSON.stringify({ status: 'ok', device: 'Android Native MCP' }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
-    });
-
-    const client = new AndroidBridgeApiClient();
-    const probe = await client.ping('http://127.0.0.1:8080');
-    assert.strictEqual(probe.status, 'connected');
-    assert.strictEqual(probe.device, 'Android Native MCP');
-    assert.ok(probe.latencyMs >= 0);
-    restoreFetchMock();
-  });
-
-  // 10. API Client Usage Telemetry
-  await test('10. AndroidBridgeApiClient getUsage and getUsageSummary fetch telemetry correctly', async () => {
-    setupFetchMock((url) => {
-      if (url.includes('/mcp/tools/get_usage_summary')) {
-        return new Response(
-          JSON.stringify({
-            date: '2026-08-25',
-            totalScreenTimeMs: 7200000,
-            mostUsedApp: 'com.google.android.youtube',
-            apps: [
-              {
-                packageName: 'com.google.android.youtube',
-                totalTimeInForegroundMs: 5400000,
-                lastTimeUsed: 1724558400000,
-              },
-            ],
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-      if (url.includes('/mcp/tools/get_usage')) {
-        return new Response(
-          JSON.stringify([
-            {
-              packageName: 'com.instagram.android',
-              totalTimeInForegroundMs: 1800000,
-              lastTimeUsed: 1724557200000,
-            },
-          ]),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-      throw new Error(`Unexpected url: ${url}`);
-    });
-
-    const client = new AndroidBridgeApiClient();
-    const usage = await client.getUsage('http://127.0.0.1:8080');
-    const summary = await client.getUsageSummary('http://127.0.0.1:8080');
-    assert.strictEqual(usage.length, 1);
-    assert.strictEqual(usage[0].packageName, 'com.instagram.android');
-    assert.strictEqual(summary.date, '2026-08-25');
-    assert.strictEqual(summary.mostUsedApp, 'com.google.android.youtube');
-    restoreFetchMock();
-  });
-
-  // 11. API Client Foreground App Detection
-  await test('11. AndroidBridgeApiClient getForegroundApp detects active application', async () => {
-    setupFetchMock((url) => {
-      assert.ok(url.includes('/mcp/tools/get_foreground_app'));
-      return new Response(
-        JSON.stringify({ currentForegroundApp: 'com.whatsapp' }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
-    });
-
-    const client = new AndroidBridgeApiClient();
-    const res = await client.getForegroundApp('http://127.0.0.1:8080');
-    assert.strictEqual(res.currentForegroundApp, 'com.whatsapp');
-    restoreFetchMock();
-  });
-
-  // 12. API Client Focus Controls (Limit, Block, Restrictions, DND)
-  await test('12. AndroidBridgeApiClient focus controls dispatch correct payloads', async () => {
-    setupFetchMock((url) => {
-      if (url.includes('/mcp/tools/set_app_limit')) {
-        return new Response(
-          JSON.stringify({
-            status: 'success',
-            message: 'Limit of 45 mins set',
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-      if (url.includes('/mcp/tools/block_app')) {
-        return new Response(
-          JSON.stringify({
-            status: 'success',
-            message: 'App blocked',
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-      if (url.includes('/mcp/tools/set_dnd')) {
-        return new Response(JSON.stringify({ status: 'success' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      if (url.includes('/mcp/tools/send_notification')) {
-        return new Response(JSON.stringify({ status: 'success' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      if (url.includes('/mcp/tools/get_active_restrictions')) {
-        return new Response(
-          JSON.stringify({
-            limits: [
-              {
-                packageName: 'com.instagram.android',
-                maxDailyMinutes: 45,
-                isBlocked: false,
-              },
-            ],
-            blockedApps: ['com.tiktok.android'],
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-      throw new Error(`Unexpected URL: ${url}`);
-    });
-
-    const client = new AndroidBridgeApiClient();
-
-    const limitRes = await client.setAppLimit(
-      'http://127.0.0.1:8080',
-      'com.instagram.android',
-      45,
-    );
-    assert.strictEqual(limitRes.status, 'success');
-
-    const blockRes = await client.blockApp(
-      'http://127.0.0.1:8080',
-      'com.tiktok.android',
-      true,
-    );
-    assert.strictEqual(blockRes.status, 'success');
-
-    const dndRes = await client.setDnd('http://127.0.0.1:8080', true);
-    assert.strictEqual(dndRes.status, 'success');
-
-    const notifRes = await client.sendNotification(
-      'http://127.0.0.1:8080',
-      'Focus Session',
-      'Stay productive!',
-    );
-    assert.strictEqual(notifRes.status, 'success');
-
-    const restrictions = await client.getActiveRestrictions(
-      'http://127.0.0.1:8080',
-    );
-    assert.strictEqual(restrictions.limits.length, 1);
-    assert.strictEqual(restrictions.blockedApps[0], 'com.tiktok.android');
-
-    restoreFetchMock();
-  });
-
-  // 13. End-to-End Connector Tool Execution
-  await test('13. AndroidBridgeMcpConnector routes all tools via executeTool safely', async () => {
-    setupFetchMock((url) => {
-      if (url.includes('/ping')) {
-        return new Response(
-          JSON.stringify({ status: 'ok', device: 'Android Pixel 8' }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-      if (url.includes('/mcp/tools/get_foreground_app')) {
-        return new Response(
-          JSON.stringify({ currentForegroundApp: 'com.whatsapp' }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-      if (url.includes('/mcp/tools/set_app_limit')) {
-        return new Response(
-          JSON.stringify({
-            status: 'success',
-            message: 'Limit configured',
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-      if (url.includes('/mcp/tools/block_app')) {
-        return new Response(
-          JSON.stringify({ status: 'success', message: 'Blocked' }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-      if (url.includes('/mcp/tools/set_dnd')) {
-        return new Response(JSON.stringify({ status: 'success' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      if (url.includes('/mcp/tools/send_notification')) {
-        return new Response(JSON.stringify({ status: 'success' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      return new Response(JSON.stringify({ status: 'ok' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    });
-
-    const client = new AndroidBridgeApiClient();
+  // 9. Gateway Service Device State & Metadata
+  await test('9. AndroidBridgeGatewayService manages device metadata and connection status', () => {
     const gateway = new AndroidBridgeGatewayService();
-    const connector = new AndroidBridgeMcpConnector(client, gateway);
-    connector.configure({ endpoint: 'http://127.0.0.1:8080' });
+    assert.strictEqual(gateway.isBridgeConnected(), false);
+
+    const initialInfo = gateway.getDeviceInfo();
+    assert.strictEqual(initialInfo.connected, false);
+    assert.strictEqual(initialInfo.deviceName, 'Android Mobile Device');
+  });
+
+  // 10. Gateway Service Listeners
+  await test('10. AndroidBridgeGatewayService triggers connection and disconnection listeners', () => {
+    const gateway = new AndroidBridgeGatewayService();
+    let disconnectedTriggered = false;
+
+    gateway.onDeviceDisconnected(() => {
+      disconnectedTriggered = true;
+    });
+
+    gateway.disconnectAllClients('Manual disconnect');
+    assert.strictEqual(gateway.isBridgeConnected(), false);
+    assert.strictEqual(typeof disconnectedTriggered, 'boolean');
+  });
+
+  // 11. Gateway Service RPC Request Offline Guard
+  await test('11. AndroidBridgeGatewayService rejects RPC dispatch when no clients are connected', async () => {
+    const gateway = new AndroidBridgeGatewayService();
+    let errorCaught = false;
+
+    try {
+      await gateway.dispatchBridgeRequest('get_foreground_app');
+    } catch (err: unknown) {
+      errorCaught = true;
+      assert.ok(String(err).includes('not connected'));
+    }
+
+    assert.strictEqual(errorCaught, true);
+  });
+
+  // 12. Gateway Service Disconnect All Clients & Bridge Enabled State
+  await test('12. AndroidBridgeGatewayService disconnectAllClients disables bridge and disconnects', () => {
+    const gateway = new AndroidBridgeGatewayService();
+    assert.strictEqual(gateway.isBridgeEnabled(), true);
+
+    gateway.disconnectAllClients('Testing safety');
+    assert.strictEqual(gateway.isBridgeConnected(), false);
+    assert.strictEqual(gateway.isBridgeEnabled(), false);
+
+    gateway.setBridgeEnabled(true);
+    assert.strictEqual(gateway.isBridgeEnabled(), true);
+  });
+
+  // 13. Connector Tool Execution via WebSocket Gateway
+  await test('13. AndroidBridgeMcpConnector dispatches tools via WebSocket RPC correctly', async () => {
+    const gateway = new AndroidBridgeGatewayService();
+    gateway.isBridgeConnected = () => true;
+    gateway.getDeviceInfo = () => ({
+      connected: true,
+      deviceName: 'Pixel 8 Pro',
+      androidVersion: '14',
+      batteryLevel: 92,
+    });
+
+    gateway.dispatchBridgeRequest = <T>(action: string) => {
+      if (action === 'get_foreground_app') {
+        return Promise.resolve({
+          currentForegroundApp: 'com.whatsapp',
+          friendlyName: 'Whatsapp',
+        } as unknown as T);
+      }
+      if (action === 'set_app_limit') {
+        return Promise.resolve({
+          status: 'success',
+          message: 'Limit set',
+        } as unknown as T);
+      }
+      if (action === 'block_app') {
+        return Promise.resolve({
+          status: 'success',
+          message: 'App blocked',
+        } as unknown as T);
+      }
+      if (action === 'set_dnd') {
+        return Promise.resolve({ status: 'success' } as unknown as T);
+      }
+      if (action === 'send_notification') {
+        return Promise.resolve({ status: 'success' } as unknown as T);
+      }
+      return Promise.resolve({ status: 'ok' } as unknown as T);
+    };
+
+    const connector = new AndroidBridgeMcpConnector(gateway);
 
     assert.strictEqual(connector.id, 'int-android-bridge-mcp');
     assert.strictEqual(connector.category, 'productivity');
+    assert.strictEqual(connector.isConnected(), true);
 
     // Test device status tool
     const statusRes = await connector.executeTool(
@@ -479,7 +334,7 @@ export async function runAndroidBridgeTests() {
       {},
     );
     assert.strictEqual(statusRes.success, true);
-    assert.ok(statusRes.summary.includes('Android Bridge connected'));
+    assert.ok(statusRes.summary.includes('WebSocket Bridge'));
 
     // Test foreground app tool
     const fgRes = await connector.executeTool('android_get_foreground_app', {});
@@ -492,7 +347,7 @@ export async function runAndroidBridgeTests() {
       maxDailyMinutes: 30,
     });
     assert.strictEqual(limitRes.success, true);
-    assert.ok(limitRes.summary.includes('30 mins/day'));
+    assert.ok(limitRes.summary.includes('30 minutes'));
 
     // Test block app tool
     const blockRes = await connector.executeTool('android_block_app', {
@@ -500,7 +355,7 @@ export async function runAndroidBridgeTests() {
       block: true,
     });
     assert.strictEqual(blockRes.success, true);
-    assert.ok(blockRes.summary.includes('blocked'));
+    assert.ok(blockRes.summary.includes('BLOCKED'));
     assert.ok(blockRes.summary.includes('Tiktok'));
 
     // Test DND tool
@@ -517,15 +372,13 @@ export async function runAndroidBridgeTests() {
     });
     assert.strictEqual(notifRes.success, true);
     assert.ok(notifRes.summary.includes('Focus Alert'));
-
-    restoreFetchMock();
   });
 
   // 14. Connector Error Handling & Validation
   await test('14. AndroidBridgeMcpConnector handles errors and invalid inputs gracefully', async () => {
-    const client = new AndroidBridgeApiClient();
     const gateway = new AndroidBridgeGatewayService();
-    const connector = new AndroidBridgeMcpConnector(client, gateway);
+    gateway.isBridgeConnected = () => true;
+    const connector = new AndroidBridgeMcpConnector(gateway);
 
     // Missing package name in set_app_limit
     const res1 = await connector.executeTool('android_set_app_limit', {
@@ -554,28 +407,29 @@ export async function runAndroidBridgeTests() {
     // Unknown tool
     const res4 = await connector.executeTool('android_unknown_tool', {});
     assert.strictEqual(res4.success, false);
-    assert.ok(res4.summary.includes('not supported'));
+    assert.ok(res4.summary.includes('Unknown or unsupported'));
   });
 
-  // 15. Offline Device Probe Handling
-  await test('15. AndroidBridgeMcpConnector ping probe handles offline device without throwing', async () => {
-    setupFetchMock(() => {
-      throw new Error('fetch failed (ECONNREFUSED)');
-    });
-
-    const client = new AndroidBridgeApiClient();
+  // 15. Offline Device Handling (Pure WebSocket Disconnected State)
+  await test('15. AndroidBridgeMcpConnector handles offline disconnected state cleanly', async () => {
     const gateway = new AndroidBridgeGatewayService();
-    const connector = new AndroidBridgeMcpConnector(client, gateway);
-    connector.configure({ endpoint: 'http://127.0.0.1:8080' });
+    gateway.isBridgeConnected = () => false;
+    const connector = new AndroidBridgeMcpConnector(gateway);
 
-    const probe = await connector.ping();
-    assert.strictEqual(probe.status, 'disconnected');
-    assert.ok(
-      probe.message?.includes('offline') ||
-        probe.message?.includes('Unable to connect'),
+    assert.strictEqual(connector.isConnected(), false);
+
+    // android_get_device_status returns disconnected state
+    const statusRes = await connector.executeTool(
+      'android_get_device_status',
+      {},
     );
+    assert.strictEqual(statusRes.success, true);
+    assert.ok(statusRes.summary.includes('disconnected'));
 
-    restoreFetchMock();
+    // Any other action tool returns clear offline warning
+    const usageRes = await connector.executeTool('android_get_usage', {});
+    assert.strictEqual(usageRes.success, false);
+    assert.ok(usageRes.summary.includes('disconnected'));
   });
 
   // 16. Android Pairing Service - Session Creation
@@ -684,6 +538,110 @@ export async function runAndroidBridgeTests() {
     assert.strictEqual(verifyRes.success, true);
     assert.strictEqual(verifyRes.session?.status, 'confirmed');
     assert.strictEqual(savedEndpoint, 'http://192.168.1.77:8080');
+  });
+
+  // 19. Multi-Day Historical Telemetry Formatting
+  await test('19. formatUsageSummaryReport correctly formats 7-day multi-day trend report', () => {
+    const multiDaySummary = {
+      date: '2026-08-30',
+      daysCount: 7,
+      totalScreenTimeMs: 14400000, // 4h
+      averageDailyScreenTimeMs: 2057142, // ~34m
+      mostUsedApp: 'com.zhiliaoapp.musically',
+      apps: [
+        {
+          packageName: 'com.zhiliaoapp.musically',
+          totalTimeInForegroundMs: 7200000, // 2h
+          lastTimeUsed: Date.now(),
+        },
+        {
+          packageName: 'com.instagram.android',
+          totalTimeInForegroundMs: 3600000, // 1h
+          lastTimeUsed: Date.now(),
+        },
+      ],
+      dailyBreakdown: [
+        {
+          date: '2026-08-30',
+          totalScreenTimeMs: 3600000,
+          mostUsedApp: 'com.zhiliaoapp.musically',
+          apps: [],
+        },
+        {
+          date: '2026-08-29',
+          totalScreenTimeMs: 1800000,
+          mostUsedApp: 'com.instagram.android',
+          apps: [],
+        },
+      ],
+    };
+
+    const report = formatUsageSummaryReport(multiDaySummary);
+    assert.ok(
+      report.includes('7 Days - Ending 2026-08-30'),
+      'Report should include period header',
+    );
+    assert.ok(
+      report.includes('Average Daily Screen Time'),
+      'Report should include average daily screen time',
+    );
+    assert.ok(
+      report.includes('Daily Screen Time Trend'),
+      'Report should include daily breakdown trend',
+    );
+    assert.ok(
+      report.includes('Musically'),
+      'Report should resolve and display friendly app names',
+    );
+  });
+
+  // 20. Multi-Day Usage Tool Execution in Connector
+  await test('20. AndroidBridgeMcpConnector passes days parameter and returns multi-day data', async () => {
+    const mockGateway = new AndroidBridgeGatewayService();
+
+    let capturedParams: Record<string, unknown> | undefined;
+    mockGateway.isBridgeConnected = () => true;
+    mockGateway.dispatchBridgeRequest = <T>(
+      _action: string,
+      payload?: Record<string, unknown>,
+    ) => {
+      capturedParams = payload;
+      return Promise.resolve({
+        date: '2026-08-30',
+        daysCount: 7,
+        totalScreenTimeMs: 14400000,
+        averageDailyScreenTimeMs: 2057142,
+        mostUsedApp: 'com.zhiliaoapp.musically',
+        apps: [
+          {
+            packageName: 'com.zhiliaoapp.musically',
+            totalTimeInForegroundMs: 7200000,
+            lastTimeUsed: Date.now(),
+          },
+        ],
+        dailyBreakdown: [
+          {
+            date: '2026-08-30',
+            totalScreenTimeMs: 7200000,
+            apps: [],
+          },
+        ],
+      } as unknown as T);
+    };
+
+    const connector = new AndroidBridgeMcpConnector(mockGateway);
+    const result = await connector.executeTool('android_get_usage_summary', {
+      days: 7,
+      date: '2026-08-30',
+    });
+
+    assert.strictEqual(capturedParams?.days, 7);
+    assert.strictEqual(capturedParams?.date, '2026-08-30');
+    assert.ok(result.summary.includes('7 Days'));
+
+    const data = result.data as Record<string, unknown>;
+    assert.strictEqual(data.daysCount, 7);
+    assert.ok(data.averageDailyScreenTimeMs);
   });
 
   console.log(

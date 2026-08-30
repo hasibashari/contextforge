@@ -19,7 +19,6 @@ import { NotionOAuthService } from './connectors/notion/notion-oauth.service';
 import { GoogleCalendarApiClient } from './connectors/google-calendar/google-calendar-api.client';
 import { GoogleCalendarMcpConnector } from './connectors/google-calendar/google-calendar-mcp.connector';
 import { GoogleCalendarOAuthService } from './connectors/google-calendar/google-calendar-oauth.service';
-import { AndroidBridgeApiClient } from './connectors/android-bridge/android-bridge-api.client';
 import { AndroidBridgeMcpConnector } from './connectors/android-bridge/android-bridge-mcp.connector';
 import { AndroidBridgeGatewayService } from './connectors/android-bridge/android-bridge.gateway';
 
@@ -39,7 +38,6 @@ import { AndroidBridgeGatewayService } from './connectors/android-bridge/android
     GoogleCalendarApiClient,
     GoogleCalendarMcpConnector,
     GoogleCalendarOAuthService,
-    AndroidBridgeApiClient,
     AndroidBridgeGatewayService,
     AndroidBridgeMcpConnector,
     McpGatewayService,
@@ -83,7 +81,6 @@ import { AndroidBridgeGatewayService } from './connectors/android-bridge/android
     GoogleCalendarApiClient,
     GoogleCalendarMcpConnector,
     GoogleCalendarOAuthService,
-    AndroidBridgeApiClient,
     AndroidBridgeGatewayService,
     AndroidBridgeMcpConnector,
     McpHttpTransport,

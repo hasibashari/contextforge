@@ -225,6 +225,110 @@ export class EcosystemRepository implements OnModuleInit {
         ],
       );
 
+      // Seed core Agents if missing
+      await this.db.query(
+        `INSERT INTO workspace_agents (
+          id, name, role, agent_type, permissions, description, avatar_color, model, temperature, system_prompt, capabilities, assigned_tools, assigned_skills, status, total_tasks_completed, success_rate_pct
+        ) VALUES
+        (
+          'agent-personal-assistant',
+          'Personal Assistant Agent',
+          'Primary Personal Assistant & Master Orchestrator',
+          'orchestrator',
+          'sandbox_write',
+          'Primary host agent responsible for understanding user goals, multi-turn reasoning, memory recall, and coordinating direct MCP tool executions and research sub-agents.',
+          'bg-primary',
+          'gemini-3.5-flash',
+          0.2,
+          'You are ContextForge Personal Assistant Agent, the primary personal assistant and central reasoning brain of the ContextForge AI Workspace. You handle natural dialogue, strategic planning, direct MCP tool execution, and delegate deep literature investigation to the Research Specialist Agent.',
+          '[]'::jsonb,
+          ARRAY['web_search', 'search_knowledge_vault', 'obsidian_create_note', 'obsidian_update_note', 'obsidian_read_note', 'obsidian_create_daily_note', 'notion_get_tasks', 'notion_search', 'notion_create_page', 'create_scheduled_automation', 'transfer_to_agent'],
+          ARRAY['skill-rfc-architect'],
+          'idle',
+          142,
+          99.6
+        ),
+        (
+          'agent-research',
+          'Research Specialist Agent',
+          'Information Retrieval & Grounding Intelligence',
+          'researcher',
+          'read_only',
+          'Dedicated intelligence sub-agent for live web research grounding, source verification, and internal semantic vector retrieval (pgvector RAG).',
+          'bg-[#3b6ea5]',
+          'gemini-3.5-flash',
+          0.2,
+          'You are Research Specialist Agent in ContextForge AI Workspace. Search, read, and analyze information from live web sources and indexed vector knowledge bases, synthesizing cited analytical answers.',
+          '[]'::jsonb,
+          ARRAY['web_search', 'search_knowledge_vault', 'obsidian_read_note', 'notion_search', 'transfer_to_agent'],
+          ARRAY['skill-deep-web-research'],
+          'idle',
+          86,
+          99.4
+        ),
+        (
+          'wellbeing_coach',
+          'Dr. Lyra - Wellbeing Coach',
+          'Mindful Productivity & Circadian Health Specialist',
+          'researcher',
+          'sandbox_write',
+          'Specialized sub-agent analyzing screen time telemetry, sleep schedules, app habits, and delivering compassionate behavioral nudges.',
+          'bg-emerald-600',
+          'gemini-3.5-flash',
+          0.2,
+          'You are Dr. Lyra, an empathetic, scientifically grounded Digital Wellbeing & Focus Coach. Your mission is to guide the user toward balanced screen time, deep focus blocks, and restorative sleep hygiene.',
+          '[]'::jsonb,
+          ARRAY['android_get_device_status', 'android_get_usage', 'android_get_usage_summary', 'android_get_foreground_app', 'android_set_app_limit', 'android_block_app', 'android_unblock_app', 'android_reset_all_restrictions', 'android_get_active_restrictions', 'android_set_dnd', 'android_send_notification', 'android_get_screen_time_status', 'android_set_bedtime_schedule', 'android_set_total_screen_time_limit', 'android_get_bedtime_config', 'android_trigger_bedtime_lock', 'android_send_agent_message', 'verify_task_goal'],
+          ARRAY[]::text[],
+          'idle',
+          53,
+          100.0
+        ),
+        (
+          'second_brain',
+          'Atlas - Second Brain Architect',
+          'Zettelkasten Note Architect & Knowledge Curator',
+          'researcher',
+          'sandbox_write',
+          'Organizes Obsidian vaults, structures atomic markdown notes, establishes bidirectional links, and performs semantic search.',
+          'bg-purple-600',
+          'gemini-3.5-flash',
+          0.1,
+          'You are Atlas, the Second Brain & Knowledge Architect. Your mission is to structure atomic, highly connected, and easily retrievable Markdown notes in Obsidian.',
+          '[]'::jsonb,
+          ARRAY['obsidian_list_vault_notes', 'obsidian_read_vault_note', 'obsidian_create_vault_note', 'obsidian_update_vault_note', 'obsidian_delete_vault_note', 'obsidian_append_vault_note', 'obsidian_search_vault_notes', 'obsidian_get_active_note', 'obsidian_list_vault_folders', 'search_knowledge_vault', 'web_search'],
+          ARRAY[]::text[],
+          'idle',
+          91,
+          99.8
+        ),
+        (
+          'executive_scheduler',
+          'Vanguard - Executive Scheduler',
+          'Calendar Time-Blocking & Sprint Execution Specialist',
+          'orchestrator',
+          'full_system',
+          'Manages Google Calendar events, Notion databases, sprint milestones, and autonomous goal evaluations.',
+          'bg-amber-600',
+          'gemini-3.5-flash',
+          0.15,
+          'You are Vanguard, the Executive Scheduler & Goal Strategist. Your mission is to maximize high-leverage focus time, resolve calendar conflicts, and drive goal execution.',
+          '[]'::jsonb,
+          ARRAY['gcal_list_events', 'gcal_create_event', 'gcal_update_event', 'gcal_delete_event', 'gcal_get_free_busy', 'notion_search_pages', 'notion_read_page', 'notion_create_page', 'notion_update_page', 'notion_query_database', 'create_goal', 'evaluate_goal_progress', 'verify_task_goal', 'trigger_workflow_run'],
+          ARRAY[]::text[],
+          'idle',
+          78,
+          100.0
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          role = EXCLUDED.role,
+          description = EXCLUDED.description,
+          avatar_color = EXCLUDED.avatar_color,
+          assigned_tools = EXCLUDED.assigned_tools;
+      `,
+      );
+
       this.logger.log('✨ Ecosystem database tables verified in PostgreSQL');
     } catch (err: unknown) {
       this.logger.error('Failed to initialize ecosystem tables', err);

@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { GoogleGenAI } from '@google/genai';
 import { GEMINI_CLIENT } from '../gemini-client.provider';
@@ -15,6 +15,9 @@ import { KnowledgeToolHandler } from '../handlers/knowledge-tool.handler';
 import { AutomationToolHandler } from '../handlers/automation-tool.handler';
 import { GoalToolHandler } from '../handlers/goal-tool.handler';
 import { ObsidianVaultService } from '../../mcp/connectors/obsidian/obsidian-vault.service';
+import { SubAgentRegistryService } from '../subagents/subagent-registry.service';
+import { SubAgentId } from '../subagents/subagent.types';
+import { HistoryCompactorService } from '../services/history-compactor.service';
 
 export type { StreamEvent, OrchestrationResult };
 
@@ -36,6 +39,10 @@ export class CoreOrchestratorService {
     private readonly automationHandler: AutomationToolHandler,
     private readonly goalHandler: GoalToolHandler,
     private readonly obsidianVaultService: ObsidianVaultService,
+    @Optional()
+    private readonly subAgentRegistry?: SubAgentRegistryService,
+    @Optional()
+    private readonly historyCompactor?: HistoryCompactorService,
   ) {}
 
   /**
@@ -62,6 +69,17 @@ export class CoreOrchestratorService {
       0.2,
     );
 
+    // 1. History Compaction: Optimize token footprint for long sessions
+    const compaction = this.historyCompactor
+      ? this.historyCompactor.compactHistory(history)
+      : { compactedHistory: history, summaryBlock: undefined };
+
+    // 2. Sub-Agent Persona Routing: Check if prompt maps to a specialized sub-agent
+    const activeSubAgent =
+      agentId && this.subAgentRegistry
+        ? this.subAgentRegistry.getSubAgent(agentId as SubAgentId)
+        : this.subAgentRegistry?.routePromptToSubAgent(prompt);
+
     // Live inspect user's existing vault folders to enforce contextual directory alignment
     let vaultFolders: string[] = [];
     try {
@@ -70,16 +88,34 @@ export class CoreOrchestratorService {
       // Fallback safe
     }
 
-    const systemInstruction = getAgentSystemPrompt(
-      agentId,
-      activeSkills,
-      memorySummary,
-      vaultFolders,
-    );
+    const timeZone = process.env.DEFAULT_TIMEZONE || 'Asia/Jakarta';
+    const currentTimeStr = new Date().toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone,
+    });
+
+    let systemInstruction = activeSubAgent
+      ? `### ⏱️ Real-World Timestamp Context:\nCurrent Date & Time: ${currentTimeStr} (${timeZone})\n\n${activeSubAgent.formatSubAgentPrompt(memorySummary, { vaultFolders })}`
+      : getAgentSystemPrompt(
+          agentId,
+          activeSkills,
+          memorySummary,
+          vaultFolders,
+        );
+
+    if (compaction.summaryBlock) {
+      systemInstruction += `\n${compaction.summaryBlock}`;
+    }
 
     // Cumulative conversation history for the ReAct loop
     const turnContents: any[] = [
-      ...history,
+      ...compaction.compactedHistory,
       { role: 'user', parts: [{ text: prompt }] },
     ];
 
@@ -127,76 +163,86 @@ export class CoreOrchestratorService {
 
         // Case A: Model wants to invoke one or more tools (Reason -> Action)
         if (functionCalls && functionCalls.length > 0) {
-          const functionResponseParts: any[] = [];
+          this.logger.log(
+            `[Turn ${turn}] Parallel execution of ${functionCalls.length} tool call(s)...`,
+          );
 
-          for (const call of functionCalls) {
-            const toolName = call.name || '';
-            const args = (call.args || {}) as Record<string, any>;
+          const toolResults = await Promise.all(
+            functionCalls.map(async (call) => {
+              const toolName = call.name || '';
+              const args = (call.args || {}) as Record<string, any>;
 
-            this.logger.log(
-              `[Turn ${turn}] Tool Call: "${toolName}" with args: ${JSON.stringify(args)}`,
-            );
-
-            emit({
-              event: 'tool_call_start',
-              data: { toolName, input: args, turn },
-            });
-
-            // Execute the selected tool with automatic 1-shot transient retry
-            let toolOutput: OrchestrationResult | undefined;
-            let executionError: Error | null = null;
-
-            for (let attempt = 1; attempt <= 2; attempt++) {
-              try {
-                toolOutput = await this.dispatchTool(
-                  toolName,
-                  prompt,
-                  args,
-                  emit,
-                );
-                executionError = null;
-                break;
-              } catch (toolErr) {
-                executionError =
-                  toolErr instanceof Error
-                    ? toolErr
-                    : new Error(String(toolErr));
-                if (attempt === 1) {
-                  this.logger.warn(
-                    `[Attempt 1 Failed] Tool "${toolName}": ${executionError.message}. Retrying...`,
-                  );
-                  await new Promise((res) => setTimeout(res, 500));
-                }
-              }
-            }
-
-            if (executionError || !toolOutput) {
-              const errMessage =
-                executionError?.message || 'Tool returned empty output';
-              this.logger.error(
-                `Error executing tool "${toolName}": ${errMessage}`,
+              this.logger.log(
+                `[Turn ${turn}] Tool Call: "${toolName}" with args: ${JSON.stringify(args)}`,
               );
 
               emit({
-                event: 'timeline_stage',
-                data: {
-                  stage: 're-planning',
-                  label: `Tool ${toolName} encountered an issue. Agent is re-evaluating strategy & re-planning...`,
-                },
+                event: 'tool_call_start',
+                data: { toolName, input: args, turn },
               });
 
-              toolOutput = {
-                textContent: `Error executing tool "${toolName}": ${errMessage}`,
-                summary: `Failed to execute ${toolName}`,
-                rawResult: {
-                  success: false,
-                  tool: toolName,
-                  error: errMessage,
-                  instruction: `Execution of "${toolName}" failed. Please re-evaluate your plan: adjust input parameters, try an alternative tool (e.g. search_knowledge_vault vs web_search), or explain next steps to the user.`,
-                },
-              };
-            }
+              // Execute the selected tool with automatic 1-shot transient retry
+              let toolOutput: OrchestrationResult | undefined;
+              let executionError: Error | null = null;
 
+              for (let attempt = 1; attempt <= 2; attempt++) {
+                try {
+                  toolOutput = await this.dispatchTool(
+                    toolName,
+                    prompt,
+                    args,
+                    emit,
+                  );
+                  executionError = null;
+                  break;
+                } catch (toolErr) {
+                  executionError =
+                    toolErr instanceof Error
+                      ? toolErr
+                      : new Error(String(toolErr));
+                  if (attempt === 1) {
+                    this.logger.warn(
+                      `[Attempt 1 Failed] Tool "${toolName}": ${executionError.message}. Retrying...`,
+                    );
+                    await new Promise((res) => setTimeout(res, 300));
+                  }
+                }
+              }
+
+              if (executionError || !toolOutput) {
+                const errMessage =
+                  executionError?.message || 'Tool returned empty output';
+                this.logger.error(
+                  `Error executing tool "${toolName}": ${errMessage}`,
+                );
+
+                emit({
+                  event: 'timeline_stage',
+                  data: {
+                    stage: 're-planning',
+                    label: `Tool ${toolName} encountered an issue. Agent is re-evaluating strategy & re-planning...`,
+                  },
+                });
+
+                toolOutput = {
+                  textContent: `Error executing tool "${toolName}": ${errMessage}`,
+                  summary: `Failed to execute ${toolName}`,
+                  rawResult: {
+                    success: false,
+                    tool: toolName,
+                    error: errMessage,
+                    instruction: `Execution of "${toolName}" failed. Please re-evaluate your plan: adjust input parameters, try an alternative tool (e.g. search_knowledge_vault vs web_search), or explain next steps to the user.`,
+                  },
+                };
+              }
+
+              return { toolName, toolOutput };
+            }),
+          );
+
+          const functionResponseParts: any[] = [];
+
+          for (const { toolName, toolOutput } of toolResults) {
             if (toolOutput.actionCard) {
               finalResult.actionCard = toolOutput.actionCard;
             }
@@ -431,44 +477,15 @@ export class CoreOrchestratorService {
         return this.knowledgeHandler.handle(prompt, args, emit);
 
       // Universal MCP Tool Invocation (Notion, Obsidian, Google Calendar, Android Bridge)
-      case 'query_notion_workspace':
-      case 'notion_list_workspace_resources':
-      case 'notion_get_tasks':
-      case 'notion_search':
-      case 'notion_read_page':
-      case 'notion_create_page':
-      case 'notion_update_database':
-      case 'google_calendar_list_calendars':
-      case 'google_calendar_list_events':
-      case 'google_calendar_get_event':
-      case 'google_calendar_create_event':
-      case 'google_calendar_update_event':
-      case 'google_calendar_delete_event':
-      case 'google_calendar_check_availability':
-      case 'dispatch_action_worker':
-      case 'dispatch_obsidian_worker':
-      case 'obsidian_create_note':
-      case 'obsidian_update_note':
-      case 'obsidian_read_note':
-      case 'obsidian_create_daily_note':
-      case 'android_get_device_status':
-      case 'android_get_usage':
-      case 'android_get_usage_summary':
-      case 'android_get_foreground_app':
-      case 'android_set_app_limit':
-      case 'android_block_app':
-      case 'android_get_active_restrictions':
-      case 'android_set_dnd':
-      case 'android_send_notification':
-        return this.mcpHandler.execute(toolName, prompt, args, emit);
-
       default:
-        // Dynamic fallback: if tool name matches MCP patterns, route to MCP Gateway
         if (
           toolName.startsWith('obsidian_') ||
           toolName.startsWith('notion_') ||
           toolName.startsWith('google_calendar_') ||
-          toolName.startsWith('android_')
+          toolName.startsWith('gcal_') ||
+          toolName.startsWith('android_') ||
+          toolName.startsWith('dispatch_') ||
+          toolName.startsWith('query_notion_')
         ) {
           return this.mcpHandler.execute(toolName, prompt, args, emit);
         }

@@ -78,6 +78,17 @@ export class GoalToolHandler {
             instruction:
               'Goal successfully created. You can now use decompose_goal_into_tasks to create concrete schedule blocks.',
           },
+          actionCard: {
+            type: 'goal_created',
+            title: `Goal Activated: ${created.title}`,
+            data: {
+              id: created.id,
+              title: created.title,
+              category: created.category,
+              progressPct: created.current_progress_pct,
+              streakDays: created.streak_days,
+            },
+          },
         };
       }
 

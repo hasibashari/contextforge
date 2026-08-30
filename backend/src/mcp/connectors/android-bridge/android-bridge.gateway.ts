@@ -91,10 +91,24 @@ export class AndroidBridgeGatewayService
     });
   }
 
+  private bridgeEnabled = true;
+
+  public setBridgeEnabled(enabled: boolean): void {
+    this.bridgeEnabled = enabled;
+    this.logger.log(
+      `📱 [Android WebSocket Bridge] Bridge enabled set to: ${enabled}`,
+    );
+  }
+
+  public isBridgeEnabled(): boolean {
+    return this.bridgeEnabled;
+  }
+
   /**
    * Explicitly disconnects all active Android clients (e.g. user clicked Disconnect in UI)
    */
   public disconnectAllClients(reason = 'User disconnected from Desktop') {
+    this.bridgeEnabled = false;
     const hasActiveClients = this.activeClients.size > 0;
     const wasConnected = this.activeDeviceInfo.connected;
 
@@ -163,6 +177,29 @@ export class AndroidBridgeGatewayService
 
       this.wss.on('connection', (ws: WsClient, req) => {
         const clientIp = req.socket.remoteAddress || 'unknown';
+
+        if (!this.bridgeEnabled) {
+          this.logger.warn(
+            `🚫 [Android WebSocket Bridge] Incoming connection rejected from ${clientIp}: Bridge is disabled in ContextForge Workspace.`,
+          );
+          try {
+            ws.send(
+              JSON.stringify({
+                type: 'server_disconnect',
+                reason: 'Android Bridge is disabled in ContextForge Workspace',
+                timestamp: Date.now(),
+              }),
+            );
+            ws.close(
+              4003,
+              'Android Bridge is disabled in ContextForge Workspace',
+            );
+          } catch {
+            // Ignore safe
+          }
+          return;
+        }
+
         const extWs = ws as ExtendedWsClient;
         extWs.isAlive = true;
 

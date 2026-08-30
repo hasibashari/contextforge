@@ -435,6 +435,83 @@ Return strictly a JSON object with this format (no markdown formatting outside J
               'Calendar event exists, but requires manual completion confirmation from user.';
           }
         }
+      } else if (task.mcp_target === 'android-bridge') {
+        const goal = await this.repo.getGoalById(task.goal_id);
+        const targetMetrics = goal?.target_metrics || {};
+        const maxMinutes =
+          typeof targetMetrics.max_screentime_mins === 'number'
+            ? targetMetrics.max_screentime_mins
+            : typeof targetMetrics.max_daily_screentime_mins === 'number'
+              ? targetMetrics.max_daily_screentime_mins
+              : 90;
+        const maxMs = Number(maxMinutes) * 60 * 1000;
+
+        const androidRes = await this.mcpHandler.execute(
+          'android_get_usage_summary',
+          task.title,
+          { days: 1 },
+          () => {},
+        );
+
+        const rawResult = (androidRes.rawResult || {}) as Record<
+          string,
+          unknown
+        >;
+        const rawData = (rawResult.data || {}) as {
+          totalScreenTimeMs?: number;
+          formattedTotalScreenTime?: string;
+          apps?: Array<{
+            packageName: string;
+            totalTimeInForegroundMs: number;
+          }>;
+        };
+
+        const totalScreenTime = rawData.totalScreenTimeMs ?? 0;
+        const formattedTotal =
+          rawData.formattedTotalScreenTime ||
+          `${Math.round(totalScreenTime / 60000)} mins`;
+
+        const targetPkg = task.mcp_resource_id;
+        let appUsageMs = totalScreenTime;
+        let appLabel = 'Total Screen Time';
+
+        if (targetPkg && rawData.apps) {
+          const matchedApp = rawData.apps.find(
+            (a) => a.packageName.toLowerCase() === targetPkg.toLowerCase(),
+          );
+          if (matchedApp) {
+            appUsageMs = matchedApp.totalTimeInForegroundMs;
+            appLabel = targetPkg;
+          }
+        }
+
+        if (rawResult.success === false) {
+          verificationStatus = 'unverified';
+          notes =
+            'Android Bridge device is currently offline or unreachable. Marked as unverified.';
+        } else if (appUsageMs <= maxMs) {
+          verificationStatus = 'verified_completed';
+          evidence = {
+            source: 'android_bridge_telemetry',
+            target: appLabel,
+            actualUsageMs: appUsageMs,
+            limitMs: maxMs,
+            formattedActualUsage: formattedTotal,
+            formattedLimit: `${maxMinutes} mins`,
+          };
+          notes = `Verified via Android Telemetry: ${appLabel} usage (${formattedTotal}) is within the target limit of ${maxMinutes} mins.`;
+        } else {
+          verificationStatus = 'incomplete';
+          evidence = {
+            source: 'android_bridge_telemetry',
+            target: appLabel,
+            actualUsageMs: appUsageMs,
+            limitMs: maxMs,
+            formattedActualUsage: formattedTotal,
+            formattedLimit: `${maxMinutes} mins`,
+          };
+          notes = `Screen time target exceeded: ${appLabel} reached ${formattedTotal}, exceeding the ${maxMinutes} mins limit.`;
+        }
       } else {
         // Physical or general offline task
         verificationStatus = 'unverified';
@@ -476,6 +553,27 @@ Return strictly a JSON object with this format (no markdown formatting outside J
     const isStreakMaintained = scorePct >= 70;
     const newStreak = isStreakMaintained ? goal.streak_days + 1 : 0;
 
+    // Optional: Fetch Android Telemetry for multi-day context if linked
+    let androidTelemetrySummary = '';
+    const hasAndroid =
+      goal.linked_mcp_servers?.includes('android-bridge') ||
+      tasks.some((t) => t.mcp_target === 'android-bridge');
+    if (hasAndroid) {
+      try {
+        const androidRes = await this.mcpHandler.execute(
+          'android_get_usage_summary',
+          goal.title,
+          { days: 7 },
+          () => {},
+        );
+        if (androidRes.summary) {
+          androidTelemetrySummary = `\n\nAndroid Bridge 7-Day Telemetry Context:\n${androidRes.summary}`;
+        }
+      } catch {
+        // Telemetry fetch fallback safe
+      }
+    }
+
     // AI Synthesis for Reflection & Adaptation
     const modelName = this.configService.get<string>(
       'gemini.defaultModel',
@@ -494,7 +592,7 @@ Compliance Score: ${scorePct}%
 Current Streak: ${newStreak} days
 
 Tasks Breakdown:
-${tasks.map((t) => `- [${t.status}] ${t.title} (${t.mcp_target || 'general'})`).join('\n')}
+${tasks.map((t) => `- [${t.status}] ${t.title} (${t.mcp_target || 'general'})`).join('\n')}${androidTelemetrySummary}
 
 Generate a JSON with:
 {

@@ -342,6 +342,8 @@ export interface ChatMessage {
   sourceDomains?: string[]
   reasoningSteps?: ReasoningStep[]
   thinkingDurationMs?: number
+  agentId?: string
+  agentName?: string
 }
 
 export interface ChatSession {

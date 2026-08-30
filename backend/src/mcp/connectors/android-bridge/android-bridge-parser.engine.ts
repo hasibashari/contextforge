@@ -1,6 +1,8 @@
 import {
   AndroidActiveRestrictionsResponse,
   AndroidAppUsageItem,
+  AndroidBedtimeConfigResponse,
+  AndroidScreenTimeStatusResponse,
   AndroidUsageSummaryResponse,
 } from './android-bridge.types';
 
@@ -47,6 +49,21 @@ export function validatePackageName(packageName: string): void {
 }
 
 /**
+ * Validates that a time string is in HH:MM 24-hour format
+ */
+export function validateTimeFormat(time: string, fieldName = 'Time'): void {
+  if (!time || typeof time !== 'string') {
+    throw new Error(`${fieldName} value is required.`);
+  }
+  const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+  if (!timeRegex.test(time.trim())) {
+    throw new Error(
+      `Invalid ${fieldName} format "${time}". Please use HH:MM 24-hour format (e.g. "22:00" or "06:30").`,
+    );
+  }
+}
+
+/**
  * Extracts friendly application label from package name if not provided
  */
 export function getFriendlyAppName(packageName: string): string {
@@ -66,7 +83,7 @@ function capitalize(s: string): string {
 }
 
 /**
- * Formats structured Digital Wellbeing daily usage summary into a concise markdown report
+ * Formats structured Digital Wellbeing daily or multi-day usage summary into a concise markdown report for AI reasoning
  */
 export function formatUsageSummaryReport(
   summary: AndroidUsageSummaryResponse,
@@ -74,7 +91,66 @@ export function formatUsageSummaryReport(
   const dateStr = summary.date || new Date().toISOString().split('T')[0];
   const totalStr = formatDurationMs(summary.totalScreenTimeMs);
   const apps = Array.isArray(summary.apps) ? summary.apps : [];
+  const isMultiDay =
+    (summary.daysCount && summary.daysCount > 1) ||
+    (summary.dailyBreakdown && summary.dailyBreakdown.length > 1);
 
+  if (isMultiDay) {
+    const daysCount = summary.daysCount || summary.dailyBreakdown?.length || 1;
+    const avgDailyMs =
+      summary.averageDailyScreenTimeMs ||
+      Math.round((summary.totalScreenTimeMs || 0) / daysCount);
+    const avgStr = formatDurationMs(avgDailyMs);
+
+    let report = `📱 **Android Historical Telemetry & Trend Analysis (${daysCount} Days - Ending ${dateStr})**\n`;
+    report += `- Total Cumulative Screen Time: **${totalStr}**\n`;
+    report += `- Average Daily Screen Time: **${avgStr}/day**\n`;
+
+    if (summary.mostUsedApp) {
+      const mostUsedFriendly = getFriendlyAppName(summary.mostUsedApp);
+      report += `- Dominant Application: **${mostUsedFriendly}** (\`${summary.mostUsedApp}\`)\n`;
+    }
+
+    // Daily breakdown section
+    if (summary.dailyBreakdown && summary.dailyBreakdown.length > 0) {
+      report += `\n**📅 Daily Screen Time Trend:**\n`;
+      summary.dailyBreakdown.forEach((day) => {
+        const dayDur = formatDurationMs(day.totalScreenTimeMs);
+        const topApp = day.mostUsedApp
+          ? getFriendlyAppName(day.mostUsedApp)
+          : day.apps && day.apps[0]
+            ? getFriendlyAppName(day.apps[0].packageName)
+            : 'Minimal activity';
+        report += `- **${day.date}**: ${dayDur} (Top: *${topApp}*)\n`;
+      });
+    }
+
+    // Cumulative Top apps section
+    if (apps.length > 0) {
+      const sortedApps = [...apps].sort(
+        (a, b) =>
+          (b.totalTimeInForegroundMs || 0) - (a.totalTimeInForegroundMs || 0),
+      );
+
+      report += `\n**📊 Top Applications (Cumulative ${daysCount}-Day Duration & Daily Average):**\n`;
+      const topAppsText = sortedApps
+        .slice(0, 8)
+        .map((app, idx) => {
+          const friendlyName = getFriendlyAppName(app.packageName);
+          const totalAppDur = formatDurationMs(app.totalTimeInForegroundMs);
+          const avgAppDur = formatDurationMs(
+            Math.round(app.totalTimeInForegroundMs / daysCount),
+          );
+          return `${idx + 1}. **${friendlyName}** (\`${app.packageName}\`): ${totalAppDur} (~${avgAppDur}/day)`;
+        })
+        .join('\n');
+      report += topAppsText;
+    }
+
+    return report;
+  }
+
+  // Single Day Report
   if (apps.length === 0) {
     return `📱 **Android Usage Summary (${dateStr})**\n- Total Screen Time: **${totalStr}**\n- No recorded app activity today.`;
   }
@@ -151,4 +227,56 @@ export function formatRestrictionsReport(
       : '- No applications currently blocked.';
 
   return `🎯 **Android Focus Restrictions & App Controls:**\n\n**Daily App Limits:**\n${limitLines}\n\n**Blocked Applications:**\n${blockedLines}`;
+}
+
+/**
+ * Formats the comprehensive screen time status into a decision-ready Agent summary
+ */
+export function formatScreenTimeStatus(
+  status: AndroidScreenTimeStatusResponse,
+): string {
+  const totalStr = formatDurationMs(status.totalScreenTimeMs);
+  const limitStr = status.dailyLimitMs
+    ? formatDurationMs(status.dailyLimitMs)
+    : 'No limit set';
+
+  const limitStatus = status.dailyLimitMs
+    ? status.isLimitExceeded
+      ? `🔴 **EXCEEDED** (used ${totalStr} of ${limitStr})`
+      : `🟢 Within limit (used ${totalStr} of ${limitStr})`
+    : `⬜ ${totalStr} used — no daily limit configured`;
+
+  const bedtimeStatus = status.bedtimeCurfewActive
+    ? '🌙 **Bedtime curfew is currently ACTIVE**'
+    : status.bedtimeSchedule?.enabled
+      ? `⏰ Bedtime scheduled: ${status.bedtimeSchedule.startTime} → ${status.bedtimeSchedule.endTime} (currently inactive)`
+      : '⬜ No bedtime schedule configured';
+
+  const restrictionsStr =
+    status.activeRestrictionsCount > 0
+      ? `🔒 ${status.activeRestrictionsCount} active restriction(s)`
+      : '✅ No active restrictions';
+
+  return `📊 **Android Screen Time Status**\n\n**Daily Usage:** ${limitStatus}\n**Bedtime:** ${bedtimeStatus}\n**Restrictions:** ${restrictionsStr}`;
+}
+
+/**
+ * Formats the bedtime configuration into a readable summary
+ */
+export function formatBedtimeConfig(
+  config: AndroidBedtimeConfigResponse,
+): string {
+  const schedule = config.bedtimeSchedule;
+  const limitStr = config.totalDailyLimitMinutes
+    ? `${config.totalDailyLimitMinutes} minutes/day (${formatDurationMs((config.totalDailyLimitMinutes || 0) * 60000)})`
+    : 'Not configured';
+
+  const scheduleStr =
+    schedule.enabled && schedule.startTime && schedule.endTime
+      ? `🌙 Enabled — ${schedule.startTime} to ${schedule.endTime}`
+      : schedule.enabled
+        ? '🌙 Enabled (times not set)'
+        : '⬜ Disabled';
+
+  return `🛌 **Bedtime Configuration**\n\n**Curfew Schedule:** ${scheduleStr}\n**Total Daily Limit:** ${limitStr}`;
 }

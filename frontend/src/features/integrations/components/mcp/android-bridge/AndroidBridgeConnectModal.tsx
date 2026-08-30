@@ -128,10 +128,10 @@ export const AndroidBridgeConnectModal: FC<
   }
 
   const handleCopyAdbCommand = () => {
-    navigator.clipboard.writeText('adb forward tcp:8080 tcp:8080')
+    navigator.clipboard.writeText('adb reverse tcp:3001 tcp:3001')
     setCopiedAdb(true)
     setTimeout(() => setCopiedAdb(false), 2000)
-    showToast('ADB forward command copied!', 'success')
+    showToast('ADB reverse command copied (port 3001)!', 'success')
   }
 
   // USB Connect Handler
@@ -142,7 +142,7 @@ export const AndroidBridgeConnectModal: FC<
     try {
       await updateConnectorConfig(integration.id, {
         status: 'connected',
-        endpoint: 'http://127.0.0.1:8080',
+        endpoint: 'ws://127.0.0.1:3001/api/android-bridge/ws',
         authConfig: {
           ...integration.authConfig,
           deviceName: deviceName.trim() || 'Android Mobile Device (USB)',
@@ -157,7 +157,7 @@ export const AndroidBridgeConnectModal: FC<
       setIsPairingSuccess(true)
       setPairedDeviceInfo({
         deviceName: deviceName.trim() || 'Android Mobile Device (USB)',
-        deviceEndpoint: 'http://127.0.0.1:8080',
+        deviceEndpoint: 'ws://127.0.0.1:3001/api/android-bridge/ws',
       })
 
       setTimeout(() => {
@@ -174,36 +174,38 @@ export const AndroidBridgeConnectModal: FC<
 
   // Initial session trigger on modal open
   useEffect(() => {
-    let isMounted = true
-    if (isOpen) {
-      const targetHost = isCloudEnv
-        ? window.location.host
-        : customHost?.trim() || undefined
+    if (!isOpen) return
 
-      ecosystemApi
-        .createAndroidPairingSession(targetHost)
-        .then((res) => {
-          if (!isMounted) return
-          if (res && res.sessionId) {
-            setSession(res)
-            const left = Math.max(
-              0,
-              Math.floor((res.expiresAt - Date.now()) / 1000),
-            )
-            setSecondsRemaining(left)
-            setIsPairingSuccess(false)
-          }
-        })
-        .catch(() => {
-          if (isMounted) {
-            showToast('Failed to initialize QR pairing session', 'error')
-          }
-        })
-    }
+    let isMounted = true
+    const targetHost = isCloudEnv
+      ? window.location.host
+      : customHost?.trim() || undefined
+
+    ecosystemApi
+      .createAndroidPairingSession(targetHost)
+      .then((res) => {
+        if (!isMounted) return
+        if (res && res.sessionId) {
+          setSession(res)
+          const left = Math.max(
+            0,
+            Math.floor((res.expiresAt - Date.now()) / 1000),
+          )
+          setSecondsRemaining(left)
+          setIsPairingSuccess(false)
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          showToast('Failed to initialize QR pairing session', 'error')
+        }
+      })
+
     return () => {
       isMounted = false
     }
-  }, [customHost, isCloudEnv, isOpen, showToast])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, customHost, isCloudEnv])
 
   // 2. Live 1-second interval countdown timer for QR session expiration
   useEffect(() => {

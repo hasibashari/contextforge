@@ -146,6 +146,17 @@ export class AutomationToolHandler {
         scheduleCron: createdWorkflow.schedule_cron,
         mcpServerId: createdWorkflow.mcp_server_id,
       },
+      actionCard: {
+        type: 'automation_created',
+        title: `Automation Scheduled: ${workflowName}`,
+        data: {
+          id: createdWorkflow.id,
+          name: createdWorkflow.name,
+          cron: createdWorkflow.schedule_cron,
+          scheduleLabel: createdWorkflow.schedule_label,
+          mcpServerId: createdWorkflow.mcp_server_id,
+        },
+      },
       intent: {
         toolName: 'create_scheduled_automation',
         service: 'automation',

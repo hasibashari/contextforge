@@ -2,11 +2,77 @@ import { Pool } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Seed JSON data
-import agentsSeed from '../../../database/seeds/agents.json';
-import skillsSeed from '../../../database/seeds/skills.json';
-import integrationsSeed from '../../../database/seeds/integrations.json';
 import { loadSkillsFromDocs, syncSkillsToJsonFiles } from './skill-loader';
+
+interface SeedAgent {
+  id: string;
+  name: string;
+  role: string;
+  agentType: string;
+  permissions: string;
+  description: string;
+  avatarColor: string;
+  model: string;
+  temperature: number;
+  systemPrompt: string;
+  capabilities: any[];
+  assignedTools: string[];
+  assignedSkills: string[];
+  status: string;
+  totalTasksCompleted: number;
+  successRatePct: number;
+}
+
+interface SeedSkill {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  sopSummary: string;
+  instructions: string;
+  assignedTools: string[];
+  enabled: boolean;
+  isCustom: boolean;
+}
+
+interface SeedIntegration {
+  id: string;
+  name: string;
+  category: string;
+  status: string;
+  endpoint: string;
+  version: string;
+  transport: string;
+  auth_type: string;
+  auth_config: Record<string, any>;
+  description: string;
+  tools: any[];
+  last_ping_ms: number;
+  latency_ms: number;
+}
+
+// Seed JSON data loaded dynamically
+const agentsSeed = JSON.parse(
+  fs.readFileSync(
+    path.resolve(__dirname, '../../../database/seeds/agents.json'),
+    'utf8',
+  ),
+) as SeedAgent[];
+
+const skillsSeed = JSON.parse(
+  fs.readFileSync(
+    path.resolve(__dirname, '../../../database/seeds/skills.json'),
+    'utf8',
+  ),
+) as SeedSkill[];
+
+const integrationsSeed = JSON.parse(
+  fs.readFileSync(
+    path.resolve(__dirname, '../../../database/seeds/integrations.json'),
+    'utf8',
+  ),
+) as SeedIntegration[];
 
 async function runSeed() {
   console.log('🌱 Starting ContextForge Native Database Seeder...');
@@ -56,7 +122,13 @@ async function runSeed() {
     // 6. Seed Workspace Agents
     console.log('🤖 Seeding Workspace Agents...');
     await client.query(`
-      DELETE FROM workspace_agents WHERE id NOT IN ('agent-personal-assistant', 'agent-research');
+      DELETE FROM workspace_agents WHERE id NOT IN (
+        'agent-personal-assistant',
+        'agent-research',
+        'wellbeing_coach',
+        'second_brain',
+        'executive_scheduler'
+      );
     `);
     for (const agent of agentsSeed) {
       await client.query(

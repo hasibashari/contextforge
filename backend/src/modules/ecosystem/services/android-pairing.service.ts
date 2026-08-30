@@ -158,8 +158,23 @@ export class AndroidPairingService implements OnModuleInit {
   /**
    * Automatically detect the computer's primary LAN IPv4 address (e.g. 192.168.x.x, 10.x.x.x)
    * so an Android phone on the same Wi-Fi network can connect to ContextForge.
+   * Prioritizes IP/HOST_IP defined in .env / ConfigService.
    */
   public getLocalLanIp(): string {
+    const envIp =
+      this.configService?.get<string>('IP') ||
+      this.configService?.get<string>('HOST_IP') ||
+      this.configService?.get<string>('LOCAL_LAN_IP') ||
+      this.configService?.get<string>('DESKTOP_IP') ||
+      process.env.IP ||
+      process.env.HOST_IP ||
+      process.env.LOCAL_LAN_IP ||
+      process.env.DESKTOP_IP;
+
+    if (envIp && envIp.trim()) {
+      return envIp.trim();
+    }
+
     const interfaces = os.networkInterfaces();
     const wifi192Ips: string[] = [];
     const lan10Ips: string[] = [];
@@ -270,6 +285,9 @@ export class AndroidPairingService implements OnModuleInit {
       wsUrl,
       qrPayloadJson: JSON.stringify(qrPayload),
     };
+
+    // Enable the WebSocket bridge so the incoming device can handshake
+    this.androidBridgeGateway?.setBridgeEnabled(true);
 
     // If WebSocket is already connected from the phone, immediately mark session as confirmed
     if (this.androidBridgeGateway?.isDeviceConnected()) {

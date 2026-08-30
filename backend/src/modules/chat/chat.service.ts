@@ -212,6 +212,16 @@ export class ChatService {
         sourceDomains: result.sourceDomains,
       });
 
+      let activeAgentName = '';
+      if (agentId) {
+        try {
+          const ag = await this.ecosystemService.getAgentById(agentId);
+          if (ag) activeAgentName = ag.name;
+        } catch {
+          // Fallback safe
+        }
+      }
+
       sendSse('assistant_message', {
         id: assistantMsg.id,
         sessionId: assistantMsg.session_id,
@@ -221,6 +231,8 @@ export class ChatService {
         sideAgent: result.sideAgent,
         actionCard: result.actionCard,
         sourceDomains: result.sourceDomains || assistantMsg.source_domains,
+        agentId: agentId || result.sideAgent?.sideAgentId,
+        agentName: activeAgentName || result.sideAgent?.agentName,
         timestamp: new Date().toLocaleTimeString([], {
           hour: '2-digit',
           minute: '2-digit',

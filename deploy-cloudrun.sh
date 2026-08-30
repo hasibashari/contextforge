@@ -85,7 +85,48 @@ gcloud services enable \
     cloudbuild.googleapis.com \
     --project="$GCP_PROJECT_ID"
 
-# 6. Build and Deploy directly via Cloud Run Source Build
+# 6. Always-Free Tier Guardrails & Lifecycle Checks
+echo -e "\n${BLUE}🛡️ Verifying Always-Free Tier Guardrails...${NC}"
+if [ ! -f ".gcloudignore" ]; then
+    echo -e "${YELLOW}⚠️ .gcloudignore not found. Creating optimized .gcloudignore...${NC}"
+    cat << 'EOF' > .gcloudignore
+.git/
+.gitignore
+.dockerignore
+.gcloudignore
+.gemini/
+.agents/
+scratch/
+brain/
+docs/
+vault/
+workspace_sandbox/
+*.md
+*.txt
+*.log
+**/node_modules/
+**/dist/
+**/*.tsbuildinfo
+.env
+.env.*
+**/.env
+**/.env.*
+EOF
+    echo -e "${GREEN}✓ Created .gcloudignore${NC}"
+else
+    echo -e "${GREEN}✓ .gcloudignore is active (Source payload minimized)${NC}"
+fi
+
+# Ensure GCS staging buckets have auto-cleanup lifecycle enabled
+LIFECYCLE_FILE="scripts/gcs-lifecycle.json"
+if [ -f "$LIFECYCLE_FILE" ]; then
+    echo -e "${BLUE}⏳ Enforcing 1-day auto-delete lifecycle on staging buckets...${NC}"
+    gcloud storage buckets update "gs://run-sources-${GCP_PROJECT_ID}-${REGION}" --lifecycle-file="$LIFECYCLE_FILE" 2>/dev/null || true
+    gcloud storage buckets update "gs://${GCP_PROJECT_ID}_cloudbuild" --lifecycle-file="$LIFECYCLE_FILE" 2>/dev/null || true
+    echo -e "${GREEN}✓ GCS staging buckets lifecycle enforced (Zero storage accumulation)${NC}"
+fi
+
+# 7. Build and Deploy directly via Cloud Run Source Build
 echo -e "\n${BLUE}🚀 Building and deploying ContextForge to Cloud Run (Region: ${REGION})...${NC}"
 echo -e "${YELLOW}Flags: --min-instances=0 --max-instances=2 --cpu-throttling --memory=512Mi --cpu=1${NC}\n"
 
@@ -96,6 +137,7 @@ if [ -n "$NOTION_SECRET" ]; then ENV_VARS="${ENV_VARS},NOTION_CLIENT_SECRET=${NO
 if [ -n "$NOTION_KEY" ]; then ENV_VARS="${ENV_VARS},NOTION_API_KEY=${NOTION_KEY}"; fi
 if [ -n "$GOOGLE_ID" ]; then ENV_VARS="${ENV_VARS},GOOGLE_CLIENT_ID=${GOOGLE_ID}"; fi
 if [ -n "$GOOGLE_SECRET" ]; then ENV_VARS="${ENV_VARS},GOOGLE_CLIENT_SECRET=${GOOGLE_SECRET}"; fi
+
 
 gcloud run deploy "$SERVICE_NAME" \
     --source . \

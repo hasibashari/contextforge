@@ -308,14 +308,20 @@ export class IntegrationsService {
       await this.obsidianVaultService.refreshVaultRootFromDb();
     }
     if (
-      (id === 'int-android-bridge-mcp' ||
-        id.toLowerCase().includes('android')) &&
-      updates.status === 'disconnected' &&
-      existing.status !== 'disconnected'
+      id === 'int-android-bridge-mcp' ||
+      id.toLowerCase().includes('android')
     ) {
-      this.androidBridgeGateway?.disconnectAllClients(
-        'User disconnected from Desktop',
-      );
+      if (updates.status === 'connected') {
+        this.androidBridgeGateway?.setBridgeEnabled(true);
+      } else if (
+        updates.status === 'disconnected' &&
+        existing.status !== 'disconnected'
+      ) {
+        this.androidBridgeGateway?.setBridgeEnabled(false);
+        this.androidBridgeGateway?.disconnectAllClients(
+          'User disconnected from Desktop',
+        );
+      }
     }
 
     const statusChanged = updates.status && updates.status !== existing.status;

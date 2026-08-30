@@ -222,13 +222,45 @@ export const AgentIconBox: React.FC<{
 }> = ({ agent, agentId, size = 'sm', className = '' }) => {
   const id = (agent?.id || agentId || '').toLowerCase()
   const name = (agent?.name || '').toLowerCase()
-  const agentType = agent?.agentType
   const iconPx = size === 'sm' ? 17 : size === 'md' ? 19 : 22
+
+  if (id.includes('wellbeing') || name.includes('wellbeing') || name.includes('lyra')) {
+    return (
+      <IconBox
+        size={size}
+        variant="success"
+        icon={<Sparkles size={iconPx} />}
+        className={className}
+      />
+    )
+  }
+
+  if (id.includes('second_brain') || name.includes('second brain') || name.includes('atlas')) {
+    return (
+      <IconBox
+        size={size}
+        variant="purple"
+        icon={<BookOpen size={iconPx} />}
+        className={className}
+      />
+    )
+  }
+
+  if (id.includes('executive') || name.includes('executive') || name.includes('vanguard') || name.includes('scheduler')) {
+    return (
+      <IconBox
+        size={size}
+        variant="cyan"
+        icon={<Calendar size={iconPx} />}
+        className={className}
+      />
+    )
+  }
 
   if (
     id.includes('research') ||
     name.includes('research') ||
-    agentType === 'researcher'
+    agent?.agentType === 'researcher'
   ) {
     return (
       <IconBox

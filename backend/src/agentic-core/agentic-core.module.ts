@@ -3,7 +3,6 @@ import { GeminiClientProvider } from './gemini-client.provider';
 import { CoreOrchestratorService } from './orchestrator/core-orchestrator.service';
 import { EmbeddingService } from './embeddings/embedding.service';
 import { KnowledgeChunkerService } from './embeddings/knowledge-chunker.service';
-import { AgentRecorderService } from './services/agent-recorder.service';
 import { WebSearchService } from './services/web-search.service';
 import { UniversalMcpToolHandler } from './handlers/universal-mcp-tool.handler';
 import { WebSearchToolHandler } from './handlers/web-search-tool.handler';
@@ -14,6 +13,13 @@ import { DatabaseModule } from '../common/database/database.module';
 import { AutomationModule } from '../modules/automation/automation.module';
 import { GoalsModule } from '../modules/goals/goals.module';
 import { McpModule } from '../mcp/mcp.module';
+import { WellbeingCoachSubAgent } from './subagents/personas/wellbeing-coach.subagent';
+import { SecondBrainSubAgent } from './subagents/personas/second-brain.subagent';
+import { ExecutiveSchedulerSubAgent } from './subagents/personas/executive-scheduler.subagent';
+import { ResearchSpecialistSubAgent } from './subagents/personas/research-specialist.subagent';
+import { SubAgentRegistryService } from './subagents/subagent-registry.service';
+import { ProactiveGuardianService } from './services/proactive-guardian.service';
+import { HistoryCompactorService } from './services/history-compactor.service';
 
 @Module({
   imports: [
@@ -27,26 +33,29 @@ import { McpModule } from '../mcp/mcp.module';
     CoreOrchestratorService,
     EmbeddingService,
     KnowledgeChunkerService,
-    AgentRecorderService,
     WebSearchService,
     UniversalMcpToolHandler,
     WebSearchToolHandler,
     KnowledgeToolHandler,
     AutomationToolHandler,
     GoalToolHandler,
+    WellbeingCoachSubAgent,
+    SecondBrainSubAgent,
+    ExecutiveSchedulerSubAgent,
+    ResearchSpecialistSubAgent,
+    SubAgentRegistryService,
+    ProactiveGuardianService,
+    HistoryCompactorService,
   ],
   exports: [
     GeminiClientProvider,
     CoreOrchestratorService,
+    SubAgentRegistryService,
+    ProactiveGuardianService,
     EmbeddingService,
     KnowledgeChunkerService,
-    AgentRecorderService,
     WebSearchService,
     UniversalMcpToolHandler,
-    WebSearchToolHandler,
-    KnowledgeToolHandler,
-    AutomationToolHandler,
-    GoalToolHandler,
     McpModule,
   ],
 })

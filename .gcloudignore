@@ -1,0 +1,28 @@
+# ==============================================================================
+# .gcloudignore - Exclude files from Cloud Build / Cloud Run source upload
+# ==============================================================================
+.git/
+.gitignore
+.dockerignore
+.gcloudignore
+.gemini/
+.agents/
+scratch/
+brain/
+docs/
+vault/
+workspace_sandbox/
+*.md
+*.txt
+*.log
+
+# Dependencies and Build Artifacts (Docker build will install & build them inside the container)
+**/node_modules/
+**/dist/
+**/*.tsbuildinfo
+
+# Secrets & Environment Files
+.env
+.env.*
+**/.env
+**/.env.*

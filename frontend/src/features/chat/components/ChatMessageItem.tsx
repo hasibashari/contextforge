@@ -1,6 +1,6 @@
 import React from 'react'
 import { Zap } from 'lucide-react'
-import { MarkdownRenderer } from '@/shared'
+import { MarkdownRenderer, AgentIconBox } from '@/shared'
 import { ThinkingIndicator } from './ThinkingIndicator'
 import type { ChatMessage } from '@/shared/types/workspace'
 
@@ -35,6 +35,16 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
   return (
     <div className="w-full space-y-2.5 pt-1 animate-in fade-in duration-200">
+      {/* Active Persona Header Badge */}
+      {(msg.agentName || msg.agentId) && (
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-canvas-soft border border-hairline text-[11px] font-mono text-ink">
+          <AgentIconBox agentId={msg.agentId} size="sm" className="w-3.5 h-3.5 rounded-xs" />
+          <span className="font-medium text-primary">
+            {msg.agentName || `@${msg.agentId?.replace('agent-', '')}`}
+          </span>
+        </div>
+      )}
+
       {/* Live Thinking Indicator */}
       {isPlaceholderGenerating && <ThinkingIndicator />}
 
