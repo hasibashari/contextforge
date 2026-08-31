@@ -58,20 +58,24 @@ export class McpGatewayService implements OnModuleInit {
         if (row.id === 'int-google-calendar-mcp') {
           const server = this.registry.getServer('int-google-calendar-mcp');
           if (server instanceof GoogleCalendarMcpConnector) {
-            const rawToken = row.auth_config?.token;
-            const rawRefreshToken = row.auth_config?.refreshToken;
-            const decryptedToken = rawToken
-              ? this.encryption.decrypt(rawToken)
-              : undefined;
-            const decryptedRefreshToken = rawRefreshToken
-              ? this.encryption.decrypt(rawRefreshToken)
-              : undefined;
+            if (row.status === 'disconnected') {
+              server.configure({ token: '', apiKey: '', refreshToken: '' });
+            } else {
+              const rawToken = row.auth_config?.token;
+              const rawRefreshToken = row.auth_config?.refreshToken;
+              const decryptedToken = rawToken
+                ? this.encryption.decrypt(rawToken)
+                : undefined;
+              const decryptedRefreshToken = rawRefreshToken
+                ? this.encryption.decrypt(rawRefreshToken)
+                : undefined;
 
-            server.configure({
-              endpoint: row.endpoint,
-              token: decryptedToken,
-              refreshToken: decryptedRefreshToken,
-            });
+              server.configure({
+                endpoint: row.endpoint,
+                token: decryptedToken,
+                refreshToken: decryptedRefreshToken,
+              });
+            }
             this.logger.log(
               `🔑 Loaded Google Calendar MCP credentials from PostgreSQL (status: ${row.status})`,
             );
@@ -79,16 +83,21 @@ export class McpGatewayService implements OnModuleInit {
         } else if (row.id === 'int-notion-mcp') {
           const server = this.registry.getServer('int-notion-mcp');
           if (server instanceof NotionMcpConnector) {
-            const rawToken = row.auth_config?.token || row.auth_config?.apiKey;
-            const decryptedToken = rawToken
-              ? this.encryption.decrypt(rawToken)
-              : undefined;
+            if (row.status === 'disconnected') {
+              server.configure({ token: '', apiKey: '' });
+            } else {
+              const rawToken =
+                row.auth_config?.token || row.auth_config?.apiKey;
+              const decryptedToken = rawToken
+                ? this.encryption.decrypt(rawToken)
+                : undefined;
 
-            server.configure({
-              endpoint: row.endpoint,
-              token: decryptedToken,
-              apiKey: decryptedToken,
-            });
+              server.configure({
+                endpoint: row.endpoint,
+                token: decryptedToken,
+                apiKey: decryptedToken,
+              });
+            }
             this.logger.log(
               `🔑 Loaded Notion MCP credentials from PostgreSQL (status: ${row.status})`,
             );
@@ -113,14 +122,20 @@ export class McpGatewayService implements OnModuleInit {
         }
       }
     } catch (err: unknown) {
-      this.logger.warn(
-        `Could not preload core MCP connector credentials: ${String(err)}`,
-      );
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Failed to preload MCP credentials from DB: ${msg}`);
     }
   }
 
   /**
-   * 🌐 Load and Register External Remote MCP Endpoints from PostgreSQL
+   * Retrieves a registered MCP server by ID
+   */
+  getServer(serverId: string): IMcpServer | undefined {
+    return this.registry.getServer(serverId);
+  }
+
+  /**
+   * Synchronizes dynamic remote MCP servers configured by the user from PostgreSQL
    */
   async refreshRemoteServersFromDb(): Promise<void> {
     try {
@@ -132,8 +147,9 @@ export class McpGatewayService implements OnModuleInit {
         transport: string;
         auth_config: Record<string, string>;
         tools: McpToolDefinition[];
+        status: string;
       }>(
-        `SELECT id, name, category, endpoint, transport, auth_config, tools 
+        `SELECT id, name, category, endpoint, transport, auth_config, tools, status
          FROM workspace_integrations 
          WHERE id NOT IN ('int-obsidian-vault-mcp', 'int-notion-mcp', 'int-google-calendar-mcp', 'int-android-bridge-mcp') 
            AND status = 'connected';`,
@@ -169,13 +185,6 @@ export class McpGatewayService implements OnModuleInit {
   }
 
   /**
-   * Retrieves a registered server by ID
-   */
-  getServer(id: string): IMcpServer | undefined {
-    return this.registry.getServer(id);
-  }
-
-  /**
    * Discovers which server provides the specified tool
    */
   findServerForTool(toolName: string): IMcpServer | undefined {
@@ -183,23 +192,42 @@ export class McpGatewayService implements OnModuleInit {
   }
 
   /**
-   * Universal MCP tool invocation router with circuit breaker & timeout
+   * Universal tool dispatch router with multi-turn resilience, timeout circuit breaker, and retry logic.
    */
-  async callTool(
+  async executeTool(
     toolName: string,
     params: Record<string, unknown> = {},
   ): Promise<McpToolCallResult> {
-    this.logger.log(
-      `[MCP Gateway] Routing tool "${toolName}" with params: ${JSON.stringify(params)}`,
-    );
+    const servers = this.registry.getAllServers();
 
-    const targetServer = this.findServerForTool(toolName);
+    // 1. Direct tool definition match on registered servers
+    for (const server of servers) {
+      if (server.hasTool(toolName)) {
+        return this.executeWithRetryAndTimeout(toolName, server.name, () =>
+          server.executeTool(toolName, params),
+        );
+      }
+    }
+
+    // 2. Targeted fallback lookup by prefix
+    let targetServer: IMcpServer | undefined;
+    if (toolName.startsWith('google_calendar_')) {
+      targetServer = this.registry.getServer('int-google-calendar-mcp');
+    } else if (
+      toolName.startsWith('notion_') ||
+      toolName === 'query_notion_workspace'
+    ) {
+      targetServer = this.registry.getServer('int-notion-mcp');
+    } else if (toolName.startsWith('android_')) {
+      targetServer = this.registry.getServer('int-android-bridge-mcp');
+    } else if (toolName.startsWith('obsidian_')) {
+      targetServer = this.registry.getServer('int-obsidian-vault-mcp');
+    }
 
     if (targetServer) {
-      return await this.executeWithRetryAndTimeout(
-        toolName,
-        targetServer.name,
-        () => targetServer.executeTool(toolName, params),
+      const activeServer = targetServer;
+      return this.executeWithRetryAndTimeout(toolName, activeServer.name, () =>
+        activeServer.executeTool(toolName, params),
       );
     }
 
@@ -218,9 +246,17 @@ export class McpGatewayService implements OnModuleInit {
   }
 
   /**
+   * Alias for executeTool to support legacy/standard callTool callers
+   */
+  async callTool(
+    toolName: string,
+    params: Record<string, unknown> = {},
+  ): Promise<McpToolCallResult> {
+    return this.executeTool(toolName, params);
+  }
+
+  /**
    * Determines if an error from an Android Bridge operation is non-retryable.
-   * Device disconnection and device-side timeouts are permanent failures that
-   * will not resolve between retry attempts — retrying only wastes time.
    */
   private isAndroidNonRetryableError(err: Error): boolean {
     const msg = err.message.toLowerCase();
@@ -236,8 +272,6 @@ export class McpGatewayService implements OnModuleInit {
 
   /**
    * Resilient execution wrapper with Exponential Backoff + Timeout Circuit Breaker.
-   * For Android Bridge operations, non-retryable device errors (not connected,
-   * device-side timeout) are fast-failed immediately without wasting retry cycles.
    */
   private async executeWithRetryAndTimeout<T>(
     operationName: string,
@@ -268,8 +302,6 @@ export class McpGatewayService implements OnModuleInit {
       } catch (err: unknown) {
         lastError = err instanceof Error ? err : new Error(String(err));
 
-        // Fast-fail for Android device errors that are structurally non-retryable:
-        // The device won't suddenly reconnect between retry attempts.
         if (isAndroidOp && this.isAndroidNonRetryableError(lastError)) {
           this.logger.warn(
             `[MCP Gateway] Non-retryable Android error for "${operationName}": ${lastError.message}. Skipping retries.`,
@@ -278,13 +310,11 @@ export class McpGatewayService implements OnModuleInit {
         }
 
         if (attempt < maxRetries) {
-          const baseDelay = 300 * Math.pow(2, attempt - 1);
-          const jitter = Math.floor(Math.random() * 150);
-          const delay = baseDelay + jitter;
+          const backoff = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
           this.logger.warn(
-            `[Retry ${attempt}/${maxRetries}] MCP Operation "${operationName}" on [${serverName}] failed: ${lastError.message}. Retrying in ${delay}ms...`,
+            `[MCP Gateway] Transient error executing "${operationName}" on [${serverName}] (attempt ${attempt}/${maxRetries}): ${lastError.message}. Retrying in ${backoff}ms...`,
           );
-          await new Promise((res) => setTimeout(res, delay));
+          await new Promise((resolve) => setTimeout(resolve, backoff));
         }
       }
     }
@@ -314,16 +344,26 @@ export class McpGatewayService implements OnModuleInit {
       try {
         const res = await this.db.query<{
           endpoint: string;
+          status: string;
           auth_config: {
             token?: string;
             apiKey?: string;
             workspaceName?: string;
           };
         }>(
-          `SELECT endpoint, auth_config FROM workspace_integrations WHERE id = 'int-notion-mcp' LIMIT 1;`,
+          `SELECT endpoint, status, auth_config FROM workspace_integrations WHERE id = 'int-notion-mcp' LIMIT 1;`,
         );
         if (res.rows.length > 0 && server instanceof NotionMcpConnector) {
           const row = res.rows[0];
+          if (row.status === 'disconnected') {
+            server.configure({ token: '', apiKey: '' });
+            return {
+              status: 'disconnected',
+              message:
+                'Notion Workspace is disconnected. Click Connect to authorize.',
+              latencyMs: 0,
+            };
+          }
           const rawToken = row.auth_config?.token || row.auth_config?.apiKey;
           const decryptedToken = rawToken
             ? this.encryption.decrypt(rawToken)
@@ -345,19 +385,29 @@ export class McpGatewayService implements OnModuleInit {
       try {
         const res = await this.db.query<{
           endpoint: string;
+          status: string;
           auth_config: {
             token?: string;
             refreshToken?: string;
             workspaceName?: string;
           };
         }>(
-          `SELECT endpoint, auth_config FROM workspace_integrations WHERE id = 'int-google-calendar-mcp' LIMIT 1;`,
+          `SELECT endpoint, status, auth_config FROM workspace_integrations WHERE id = 'int-google-calendar-mcp' LIMIT 1;`,
         );
         if (
           res.rows.length > 0 &&
           server instanceof GoogleCalendarMcpConnector
         ) {
           const row = res.rows[0];
+          if (row.status === 'disconnected') {
+            server.configure({ token: '', apiKey: '', refreshToken: '' });
+            return {
+              status: 'disconnected',
+              message:
+                'Google Calendar is disconnected. Click Connect to authorize.',
+              latencyMs: 0,
+            };
+          }
           const rawToken = row.auth_config?.token;
           const rawRefreshToken = row.auth_config?.refreshToken;
           const decryptedToken = rawToken

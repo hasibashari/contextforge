@@ -93,6 +93,15 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
   }
 
   /**
+   * Standard disconnect handler to disable bridge and terminate active sockets
+   */
+  override disconnect(): void {
+    this.setAuthToken('');
+    this.gateway?.setBridgeEnabled(false);
+    this.gateway?.disconnectAllClients('User disconnected from Desktop');
+  }
+
+  /**
    * Execute MCP Tools on Android Device via WebSocket RPC
    */
   async executeTool(

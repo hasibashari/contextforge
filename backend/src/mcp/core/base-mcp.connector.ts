@@ -32,6 +32,13 @@ export abstract class BaseMcpConnector implements IMcpServer {
   }
 
   /**
+   * Standard disconnect handler to release active credentials and sessions
+   */
+  public disconnect(): Promise<void> | void {
+    this.setAuthToken('');
+  }
+
+  /**
    * Checks whether the connector has an active credentials token
    */
   public isConnected(): boolean {

@@ -170,6 +170,24 @@ export class AndroidBridgeGatewayService
     this.cleanup();
   }
 
+  private removeClient(ws: WsClient) {
+    this.activeClients.delete(ws);
+    try {
+      if (
+        ws.readyState === WsClient.OPEN ||
+        ws.readyState === WsClient.CLOSING
+      ) {
+        ws.terminate();
+      }
+    } catch {
+      // safe ignore
+    }
+    if (this.activeClients.size === 0 && this.activeDeviceInfo.connected) {
+      this.activeDeviceInfo.connected = false;
+      this.notifyDisconnected();
+    }
+  }
+
   /**
    * Attaches WebSocket server to the main NestJS HTTP Server
    */
@@ -177,9 +195,7 @@ export class AndroidBridgeGatewayService
     if (this.wss) return;
 
     try {
-      this.wss = new WebSocketServer({
-        noServer: true,
-      });
+      this.wss = new WebSocketServer({ noServer: true });
 
       server.on('upgrade', (request, socket, head) => {
         try {
@@ -197,8 +213,29 @@ export class AndroidBridgeGatewayService
       this.wss.on('connection', (ws: WsClient, req) => {
         const clientIp = req.socket.remoteAddress || 'unknown';
 
-        // Auto-enable bridge on any incoming device connection attempt
-        this.bridgeEnabled = true;
+        // Reject connection if user explicitly disconnected from Desktop
+        if (!this.bridgeEnabled) {
+          this.logger.warn(
+            `🚫 [Android WebSocket Bridge] Incoming connection from ${clientIp} rejected: Bridge is currently disconnected/disabled from Desktop.`,
+          );
+          try {
+            ws.send(
+              JSON.stringify({
+                type: 'server_disconnect',
+                action: 'disconnect',
+                requireRePairing: true,
+                unpair: true,
+                reason:
+                  'Bridge is disconnected on Desktop. Please scan QR code in Web UI to re-pair.',
+                timestamp: Date.now(),
+              }),
+            );
+            ws.close(1000, 'Bridge disabled on Desktop');
+          } catch {
+            // safe ignore
+          }
+          return;
+        }
 
         const extWs = ws as ExtendedWsClient;
         extWs.isAlive = true;
@@ -206,6 +243,13 @@ export class AndroidBridgeGatewayService
         this.logger.log(
           `📱 [Android WebSocket Bridge] Device connection accepted from ${clientIp}`,
         );
+
+        // Prune stale or closed sockets
+        for (const existingWs of this.activeClients) {
+          if (existingWs.readyState !== WsClient.OPEN) {
+            this.activeClients.delete(existingWs);
+          }
+        }
         this.activeClients.add(ws);
 
         this.activeDeviceInfo = {
@@ -231,28 +275,14 @@ export class AndroidBridgeGatewayService
 
         ws.on('close', () => {
           this.logger.log('📱 [Android WebSocket Bridge] Device disconnected');
-          this.activeClients.delete(ws);
-          if (
-            this.activeClients.size === 0 &&
-            this.activeDeviceInfo.connected
-          ) {
-            this.activeDeviceInfo.connected = false;
-            this.notifyDisconnected();
-          }
+          this.removeClient(ws);
         });
 
         ws.on('error', (err: Error) => {
           this.logger.warn(
             `Android WebSocket bridge client error: ${err.message}`,
           );
-          this.activeClients.delete(ws);
-          if (
-            this.activeClients.size === 0 &&
-            this.activeDeviceInfo.connected
-          ) {
-            this.activeDeviceInfo.connected = false;
-            this.notifyDisconnected();
-          }
+          this.removeClient(ws);
         });
 
         // Request initial handshake/device-info from newly connected phone
@@ -294,19 +324,7 @@ export class AndroidBridgeGatewayService
           this.logger.warn(
             '🔌 [Android Bridge Gateway] Dead peer detected (missed heartbeat for >60s). Terminating socket...',
           );
-          this.activeClients.delete(ws);
-          try {
-            ws.terminate();
-          } catch {
-            // Ignore safe
-          }
-          if (
-            this.activeClients.size === 0 &&
-            this.activeDeviceInfo.connected
-          ) {
-            this.activeDeviceInfo.connected = false;
-            this.notifyDisconnected();
-          }
+          this.removeClient(ws);
           continue;
         }
 
@@ -316,7 +334,7 @@ export class AndroidBridgeGatewayService
             ws.ping();
           }
         } catch {
-          this.activeClients.delete(ws);
+          this.removeClient(ws);
         }
       }
     }, this.HEARTBEAT_INTERVAL_MS);
@@ -324,19 +342,14 @@ export class AndroidBridgeGatewayService
 
   private handleClientMessage(ws: WsClient, rawData: RawData) {
     try {
-      let text: string;
-      if (typeof rawData === 'string') {
-        text = rawData;
-      } else if (Buffer.isBuffer(rawData)) {
-        text = rawData.toString('utf-8');
-      } else if (Array.isArray(rawData)) {
-        text = Buffer.concat(rawData).toString('utf-8');
-      } else if (rawData instanceof ArrayBuffer) {
-        text = Buffer.from(rawData).toString('utf-8');
-      } else {
-        text = Buffer.from(rawData).toString('utf-8');
-      }
-
+      const text =
+        typeof rawData === 'string'
+          ? rawData
+          : Buffer.isBuffer(rawData)
+            ? rawData.toString('utf-8')
+            : Array.isArray(rawData)
+              ? Buffer.concat(rawData).toString('utf-8')
+              : Buffer.from(rawData).toString('utf-8');
       const message = JSON.parse(text) as Record<string, unknown>;
 
       const _logType = String(message.type);
@@ -376,37 +389,49 @@ export class AndroidBridgeGatewayService
 
         if (pending) {
           // Matches a live pending request — this IS a tool-call response.
-          const isStandardFormat = message.type === 'mcp_bridge_response';
-          const isAndroidFormat =
-            typeof message.action === 'string' && message.status !== undefined;
+          clearTimeout(pending.timer);
+          this.pendingRequests.delete(reqId!);
 
-          if (isStandardFormat || isAndroidFormat) {
-            clearTimeout(pending.timer);
-            this.pendingRequests.delete(reqId!);
+          const statusStr =
+            typeof message.status === 'string'
+              ? message.status.toLowerCase()
+              : '';
+          const hasExplicitError =
+            message.success === false ||
+            statusStr === 'error' ||
+            statusStr === 'fail' ||
+            statusStr === 'failed';
 
-            // Normalize success flag:
-            // Standard format: success boolean
-            // Android format:  status string "success" | "ok" | "error" | ...
-            const statusStr =
-              typeof message.status === 'string'
-                ? message.status.toLowerCase()
-                : '';
-            const isSuccess =
-              message.success === true ||
-              statusStr === 'success' ||
-              statusStr === 'ok';
-
-            if (isSuccess) {
-              pending.resolve(message.data);
-            } else {
-              const errMsg =
-                (typeof message.error === 'string' ? message.error : '') ||
-                (typeof message.message === 'string' ? message.message : '') ||
-                `Bridge RPC error for action ${pending.action} (status: ${statusStr || String(message.success)})`;
-              pending.reject(new Error(errMsg));
-            }
+          if (hasExplicitError) {
+            const errMsg =
+              (typeof message.error === 'string' ? message.error : '') ||
+              (typeof message.message === 'string' ? message.message : '') ||
+              `Bridge RPC error for action ${pending.action} (status: ${statusStr || String(message.success)})`;
+            pending.reject(new Error(errMsg));
             return;
           }
+
+          // Extract response data flexibly from standard, Android companion, or JSON-RPC format
+          let responseData: unknown;
+          if (message.data !== undefined) {
+            responseData = message.data;
+          } else if (message.result !== undefined) {
+            responseData = message.result;
+          } else if (message.payload !== undefined) {
+            responseData = message.payload;
+          } else {
+            const rest = { ...message };
+            delete rest.id;
+            delete rest.type;
+            delete rest.action;
+            delete rest.status;
+            delete rest.success;
+            delete rest.timestamp;
+            responseData = Object.keys(rest).length > 0 ? rest : message;
+          }
+
+          pending.resolve(responseData);
+          return;
         }
 
         // No pending request for this id — fall through to handshake check.
@@ -415,7 +440,7 @@ export class AndroidBridgeGatewayService
       }
 
       // 2. Handshake or Device Info report from Android app
-      if (
+      const isDeviceReport =
         message.type === 'android_handshake' ||
         message.type === 'device_status' ||
         message.type === 'handshake' ||
@@ -426,27 +451,26 @@ export class AndroidBridgeGatewayService
         (message.type === 'mcp_bridge_response' &&
           typeof message.data === 'object' &&
           message.data !== null &&
-          'deviceName' in (message.data as Record<string, unknown>))
-      ) {
-        // Android companion app wraps device info inside `data` field.
-        // Standard format may also use `data`. Extract accordingly.
-        const hasNestedData =
-          typeof message.data === 'object' && message.data !== null;
-        const payload = hasNestedData
-          ? (message.data as Record<string, unknown>)
-          : message;
+          'deviceName' in (message.data as Record<string, unknown>));
+
+      if (isDeviceReport) {
+        const payload =
+          typeof message.data === 'object' && message.data !== null
+            ? (message.data as Record<string, unknown>)
+            : message;
 
         const devName =
-          (payload.deviceName as string) ||
-          (payload.device as string) ||
-          (payload.name as string) ||
-          (payload.model as string) ||
+          (typeof payload.deviceName === 'string' && payload.deviceName) ||
+          (typeof payload.device === 'string' && payload.device) ||
+          (typeof payload.name === 'string' && payload.name) ||
+          (typeof payload.model === 'string' && payload.model) ||
           'Android Mobile Device';
 
         const androidVer =
-          (payload.androidVersion as string) ||
-          (payload.osVersion as string) ||
-          (payload.version as string) ||
+          (typeof payload.androidVersion === 'string' &&
+            payload.androidVersion) ||
+          (typeof payload.osVersion === 'string' && payload.osVersion) ||
+          (typeof payload.version === 'string' && payload.version) ||
           undefined;
 
         let battery: number | undefined;
@@ -559,13 +583,22 @@ export class AndroidBridgeGatewayService
   async dispatchBridgeRequest<T = unknown>(
     action: string,
     payload: Record<string, unknown> = {},
-    timeoutMs = 12000,
+    timeoutMs = 15000,
   ): Promise<T> {
-    const activeWs = Array.from(this.activeClients).find(
-      (ws) => ws.readyState === WsClient.OPEN,
-    );
+    // Prune closed sockets and find all open clients
+    const openClients: WsClient[] = [];
+    for (const ws of this.activeClients) {
+      if (ws.readyState === WsClient.OPEN) {
+        openClients.push(ws);
+      } else if (
+        ws.readyState === WsClient.CLOSED ||
+        ws.readyState === WsClient.CLOSING
+      ) {
+        this.activeClients.delete(ws);
+      }
+    }
 
-    if (!activeWs) {
+    if (openClients.length === 0) {
       throw new Error(
         `Android device is not connected via WebSocket. Please open the Android MCP Bridge app on your phone to connect.`,
       );
@@ -581,14 +614,14 @@ export class AndroidBridgeGatewayService
     };
 
     this.logger.log(
-      `📤 [Bridge RPC] Sending "${action}" to device | id=${requestId} | payload=${JSON.stringify(payload).slice(0, 120)}`,
+      `📤 [Bridge RPC] Sending "${action}" to device (${openClients.length} active socket(s)) | id=${requestId} | payload=${JSON.stringify(payload).slice(0, 120)}`,
     );
 
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pendingRequests.delete(requestId);
         this.logger.error(
-          `⏱️ [Bridge RPC] Timeout waiting for "${action}" response | id=${requestId} | No mcp_bridge_response received from device within ${timeoutMs}ms. Check Android app logs — ensure the app is sending back { id: "${requestId}", type: "mcp_bridge_response", success: true/false, data: {...} }`,
+          `⏱️ [Bridge RPC] Timeout waiting for "${action}" response | id=${requestId} | No response received from device within ${timeoutMs}ms. Ensure the companion app is running, has Usage Access granted, and is replying with correlation id "${requestId}".`,
         );
         reject(
           new Error(
@@ -604,8 +637,14 @@ export class AndroidBridgeGatewayService
         action,
       });
 
-      const sent = this.sendToClient(activeWs, requestMessage);
-      if (!sent) {
+      let sentCount = 0;
+      for (const ws of openClients) {
+        if (this.sendToClient(ws, requestMessage)) {
+          sentCount++;
+        }
+      }
+
+      if (sentCount === 0) {
         clearTimeout(timer);
         this.pendingRequests.delete(requestId);
         reject(

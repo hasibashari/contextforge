@@ -53,6 +53,11 @@ export class GenericRemoteConnector extends BaseMcpConnector {
     this.authConfig = config.authConfig || {};
   }
 
+  override disconnect(): void {
+    this.authConfig = {};
+    this.setAuthToken('');
+  }
+
   getTools(): McpToolDefinition[] {
     return this.tools;
   }

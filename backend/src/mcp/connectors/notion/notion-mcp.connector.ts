@@ -18,6 +18,7 @@ export class NotionMcpConnector extends BaseMcpConnector {
   readonly isInternal = false;
 
   private endpoint = 'https://mcp.notion.com/mcp';
+  private isExplicitlyDisconnected = false;
 
   constructor(
     private readonly httpTransport: McpHttpTransport,
@@ -31,10 +32,15 @@ export class NotionMcpConnector extends BaseMcpConnector {
     if (authToken !== undefined) this.setAuthToken(authToken);
   }
 
+  override setAuthToken(token: string): void {
+    super.setAuthToken(token);
+    this.isExplicitlyDisconnected = !token || !token.trim();
+  }
+
   configure(config: { endpoint?: string; token?: string; apiKey?: string }) {
     if (config.endpoint) this.endpoint = config.endpoint;
-    if (config.token) this.setAuthToken(config.token);
-    else if (config.apiKey) this.setAuthToken(config.apiKey);
+    if (config.token !== undefined) this.setAuthToken(config.token);
+    else if (config.apiKey !== undefined) this.setAuthToken(config.apiKey);
   }
 
   getTools(): McpToolDefinition[] {
@@ -48,6 +54,9 @@ export class NotionMcpConnector extends BaseMcpConnector {
   }
 
   private getEffectiveToken(): string {
+    if (this.isExplicitlyDisconnected) {
+      return '';
+    }
     if (this.authToken && this.authToken.trim()) {
       return this.authToken.trim();
     }

@@ -136,6 +136,27 @@ export async function runNotionAndObsidianTests() {
     }
   });
 
+  await test('5. Notion connector explicitly disconnects and enables re-authentication', async () => {
+    const httpTransport = new McpHttpTransport();
+    const apiClient = new NotionApiClient();
+    const notionServer = new NotionMcpConnector(httpTransport, apiClient);
+
+    // Initial connection with valid token
+    notionServer.configure({ token: 'secret_test_token_123' });
+    assert.strictEqual(notionServer.isConnected(), true);
+
+    // Disconnect explicitly
+    notionServer.setAuthToken('');
+    assert.strictEqual(notionServer.isConnected(), false);
+
+    const pingRes = await notionServer.ping();
+    assert.strictEqual(pingRes.status, 'disconnected');
+
+    // Re-authenticate / Re-login with new workspace token
+    notionServer.configure({ token: 'secret_new_workspace_token_456' });
+    assert.strictEqual(notionServer.isConnected(), true);
+  });
+
   console.log(
     `\n📊 Notion & Obsidian Test Results: ${passed} passed, ${failed} failed.\n`,
   );

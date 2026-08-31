@@ -82,6 +82,11 @@ export interface IMcpServer {
     message?: string;
     latencyMs: number;
   }>;
+
+  /**
+   * Standard disconnect handler to release active credentials and sessions
+   */
+  disconnect?(): Promise<void> | void;
 }
 
 /**

@@ -32,6 +32,7 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
   private endpoint = 'https://www.googleapis.com/calendar/v3';
   private refreshToken = '';
   private refreshHandler?: (refreshToken: string) => Promise<string>;
+  private isExplicitlyDisconnected = false;
 
   constructor(
     private readonly httpTransport: McpHttpTransport,
@@ -45,8 +46,27 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
     if (authToken !== undefined) this.setAuthToken(authToken);
   }
 
+  override setAuthToken(token: string): void {
+    super.setAuthToken(token);
+    if (!token && !this.refreshToken) {
+      this.isExplicitlyDisconnected = true;
+    } else if (token) {
+      this.isExplicitlyDisconnected = false;
+    }
+  }
+
   setRefreshToken(refreshToken: string) {
     this.refreshToken = refreshToken || '';
+    if (!this.refreshToken && !this.authToken) {
+      this.isExplicitlyDisconnected = true;
+    } else if (this.refreshToken) {
+      this.isExplicitlyDisconnected = false;
+    }
+  }
+
+  override disconnect(): void {
+    this.setAuthToken('');
+    this.setRefreshToken('');
   }
 
   getRefreshToken(): string {
@@ -64,9 +84,10 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
     refreshToken?: string;
   }) {
     if (config.endpoint) this.endpoint = config.endpoint;
-    if (config.token) this.setAuthToken(config.token);
-    else if (config.apiKey) this.setAuthToken(config.apiKey);
-    if (config.refreshToken) this.refreshToken = config.refreshToken;
+    if (config.refreshToken !== undefined)
+      this.setRefreshToken(config.refreshToken);
+    if (config.token !== undefined) this.setAuthToken(config.token);
+    else if (config.apiKey !== undefined) this.setAuthToken(config.apiKey);
   }
 
   getTools(): McpToolDefinition[] {
@@ -78,6 +99,9 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
   }
 
   private getEffectiveToken(): string {
+    if (this.isExplicitlyDisconnected) {
+      return '';
+    }
     if (this.authToken && this.authToken.trim()) {
       return this.authToken.trim();
     }
@@ -97,7 +121,10 @@ export class GoogleCalendarMcpConnector extends BaseMcpConnector {
   }
 
   override isConnected(): boolean {
-    return Boolean(this.getEffectiveToken() || this.refreshToken);
+    return Boolean(
+      this.getEffectiveToken() ||
+      (!this.isExplicitlyDisconnected && this.refreshToken),
+    );
   }
 
   private async executeWithAuthRetry<T>(

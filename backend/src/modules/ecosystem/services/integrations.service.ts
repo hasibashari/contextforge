@@ -78,6 +78,26 @@ export class IntegrationsService {
     // Run parallel live health probe on all integrations
     const probed: WorkspaceIntegrationRow[] = await Promise.all(
       rows.map(async (row): Promise<WorkspaceIntegrationRow> => {
+        // 0. If the user has explicitly disconnected the connector in DB, honor it
+        if (row.status === 'disconnected') {
+          return {
+            ...row,
+            status: 'disconnected',
+            health_message:
+              row.id === 'int-notion-mcp'
+                ? 'Notion Workspace not connected. Click Connect to authorize.'
+                : row.id === 'int-google-calendar-mcp'
+                  ? 'Google Calendar not connected. Click Connect to authorize.'
+                  : row.id === 'int-obsidian-vault-mcp'
+                    ? 'Obsidian vault not paired on this device'
+                    : row.id === 'int-android-bridge-mcp'
+                      ? 'Android device not connected. Scan QR code to pair.'
+                      : 'Disconnected by user',
+            latency_ms: 0,
+            last_ping_ms: 0,
+          };
+        }
+
         // 1. Special check: Android Bridge live WebSocket connection
         if (row.id === 'int-android-bridge-mcp') {
           const isConnected =
@@ -194,17 +214,6 @@ export class IntegrationsService {
           };
         }
 
-        // 5. If the user has explicitly disconnected the connector in DB, honor it
-        if (row.status === 'disconnected') {
-          return {
-            ...row,
-            status: 'disconnected',
-            health_message: 'Disconnected by user',
-            latency_ms: 0,
-            last_ping_ms: 0,
-          };
-        }
-
         try {
           const probe = await this.mcpGateway.pingServer(row.id);
           const isProbeSuccess = probe.status === 'connected';
@@ -307,20 +316,32 @@ export class IntegrationsService {
     ) {
       await this.obsidianVaultService.refreshVaultRootFromDb();
     }
-    if (
-      id === 'int-android-bridge-mcp' ||
-      id.toLowerCase().includes('android')
-    ) {
-      if (updates.status === 'connected') {
+
+    if (updates.status === 'connected') {
+      if (
+        id === 'int-android-bridge-mcp' ||
+        id.toLowerCase().includes('android')
+      ) {
         this.androidBridgeGateway?.setBridgeEnabled(true);
-      } else if (
-        updates.status === 'disconnected' &&
-        existing.status !== 'disconnected'
+      }
+    } else if (
+      updates.status === 'disconnected' &&
+      existing.status !== 'disconnected'
+    ) {
+      // Polymorphic Disconnect Lifecycle: invoke disconnect() on any active MCP server
+      const server = this.mcpGateway.getServer(id);
+      if (server && typeof server.disconnect === 'function') {
+        await server.disconnect();
+      }
+      if (
+        id === 'int-android-bridge-mcp' ||
+        id.toLowerCase().includes('android')
       ) {
         this.androidBridgeGateway?.setBridgeEnabled(false);
-        this.androidBridgeGateway?.disconnectAllClients(
-          'User disconnected from Desktop',
-        );
+      }
+      // Clear persistence credentials so re-login is required
+      if (!updates.auth_config) {
+        secureUpdates.auth_config = {};
       }
     }
 
