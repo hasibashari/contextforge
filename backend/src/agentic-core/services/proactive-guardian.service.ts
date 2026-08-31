@@ -109,9 +109,9 @@ export class ProactiveGuardianService implements OnModuleInit, OnModuleDestroy {
 
         await this.androidConnector.executeTool('android_send_agent_message', {
           style: 'heads_up',
-          title: 'Waktunya Istirahat 🌙',
+          title: 'Time to Rest 🌙',
           message:
-            'Sudah larut malam. Istirahatkan mata dan pikiran Anda agar besok kembali bertenaga!',
+            'It is getting late. Rest your eyes and mind so you can wake up refreshed tomorrow!',
           allowExtension: true,
           extensionMinutes: 5,
         });

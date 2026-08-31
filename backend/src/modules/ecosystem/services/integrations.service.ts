@@ -296,11 +296,17 @@ export class IntegrationsService {
       );
     }
 
+    const isDisconnecting =
+      updates.status === 'disconnected' && existing.status !== 'disconnected';
+
     const secureUpdates: Partial<WorkspaceIntegrationRow> = {
       ...updates,
-      auth_config: updates.auth_config
-        ? this.encryptAuthConfig(updates.auth_config)
-        : updates.auth_config,
+      auth_config:
+        isDisconnecting && !updates.auth_config
+          ? {}
+          : updates.auth_config
+            ? this.encryptAuthConfig(updates.auth_config)
+            : updates.auth_config,
     };
     const updated = await this.repo.updateIntegration(id, secureUpdates);
     if (!updated) {
@@ -308,6 +314,10 @@ export class IntegrationsService {
         `Integration connector with ID "${id}" not found`,
       );
     }
+
+    const serverToDisconnect = isDisconnecting
+      ? this.mcpGateway.getServer(id)
+      : undefined;
 
     await this.mcpGateway.refreshRemoteServersFromDb();
     if (
@@ -324,24 +334,19 @@ export class IntegrationsService {
       ) {
         this.androidBridgeGateway?.setBridgeEnabled(true);
       }
-    } else if (
-      updates.status === 'disconnected' &&
-      existing.status !== 'disconnected'
-    ) {
+    } else if (isDisconnecting) {
       // Polymorphic Disconnect Lifecycle: invoke disconnect() on any active MCP server
-      const server = this.mcpGateway.getServer(id);
-      if (server && typeof server.disconnect === 'function') {
-        await server.disconnect();
+      if (
+        serverToDisconnect &&
+        typeof serverToDisconnect.disconnect === 'function'
+      ) {
+        await serverToDisconnect.disconnect();
       }
       if (
         id === 'int-android-bridge-mcp' ||
         id.toLowerCase().includes('android')
       ) {
         this.androidBridgeGateway?.setBridgeEnabled(false);
-      }
-      // Clear persistence credentials so re-login is required
-      if (!updates.auth_config) {
-        secureUpdates.auth_config = {};
       }
     }
 

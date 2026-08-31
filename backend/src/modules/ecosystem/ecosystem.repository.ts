@@ -563,9 +563,10 @@ export class EcosystemRepository implements OnModuleInit {
     const endpoint = updates.endpoint ?? current.endpoint;
     const transport = updates.transport ?? current.transport;
     const authType = updates.auth_type ?? current.auth_type ?? 'none';
-    const authConfig = updates.auth_config
-      ? JSON.stringify(updates.auth_config)
-      : JSON.stringify(current.auth_config || {});
+    const authConfig =
+      updates.auth_config !== undefined
+        ? JSON.stringify(updates.auth_config)
+        : JSON.stringify(current.auth_config || {});
     const description = updates.description ?? current.description;
     const tools = updates.tools
       ? JSON.stringify(updates.tools)

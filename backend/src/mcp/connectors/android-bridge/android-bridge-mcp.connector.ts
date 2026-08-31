@@ -125,7 +125,7 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
               batteryLevel: devInfo.batteryLevel ?? 100,
               transport: 'websocket',
             },
-            summary: `📱 Android WebSocket Bridge aktif & terhubung (${devInfo.deviceName}, Android ${devInfo.androidVersion || 'Native'}, Baterai: ${devInfo.batteryLevel ?? 100}%).`,
+            summary: `📱 Android WebSocket Bridge active & connected (${devInfo.deviceName}, Android ${devInfo.androidVersion || 'Native'}, Battery: ${devInfo.batteryLevel ?? 100}%).`,
           };
         }
 
@@ -665,7 +665,7 @@ export class AndroidBridgeMcpConnector extends BaseMcpConnector {
               reason,
               status: res.status,
             },
-            summary: `🔒 **Instant Bedtime Lock Activated**: Layar HP dikunci dengan pesan: *"${reason}"*.`,
+            summary: `🔒 **Instant Bedtime Lock Activated**: Device screen locked with message: *"${reason}"*.`,
           };
         }
 
