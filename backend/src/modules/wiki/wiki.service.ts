@@ -124,7 +124,7 @@ Welcome to your living, persistent LLM Wiki. Unlike basic RAG, this wiki is cont
 
 ## 🧭 Navigation Index
 - [[Concepts/Agentic-Core|Agentic AI Core]]: Multi-step ReAct reasoning and tool orchestration.
-- [[Concepts/LLM-Wiki-Architecture|LLM Wiki Architecture]]: Compounding knowledge base pattern with persistent markdown artifacts.
+- [[Concepts/LLM-Wiki-Architecture|LLM Wiki Architecture]]: Compounding knowledge base pattern with persistent markdown notes.
 - [[Concepts/Vector-RAG|Vector Embeddings & RAG]]: 1536-dimensional semantic retrieval via PostgreSQL pgvector.
 - [[Entities/Gemini-3.5|Google Gemini 3.5]]: Native multi-modal LLM powering agent reasoning.
 - [[Entities/Obsidian-MCP|Obsidian MCP Server]]: Native Model Context Protocol bridge for note manipulation.

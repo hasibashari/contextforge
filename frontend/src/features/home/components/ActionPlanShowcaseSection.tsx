@@ -69,7 +69,7 @@ export default function ActionPlanShowcaseSection() {
             </div>
           </motion.div>
 
-          {/* ContextForge Action Plan Artifact */}
+          {/* ContextForge Action Plan Showcase */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}

@@ -114,7 +114,7 @@ export class PersonalHubService {
 
       const modelName = this.config.get<string>(
         'gemini.fastModel',
-        this.config.get<string>('gemini.defaultModel', 'gemini-2.5-flash'),
+        this.config.get<string>('gemini.defaultModel', 'gemini-3.6-flash'),
       );
 
       const systemInstruction = `You are the Background Memory Extraction Agent for ContextForge AI Workspace.

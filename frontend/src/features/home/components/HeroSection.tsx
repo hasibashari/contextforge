@@ -234,7 +234,7 @@ export default function HeroSection() {
                       {/* Action Plan Deliverable Preview Cards */}
                       <div className="space-y-2 min-w-0">
                         <div className="text-[10px] font-mono uppercase tracking-caption text-muted font-semibold">
-                          Generated Obsidian Note Artifact
+                          Generated Obsidian Note Document
                         </div>
 
                         <div className="bg-surface-card p-3 rounded-xl border border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs overflow-hidden min-w-0">
