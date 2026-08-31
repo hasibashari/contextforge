@@ -302,6 +302,16 @@ export class IntegrationsService {
         ? this.encryptAuthConfig(updates.auth_config)
         : updates.auth_config,
     };
+
+    // Clear persistence credentials so re-login is required if explicitly disconnecting
+    if (
+      updates.status === 'disconnected' &&
+      existing.status !== 'disconnected' &&
+      !updates.auth_config
+    ) {
+      secureUpdates.auth_config = {};
+    }
+
     const updated = await this.repo.updateIntegration(id, secureUpdates);
     if (!updated) {
       throw new NotFoundException(
@@ -338,10 +348,6 @@ export class IntegrationsService {
         id.toLowerCase().includes('android')
       ) {
         this.androidBridgeGateway?.setBridgeEnabled(false);
-      }
-      // Clear persistence credentials so re-login is required
-      if (!updates.auth_config) {
-        secureUpdates.auth_config = {};
       }
     }
 
