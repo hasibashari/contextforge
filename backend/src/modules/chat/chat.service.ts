@@ -310,7 +310,7 @@ export class ChatService {
                 text: `You are an expert concise title generator for a multi-agent AI assistant.
 Summarize the user inquiry or topic in 3 to 5 words.
 Rules:
-- Match the language of the prompt (Indonesian or English).
+- Match the exact language of the user prompt (e.g. English, Indonesian, Japanese, etc.).
 - Return ONLY the title text.
 - Do NOT use markdown, quotes, emojis, or trailing punctuation.
 - Maximum 40 characters.

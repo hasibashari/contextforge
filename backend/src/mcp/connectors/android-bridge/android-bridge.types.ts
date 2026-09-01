@@ -2,6 +2,34 @@
  * Type definitions & DTOs for Android MCP Bridge & Digital Wellbeing
  */
 
+export interface AndroidDeviceInfo {
+  connected: boolean;
+  deviceId?: string;
+  deviceName: string;
+  androidVersion?: string;
+  batteryLevel?: number;
+  clientIp?: string;
+  connectedAt?: number;
+  lastPingAt?: number;
+}
+
+export interface AndroidBridgeRequestMessage {
+  id: string;
+  type: 'mcp_bridge_request';
+  action: string;
+  payload: Record<string, unknown>;
+  timestamp: number;
+}
+
+export interface AndroidBridgeResponseMessage {
+  id: string;
+  type: 'mcp_bridge_response';
+  success: boolean;
+  data?: unknown;
+  error?: string;
+  timestamp: number;
+}
+
 export interface AndroidDevicePingResponse {
   status: string;
   device?: string;

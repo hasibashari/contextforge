@@ -5,9 +5,11 @@ import {
   Logger,
   Inject,
   forwardRef,
+  Optional,
 } from '@nestjs/common';
 import { AutomationRepository } from './automation.repository';
 import { AutomationService } from './automation.service';
+import { GoalsService } from '../goals/goals.service';
 
 export interface SchedulerJobStatus {
   id: string;
@@ -29,13 +31,23 @@ export interface SchedulerStatusResponse {
   jobs: SchedulerJobStatus[];
 }
 
+export interface SchedulerTickResult {
+  success: boolean;
+  source: string;
+  timestamp: string;
+  evaluatedAutomationsCount: number;
+  triggeredAutomations: string[];
+  evaluatedGoalsCount: number;
+  triggeredGoals: string[];
+}
+
 @Injectable()
 export class AutomationSchedulerService
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(AutomationSchedulerService.name);
   private timer: NodeJS.Timeout | null = null;
-  private readonly intervalMs = 30_000; // Check every 30 seconds
+  private readonly intervalMs = 30_000; // Check every 30 seconds when running persistent
   private lastCheckedAt: string = new Date().toISOString();
   private readonly triggeredSlots: Set<string> = new Set();
 
@@ -43,6 +55,9 @@ export class AutomationSchedulerService
     private readonly repo: AutomationRepository,
     @Inject(forwardRef(() => AutomationService))
     private readonly automationService: AutomationService,
+    @Optional()
+    @Inject(forwardRef(() => GoalsService))
+    private readonly goalsService?: GoalsService,
   ) {}
 
   onModuleInit() {
@@ -63,6 +78,11 @@ export class AutomationSchedulerService
           `Error evaluating background cron schedules: ${err instanceof Error ? err.message : String(err)}`,
         );
       });
+      this.evaluateGoalSchedules().catch((err) => {
+        this.logger.error(
+          `Error evaluating goal cron schedules: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
     }, this.intervalMs);
   }
 
@@ -75,11 +95,47 @@ export class AutomationSchedulerService
   }
 
   /**
+   * On-Demand Cloud Scheduler Tick (Scale-to-Zero trigger)
+   * Wakes up container and evaluates both Automations and Goal Reviews synchronously.
+   */
+  async triggerTick(source = 'cloud-scheduler'): Promise<SchedulerTickResult> {
+    this.logger.log(`⏰ Scheduler TICK triggered from source: ${source}`);
+    this.lastCheckedAt = new Date().toISOString();
+
+    const [triggeredAutomations, triggeredGoals] = await Promise.all([
+      this.evaluateSchedules(),
+      this.evaluateGoalSchedules(),
+    ]);
+
+    const automations = await this.repo.getAllAutomations();
+    let goalsCount = 0;
+    if (this.goalsService) {
+      try {
+        const goals = await this.goalsService.getAllGoals();
+        goalsCount = goals.length;
+      } catch {
+        // safe ignore
+      }
+    }
+
+    return {
+      success: true,
+      source,
+      timestamp: this.lastCheckedAt,
+      evaluatedAutomationsCount: automations.length,
+      triggeredAutomations,
+      evaluatedGoalsCount: goalsCount,
+      triggeredGoals,
+    };
+  }
+
+  /**
    * Main evaluation cycle for active scheduled workflows
    */
-  async evaluateSchedules(): Promise<void> {
+  async evaluateSchedules(): Promise<string[]> {
     this.lastCheckedAt = new Date().toISOString();
     const now = new Date();
+    const triggered: string[] = [];
 
     const workflows = await this.repo.getAllAutomations();
     const activeScheduledWorkflows = workflows.filter(
@@ -97,15 +153,16 @@ export class AutomationSchedulerService
 
       const isMatch = this.matchesCron(cron, now);
       if (isMatch) {
-        const slotKey = `${workflow.id}:${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
+        const slotKey = `auto:${workflow.id}:${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
 
         if (!this.triggeredSlots.has(slotKey)) {
           this.triggeredSlots.add(slotKey);
+          triggered.push(workflow.name);
           this.logger.log(
             `[Cron Trigger] Schedule matched for workflow "${workflow.name}" (${cron}). Dispatching real agentic run...`,
           );
 
-          // Trigger execution asynchronously in background
+          // Trigger execution in background
           this.automationService.triggerRun(workflow.id).catch((err) => {
             this.logger.error(
               `Failed background execution of workflow "${workflow.name}": ${err instanceof Error ? err.message : String(err)}`,
@@ -114,6 +171,52 @@ export class AutomationSchedulerService
         }
       }
     }
+
+    return triggered;
+  }
+
+  /**
+   * Evaluates active goal daily evaluations
+   */
+  async evaluateGoalSchedules(): Promise<string[]> {
+    if (!this.goalsService) return [];
+
+    const now = new Date();
+    const triggered: string[] = [];
+
+    try {
+      const goals = await this.goalsService.getAllGoals();
+      const activeGoals = goals.filter((g) => g.status === 'active');
+
+      for (const goal of activeGoals) {
+        const cron = goal.cron_evaluation?.trim() || '0 21 * * *';
+        const isMatch = this.matchesCron(cron, now);
+
+        if (isMatch) {
+          const slotKey = `goal:${goal.id}:${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
+
+          if (!this.triggeredSlots.has(slotKey)) {
+            this.triggeredSlots.add(slotKey);
+            triggered.push(goal.title);
+            this.logger.log(
+              `[Goal Evaluation Trigger] Schedule matched for goal "${goal.title}" (${cron}). Running evaluation pipeline...`,
+            );
+
+            this.goalsService.runDailyGoalEvaluation(goal.id).catch((err) => {
+              this.logger.error(
+                `Failed daily goal evaluation for "${goal.title}": ${err instanceof Error ? err.message : String(err)}`,
+              );
+            });
+          }
+        }
+      }
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to evaluate goal schedules: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    return triggered;
   }
 
   /**
@@ -158,9 +261,9 @@ export class AutomationSchedulerService
       let end = max;
       if (rangeStr !== '*') {
         if (rangeStr.includes('-')) {
-          const [s, e] = rangeStr.split('-').map((v) => parseInt(v, 10));
-          start = isNaN(s) ? min : s;
-          end = isNaN(e) ? max : e;
+          const [rStart, rEnd] = rangeStr.split('-').map(Number);
+          start = !isNaN(rStart) ? rStart : min;
+          end = !isNaN(rEnd) ? rEnd : max;
         } else {
           start = parseInt(rangeStr, 10);
           if (isNaN(start)) start = min;
@@ -171,12 +274,11 @@ export class AutomationSchedulerService
       return (value - start) % step === 0;
     }
 
-    // Handle comma separated lists (e.g. 1,2,5)
+    // Handle lists (e.g. 1,2,5)
     if (pattern.includes(',')) {
-      const subPatterns = pattern.split(',');
-      return subPatterns.some((sub) =>
-        this.matchesField(sub.trim(), value, min, max),
-      );
+      return pattern
+        .split(',')
+        .some((sub) => this.matchesField(sub.trim(), value, min, max));
     }
 
     // Handle ranges (e.g. 1-5)
@@ -188,36 +290,36 @@ export class AutomationSchedulerService
       return value >= start && value <= end;
     }
 
-    // Handle exact number
-    const num = parseInt(pattern, 10);
-    return !isNaN(num) && num === value;
+    // Exact value match
+    const exact = parseInt(pattern, 10);
+    return !isNaN(exact) && exact === value;
   }
 
   /**
-   * Retrieves live status of background scheduler and registered cron jobs
+   * Get scheduler diagnostic status and all active cron workflows
    */
   async getSchedulerStatus(): Promise<SchedulerStatusResponse> {
     const workflows = await this.repo.getAllAutomations();
-    const activeScheduled = workflows.filter(
-      (w) => w.is_active && w.trigger_type === 'schedule' && w.schedule_cron,
+    const scheduledWorkflows = workflows.filter(
+      (w) => w.trigger_type === 'schedule' && w.schedule_cron,
     );
 
-    const jobs: SchedulerJobStatus[] = workflows.map((w) => ({
+    const jobs: SchedulerJobStatus[] = scheduledWorkflows.map((w) => ({
       id: w.id,
       name: w.name,
       cron: w.schedule_cron || '',
-      scheduleLabel: w.schedule_label || 'Manual Trigger',
+      scheduleLabel: w.schedule_label || w.schedule_cron || '',
       isActive: w.is_active,
       lastRunAt: w.last_run_at,
       lastRunStatus: w.last_run_status,
-      totalRuns: w.total_runs || 0,
+      totalRuns: w.total_runs,
     }));
 
     return {
-      status: this.timer ? 'running' : 'paused',
+      status: this.timer ? 'running' : 'idle',
       intervalSeconds: this.intervalMs / 1000,
       lastCheckedAt: this.lastCheckedAt,
-      activeJobsCount: activeScheduled.length,
+      activeJobsCount: scheduledWorkflows.filter((w) => w.is_active).length,
       totalWorkflowsCount: workflows.length,
       jobs,
     };

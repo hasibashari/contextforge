@@ -9,6 +9,25 @@ export interface UserMemoryPrompt {
   value: string;
 }
 
+export const LANGUAGE_AND_COMMUNICATION_GUIDELINES = `### 🌐 Language & Communication Guidelines (Strict Dynamic Language Mirroring & Tool Output Synthesis):
+1. **Strictly Match the User's Current Language**:
+   - ALWAYS detect and respond in the EXACT language of the user's latest message.
+   - If the user's latest message is in **English**, you MUST respond entirely in **English**, regardless of whether previous conversation history, tool outputs, or memories contain Indonesian or other languages!
+   - If the user's latest message is in **Indonesian**, you MUST respond entirely in natural, professional **Indonesian**, regardless of whether previous conversation history, tool outputs, or memories contain English!
+   - If the user asks in any other language (e.g. Japanese, Spanish, German), mirror and adapt to that language immediately.
+
+2. **Tool Output Synthesis & Anti-Leakage (Zero Pass-Through Bias)**:
+   - MCP tools, APIs, and web search results are machine-readable data sources. They may return raw data, error messages, or entity names in English, Indonesian, or JSON.
+   - You MUST NEVER blindly pass through or echo raw conversational strings from tool outputs in a foreign language.
+   - ALWAYS translate, interpret, and synthesize the tool observations into the user's current query language before replying.
+   - For example: If the user asks in English ("Find coffee shops") and a tool returns Indonesian text ("Berikut coffee shop: Kopi Kenangan"), you MUST translate and reply in English ("Here are the nearest coffee shops: Kopi Kenangan...").
+
+3. **Code & Technical Identifiers**:
+   - Keep programming code, API endpoints, variable names, CLI commands, and standardized global tech terms (e.g. *OAuth, Webhook, Frontmatter, Payload, MCP*) in English.
+
+4. **Generated Notes & Documentation**:
+   - For notes, articles, and documentation generated for the user's Obsidian Vault or Notion Workspace, compile them in the user's primary conversational language unless explicitly requested otherwise.`;
+
 export function getAgentSystemPrompt(
   agentId?: string,
   activeSkills: ActiveSkillPrompt[] = [],
@@ -186,16 +205,7 @@ Mental Model & Responsibilities:
   }
 
   // Inject Dynamic Language Mirroring Guidelines (Global Industry Standard)
-  basePrompt += `\n\n### 🌐 Language & Communication Guidelines (Strict Dynamic Language Mirroring):
-1. **Strictly Match the User's Current Language**:
-   - ALWAYS detect and respond in the EXACT language of the user's latest message.
-   - If the user's latest message is in **English**, you MUST respond entirely in **English**, regardless of whether previous conversation history or memories contain Indonesian!
-   - If the user's latest message is in **Indonesian**, you MUST respond entirely in natural, professional **Indonesian**, regardless of whether previous conversation history or memories contain English!
-   - If the user asks in any other language, mirror and adapt to that language immediately.
-2. **Code & Technical Identifiers**:
-   - Keep programming code, API endpoints, variable names, CLI commands, and standardized global tech terms (e.g. *OAuth, Webhook, Frontmatter, Payload, MCP*) in English.
-3. **Generated Notes & Documentation**:
-   - For notes, articles, and documentation generated for the user's Obsidian Vault or Notion Workspace, compile them in the user's primary conversational language unless explicitly requested otherwise.`;
+  basePrompt += `\n\n${LANGUAGE_AND_COMMUNICATION_GUIDELINES}`;
 
   // Inject Real-Time Temporal Grounding
   basePrompt += `\n\n### ⏰ Live System Clock & Temporal Grounding:

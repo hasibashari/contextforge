@@ -2,7 +2,10 @@ import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { GoogleGenAI } from '@google/genai';
 import { GEMINI_CLIENT } from '../gemini-client.provider';
-import { getAgentSystemPrompt } from '../prompts/orchestrator.prompt';
+import {
+  getAgentSystemPrompt,
+  LANGUAGE_AND_COMMUNICATION_GUIDELINES,
+} from '../prompts/orchestrator.prompt';
 import { BUILTIN_FUNCTION_DECLARATIONS } from '../tools/builtin-tools';
 import {
   StreamEvent,
@@ -101,7 +104,7 @@ export class CoreOrchestratorService {
     });
 
     let systemInstruction = activeSubAgent
-      ? `### ⏱️ Real-World Timestamp Context:\nCurrent Date & Time: ${currentTimeStr} (${timeZone})\n\n${activeSubAgent.formatSubAgentPrompt(memorySummary, { vaultFolders })}`
+      ? `### ⏱️ Real-World Timestamp Context:\nCurrent Date & Time: ${currentTimeStr} (${timeZone})\n\n${activeSubAgent.formatSubAgentPrompt(memorySummary, { vaultFolders })}\n\n${LANGUAGE_AND_COMMUNICATION_GUIDELINES}`
       : getAgentSystemPrompt(
           agentId,
           activeSkills,

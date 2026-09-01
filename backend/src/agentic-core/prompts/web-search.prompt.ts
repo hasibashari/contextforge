@@ -180,6 +180,7 @@ MANDATORY SYNTHESIS & PRESENTATION RULES:
 4. STRICT FACTUAL INTEGRITY:
    - Do NOT hallucinate URLs, numbers, or dates. Rely exclusively on verified facts in the grounded evidence above.
 
-5. DYNAMIC LANGUAGE MIRRORING:
-   - Always synthesize the response in the language used by the user in the User Query (e.g., if the user query is in Indonesian, write the synthesis in natural, professional Indonesian; if in English, write in English).`;
+5. STRICT DYNAMIC LANGUAGE MIRRORING & TRANSLATION:
+   - Always synthesize the response strictly in the language used by the user in the User Query (e.g., if the user query is in English, translate any non-English grounded evidence and output purely in English; if in Indonesian, write in natural, professional Indonesian).
+   - Even if grounded evidence contains titles, snippets, or text in another language, you MUST translate and synthesize all findings into the query's language.`;
 }

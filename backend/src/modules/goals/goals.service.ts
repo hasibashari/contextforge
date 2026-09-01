@@ -594,9 +594,11 @@ Current Streak: ${newStreak} days
 Tasks Breakdown:
 ${tasks.map((t) => `- [${t.status}] ${t.title} (${t.mcp_target || 'general'})`).join('\n')}${androidTelemetrySummary}
 
+Language Rule: Match the language of the Goal Title (e.g. if the goal title is in English, generate all fields in English; if in Indonesian, generate in natural Indonesian).
+
 Generate a JSON with:
 {
-  "summary": "Multi-paragraph rich reflection in Indonesian",
+  "summary": "Multi-paragraph rich reflection matching the goal title language",
   "insights": ["Key behavioral insight 1", "Chronotype observation 2"],
   "adaptations": ["Suggested schedule adjustment for tomorrow", "Habit tip"]
 }`;

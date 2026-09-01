@@ -33,6 +33,12 @@ export class AutomationController {
     return { success: true, data };
   }
 
+  @Post('scheduler/tick')
+  async triggerSchedulerTick(@Body('source') source?: string) {
+    const data = await this.scheduler.triggerTick(source || 'cloud-scheduler');
+    return { success: true, data };
+  }
+
   @Get('runs')
   async getAllRuns() {
     const data = await this.service.getAllRuns();

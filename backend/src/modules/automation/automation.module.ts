@@ -4,9 +4,10 @@ import { AutomationService } from './automation.service';
 import { AutomationRepository } from './automation.repository';
 import { AutomationSchedulerService } from './automation-scheduler.service';
 import { AgenticCoreModule } from '../../agentic-core/agentic-core.module';
+import { GoalsModule } from '../goals/goals.module';
 
 @Module({
-  imports: [forwardRef(() => AgenticCoreModule)],
+  imports: [forwardRef(() => AgenticCoreModule), forwardRef(() => GoalsModule)],
   controllers: [AutomationController],
   providers: [
     AutomationService,

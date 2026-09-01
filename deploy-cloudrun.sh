@@ -83,6 +83,7 @@ gcloud services enable \
     run.googleapis.com \
     artifactregistry.googleapis.com \
     cloudbuild.googleapis.com \
+    cloudscheduler.googleapis.com \
     --project="$GCP_PROJECT_ID"
 
 # 6. Always-Free Tier Guardrails & Lifecycle Checks
@@ -155,8 +156,41 @@ gcloud run deploy "$SERVICE_NAME" \
     --timeout=300 \
     --set-env-vars="$ENV_VARS"
 
+# 8. Optional / Automatic Google Cloud Scheduler (Scale-to-Zero Cron Waker)
+echo -e "\n${BLUE}⏳ Configuring Google Cloud Scheduler Tick (Scale-to-Zero Automation & Goal Waker)...${NC}"
+SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region="$REGION" --format="value(status.url)" 2>/dev/null || echo "")
+
+if [ -n "$SERVICE_URL" ]; then
+    SCHEDULER_JOB_NAME="contextforge-scheduler-tick"
+    echo -e "${GREEN}✓ Cloud Run URL detected: ${SERVICE_URL}${NC}"
+    
+    # Check if Cloud Scheduler job already exists
+    if gcloud scheduler jobs describe "$SCHEDULER_JOB_NAME" --location="$REGION" &>/dev/null; then
+        echo -e "${GREEN}✓ Updating existing Cloud Scheduler job: ${SCHEDULER_JOB_NAME}...${NC}"
+        gcloud scheduler jobs update http "$SCHEDULER_JOB_NAME" \
+            --location="$REGION" \
+            --schedule="* * * * *" \
+            --uri="${SERVICE_URL}/api/automations/scheduler/tick" \
+            --http-method=POST \
+            --message-body='{"source":"cloud-scheduler"}' \
+            --headers="Content-Type=application/json" \
+            --time-zone="${TIMEZONE:-Asia/Jakarta}" 2>/dev/null || true
+    else
+        echo -e "${GREEN}✓ Creating new Google Cloud Scheduler job: ${SCHEDULER_JOB_NAME}...${NC}"
+        gcloud scheduler jobs create http "$SCHEDULER_JOB_NAME" \
+            --location="$REGION" \
+            --schedule="* * * * *" \
+            --uri="${SERVICE_URL}/api/automations/scheduler/tick" \
+            --http-method=POST \
+            --message-body='{"source":"cloud-scheduler"}' \
+            --headers="Content-Type=application/json" \
+            --time-zone="${TIMEZONE:-Asia/Jakarta}" 2>/dev/null || true
+    fi
+    echo -e "${GREEN}✓ Cloud Scheduler tick active: Evaluates cron automations & goal reviews every minute.${NC}"
+fi
+
 echo -e "\n${GREEN}========================================================${NC}"
 echo -e "${GREEN}🎉 CONTEXTFORGE DEPLOYED SUCCESSFULLY TO CLOUD RUN!     ${NC}"
 echo -e "${GREEN}========================================================${NC}"
-echo -e "Your Cloud Run URL is now live and running 100% in the Always-Free tier."
+echo -e "Your Cloud Run URL is now live: ${SERVICE_URL}"
 echo -e "Review service status with: gcloud run services describe ${SERVICE_NAME} --region=${REGION}"
