@@ -1,15 +1,15 @@
-import type { FC } from 'react'
-import type { Integration } from '@/shared/types/workspace'
-import { GoogleCalendarConnectModal } from './mcp/google-calendar/GoogleCalendarConnectModal'
-import { NotionConnectModal } from './mcp/notion/NotionConnectModal'
-import { ObsidianConnectModal } from './mcp/obsidian/ObsidianConnectModal'
-import { GenericConnectModal } from './mcp/generic/GenericConnectModal'
+import type { FC } from 'react';
+import type { Integration } from '@/shared/types/workspace';
+import { GoogleCalendarConnectModal } from './mcp/google-calendar/GoogleCalendarConnectModal';
+import { NotionConnectModal } from './mcp/notion/NotionConnectModal';
+import { ObsidianConnectModal } from './mcp/obsidian/ObsidianConnectModal';
+import { GenericConnectModal } from './mcp/generic/GenericConnectModal';
 
 export interface ConnectAuthModalProps {
-  integration: Integration | null
-  isOpen: boolean
-  onClose: () => void
-  onSuccess?: () => void
+  integration: Integration | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
 }
 
 /**
@@ -22,10 +22,10 @@ export const ConnectAuthModal: FC<ConnectAuthModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  if (!isOpen || !integration) return null
+  if (!isOpen || !integration) return null;
 
-  const id = integration.id.toLowerCase()
-  const name = integration.name.toLowerCase()
+  const id = integration.id.toLowerCase();
+  const name = integration.name.toLowerCase();
 
   // 1. Google Calendar MCP Server
   if (id.includes('calendar') || name.includes('calendar')) {
@@ -36,7 +36,7 @@ export const ConnectAuthModal: FC<ConnectAuthModalProps> = ({
         onClose={onClose}
         onSuccess={onSuccess}
       />
-    )
+    );
   }
 
   // 2. Notion Workspace MCP Server
@@ -48,7 +48,7 @@ export const ConnectAuthModal: FC<ConnectAuthModalProps> = ({
         onClose={onClose}
         onSuccess={onSuccess}
       />
-    )
+    );
   }
 
   // 3. Obsidian Vault MCP Bridge
@@ -60,7 +60,7 @@ export const ConnectAuthModal: FC<ConnectAuthModalProps> = ({
         onClose={onClose}
         onSuccess={onSuccess}
       />
-    )
+    );
   }
 
   // 4. Generic / Dynamic Remote MCP Server Fallback
@@ -71,5 +71,5 @@ export const ConnectAuthModal: FC<ConnectAuthModalProps> = ({
       onClose={onClose}
       onSuccess={onSuccess}
     />
-  )
-}
+  );
+};

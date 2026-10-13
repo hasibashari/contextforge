@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ISubAgent, SubAgentId, SubAgentPersonaConfig } from './subagent.types';
-import { WellbeingCoachSubAgent } from './personas/wellbeing-coach.subagent';
 import { SecondBrainSubAgent } from './personas/second-brain.subagent';
 import { ExecutiveSchedulerSubAgent } from './personas/executive-scheduler.subagent';
 import { ResearchSpecialistSubAgent } from './personas/research-specialist.subagent';
@@ -11,12 +10,10 @@ export class SubAgentRegistryService {
   private readonly subAgents = new Map<SubAgentId, ISubAgent>();
 
   constructor(
-    wellbeingCoach: WellbeingCoachSubAgent,
     secondBrain: SecondBrainSubAgent,
     executiveScheduler: ExecutiveSchedulerSubAgent,
     researchSpecialist: ResearchSpecialistSubAgent,
   ) {
-    this.register(wellbeingCoach);
     this.register(secondBrain);
     this.register(executiveScheduler);
     this.register(researchSpecialist);
@@ -49,23 +46,6 @@ export class SubAgentRegistryService {
    */
   public routePromptToSubAgent(prompt: string): ISubAgent | undefined {
     const p = prompt.toLowerCase();
-
-    // 1. Wellbeing / Focus habits / Sleep patterns
-    if (
-      p.includes('focus') ||
-      p.includes('fokus') ||
-      p.includes('screen time') ||
-      p.includes('waktu layar') ||
-      p.includes('tidur') ||
-      p.includes('sleep') ||
-      p.includes('bedtime') ||
-      p.includes('dnd') ||
-      p.includes('doomscroll') ||
-      p.includes('habit') ||
-      p.includes('wellbeing')
-    ) {
-      return this.subAgents.get('wellbeing_coach');
-    }
 
     // 2. Second Brain / Obsidian / Zettelkasten notes
     if (

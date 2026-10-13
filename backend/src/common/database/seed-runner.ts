@@ -125,7 +125,6 @@ async function runSeed() {
       DELETE FROM workspace_agents WHERE id NOT IN (
         'agent-personal-assistant',
         'agent-research',
-        'wellbeing_coach',
         'second_brain',
         'executive_scheduler'
       );

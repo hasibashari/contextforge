@@ -13,7 +13,6 @@ import { DatabaseModule } from '../common/database/database.module';
 import { AutomationModule } from '../modules/automation/automation.module';
 import { GoalsModule } from '../modules/goals/goals.module';
 import { McpModule } from '../mcp/mcp.module';
-import { WellbeingCoachSubAgent } from './subagents/personas/wellbeing-coach.subagent';
 import { SecondBrainSubAgent } from './subagents/personas/second-brain.subagent';
 import { ExecutiveSchedulerSubAgent } from './subagents/personas/executive-scheduler.subagent';
 import { ResearchSpecialistSubAgent } from './subagents/personas/research-specialist.subagent';
@@ -39,7 +38,6 @@ import { HistoryCompactorService } from './services/history-compactor.service';
     KnowledgeToolHandler,
     AutomationToolHandler,
     GoalToolHandler,
-    WellbeingCoachSubAgent,
     SecondBrainSubAgent,
     ExecutiveSchedulerSubAgent,
     ResearchSpecialistSubAgent,

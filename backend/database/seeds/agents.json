@@ -90,46 +90,6 @@
     "successRatePct": 99.4
   },
   {
-    "id": "wellbeing_coach",
-    "name": "Dr. Lyra - Wellbeing Coach",
-    "role": "Mindful Productivity & Circadian Health Specialist",
-    "agentType": "researcher",
-    "permissions": "sandbox_write",
-    "description": "Specialized sub-agent guiding users toward mindful productivity, deep focus blocks, restorative habits, and daily reflections.",
-    "avatarColor": "bg-emerald-600",
-    "model": "gemini-3.5-flash",
-    "temperature": 0.2,
-    "systemPrompt": "You are Dr. Lyra, an empathetic, scientifically grounded Digital Wellbeing & Focus Coach. Your mission is to guide the user toward sustainable productivity, deep focus blocks, and healthy routines.",
-    "capabilities": [
-      {
-        "id": "c7",
-        "name": "Focus Block Scheduling",
-        "description": "Schedule and coordinate deep work focus sessions in Google Calendar"
-      },
-      {
-        "id": "c8",
-        "name": "Habit Reflection & Journaling",
-        "description": "Document daily wellbeing reviews and reflection logs in Notion"
-      },
-      {
-        "id": "c9",
-        "name": "Milestone Verification",
-        "description": "Verify daily progress on personal habit commitments"
-      }
-    ],
-    "assignedTools": [
-      "google_calendar_create_event",
-      "google_calendar_list_events",
-      "notion_create_page",
-      "verify_task_completion",
-      "record_goal_evaluation"
-    ],
-    "assignedSkills": [],
-    "status": "idle",
-    "totalTasksCompleted": 53,
-    "successRatePct": 100.0
-  },
-  {
     "id": "second_brain",
     "name": "Atlas - Second Brain Architect",
     "role": "Zettelkasten Note Architect & Knowledge Curator",

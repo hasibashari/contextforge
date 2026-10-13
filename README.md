@@ -32,7 +32,7 @@
 
 ---
 
-**ContextForge** is a fullstack, agentic AI-first workspace and developer control plane. It bridges raw large language model intelligence with your actual working context by integrating multi-source knowledge ingestion, autonomous multi-step reasoning, isolated ephemeral side-workers, and Model Context Protocol (MCP) bridges (Obsidian, Google Calendar, Notion, Android Ambient Telemetry, and Remote MCP servers) — all orchestrated with zero ORM overhead on PostgreSQL (`pgvector`) and Google Gemini.
+**ContextForge** is a fullstack, agentic AI-first workspace and developer control plane. It bridges raw large language model intelligence with your actual working context by integrating multi-source knowledge ingestion, autonomous multi-step reasoning, isolated ephemeral side-workers, and Model Context Protocol (MCP) bridges (Obsidian, Google Calendar, Notion, and Remote MCP servers) — all orchestrated with zero ORM overhead on PostgreSQL (`pgvector`) and Google Gemini.
 
 > [!NOTE]
 > Designed for developers, researchers, and knowledge workers who need AI agents grounded in their personal files, notes, schedules, and workflows without sacrificing execution safety or database performance.
@@ -75,20 +75,20 @@ Traditional AI assistants operate inside stateless chat bubbles, isolated from y
 graph TD
     subgraph Pillars ["ContextForge 5 Core Abstraction Pillars"]
         P1["<b>1. KNOWLEDGE</b><br/><i>'What does the AI know?'</i><br/>Document chunks · pgvector embeddings · Grounded RAG"]
-        P2["<b>2. MCP (TOOLS)</b><br/><i>'What can the AI do?'</i><br/>Obsidian · Google Calendar · Notion · Android Bridge · Remote MCP"]
+        P2["<b>2. MCP (TOOLS)</b><br/><i>'What can the AI do?'</i><br/>Obsidian · Google Calendar · Notion · Remote MCP"]
         P3["<b>3. SKILL (SOP)</b><br/><i>'How does the AI execute?'</i><br/>Playbooks · RFC Architect · AST Code Patching · Deep Research"]
         P4["<b>4. CONNECTION</b><br/><i>'Where does the AI connect?'</i><br/>Gemini API · Claude · OAuth 2.0 Tokens · PostgreSQL Pool"]
         P5["<b>5. AGENT</b><br/><i>'Who executes the task?'</i><br/>Read-Only Core Orchestrator · Ephemeral Mutating Side-Workers"]
     end
 ```
 
-| Pillar             | Question Answered              | Description                                                              | Implementation in ContextForge                                                           |
-| :----------------- | :----------------------------- | :----------------------------------------------------------------------- | :--------------------------------------------------------------------------------------- |
-| **1. Knowledge**   | _"What does the AI know?"_     | Document chunks, semantic vector embeddings, and grounded RAG retrieval. | PostgreSQL `pgvector` with 1536-dimension embeddings (`gemini-embedding-2`).             |
-| **2. MCP (Tools)** | _"What can the AI do?"_        | Functional tool bridges adhering to the Model Context Protocol.          | Native connectors for Obsidian, Google Calendar, Notion, Android Bridge, and remote MCP. |
-| **3. Skill (SOP)** | _"How does the AI execute?"_   | Standard Operating Procedures and reasoning frameworks.                  | Built-in SOP playbooks (TDD workflow, note synthesis, AST patch verification).           |
-| **4. Connection**  | _"Where does the AI connect?"_ | Provider credentials, OAuth 2.0 tokens, and database authentication.     | Unified credential vault with safe OAuth flow and native `pg.Pool` connection pooling.   |
-| **5. Agent**       | _"Who executes the task?"_     | Read-only Core Orchestrator and isolated ephemeral Side-Workers.         | Gemini 3.5 Flash Orchestrator with sandboxed Side-Workers (Obsidian, Code, Calendar).    |
+| Pillar             | Question Answered              | Description                                                              | Implementation in ContextForge                                                         |
+| :----------------- | :----------------------------- | :----------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
+| **1. Knowledge**   | _"What does the AI know?"_     | Document chunks, semantic vector embeddings, and grounded RAG retrieval. | PostgreSQL `pgvector` with 1536-dimension embeddings (`gemini-embedding-2`).           |
+| **2. MCP (Tools)** | _"What can the AI do?"_        | Functional tool bridges adhering to the Model Context Protocol.          | Native connectors for Obsidian, Google Calendar, Notion, and remote MCP.               |
+| **3. Skill (SOP)** | _"How does the AI execute?"_   | Standard Operating Procedures and reasoning frameworks.                  | Built-in SOP playbooks (TDD workflow, note synthesis, AST patch verification).         |
+| **4. Connection**  | _"Where does the AI connect?"_ | Provider credentials, OAuth 2.0 tokens, and database authentication.     | Unified credential vault with safe OAuth flow and native `pg.Pool` connection pooling. |
+| **5. Agent**       | _"Who executes the task?"_     | Read-only Core Orchestrator and isolated ephemeral Side-Workers.         | Gemini 3.5 Flash Orchestrator with sandboxed Side-Workers (Obsidian, Code, Calendar).  |
 
 ---
 
@@ -107,11 +107,9 @@ graph TD
 ### 🔌 Model Context Protocol (MCP) Gateway
 
 - **Obsidian Vault Bridge**: Read, search, create, and mutate Markdown notes with automatic `[[wiki-links]]` resolution and YAML frontmatter preservation.
-- **Android Bridge**: Zero-file-scraping ambient telemetry (`UsageStatsManager`, `ZenMode / Bedtime Mode`, and `NotificationManager`) for focus session enforcement.
 - **Google Calendar**: Real-time event mutation, conflict analysis, and automated task rebalancing.
 - **Notion Integration**: Two-way database syncing and page creation via OAuth 2.0.
 - **Remote MCP Support**: Connect to any external MCP server over STDIO, SSE, or Streamable HTTP.
-
 
 ### 🎯 Epistemic Goals & Living Wiki
 
@@ -122,7 +120,6 @@ graph TD
 
 - **CRON & Webhook Schedulers**: Trigger periodic research briefs, daily calendar reorganizations, and vault backups.
 - **Decoupled Event Bus**: Built on NestJS `EventEmitter2` for asynchronous, resilient event dispatching.
-
 
 ---
 
@@ -151,7 +148,6 @@ flowchart TB
             ObsidianWorker["Obsidian Vault Worker"]
             CodeWorker["CLI & Code Runner"]
             CalendarWorker["Calendar Rebalancing Worker"]
-            AndroidWorker["Android Bridge Worker"]
         end
     end
 
@@ -159,7 +155,6 @@ flowchart TB
         MCP_Obsidian["Obsidian Vault Tool"]
         MCP_GCal["Google Calendar Tool"]
         MCP_Notion["Notion OAuth Tool"]
-        MCP_Android["Android Bridge Telemetry & Focus"]
         MCP_Remote["Remote MCP (STDIO / SSE / HTTP)"]
     end
 
@@ -230,7 +225,7 @@ contextforge/
 │   │   ├── common/                 # Database pool, auth guards, interceptors
 │   │   ├── config/                 # App, database, and model configurations
 │   │   ├── mcp/                    # Model Context Protocol engine & connectors
-│   │   │   ├── connectors/         # Android Bridge, Obsidian, GCal, Notion, Generic
+│   │   │   ├── connectors/         # Obsidian, GCal, Notion, Generic
 │   │   │   ├── controllers/        # MCP OAuth & discovery controllers
 │   │   │   └── core/               # MCP Protocol clients & registry
 │   │   ├── modules/                # Domain-driven feature modules
@@ -269,7 +264,6 @@ contextforge/
 │   ├── ERD.md                      # Complete Entity Relationship Diagram & DB schema
 │   ├── TDD.md                      # Technical Design Document (RFC standard)
 │   ├── llm-wiki.md                 # Knowledge & agentic reasoning architecture
-│   ├── mcp/                        # MCP connector specs (Android Bridge, GCal)
 │   └── SKILL/                      # Built-in SOP playbooks
 │
 ├── scripts/                        # Operational Scripts
@@ -476,7 +470,6 @@ graph LR
         Obsidian["📝 Obsidian Vault Bridge<br/>(Local Filesystem, [[wiki-links]], YAML)"]
         GCal["📅 Google Calendar Connector<br/>(Event Sync, Conflict Rebalancing)"]
         Notion["📓 Notion Connector<br/>(Database Ingestion & Two-Way Sync)"]
-        Android["📱 Android Bridge Connector<br/>(Ambient Telemetry & Focus Mode)"]
         Generic["🔌 Remote MCP Client<br/>(STDIO / SSE / Streamable HTTP)"]
     end
 
@@ -484,7 +477,6 @@ graph LR
     Gateway <--> Obsidian
     Gateway <--> GCal
     Gateway <--> Notion
-    Gateway <--> Android
     Gateway <--> Generic
 ```
 
@@ -495,17 +487,13 @@ graph LR
    - Automatic extraction and bidirectional traversal of `[[wiki-links]]`.
    - Structured YAML frontmatter parsing (`tags`, `created`, `aliases`).
 
-2. **Android Bridge (`int-android-bridge-mcp`)**
-   - Ambient telemetry ingestion via zero-file-scraping APIs: `UsageStatsManager`, `ZenMode / Bedtime Mode`, and `NotificationManager`.
-   - Dynamic focus enforcer and notification filtering based on active deep-work goals.
-
-3. **Google Calendar (`int-google-calendar-mcp`)**
+2. **Google Calendar (`int-google-calendar-mcp`)**
    - Real-time OAuth 2.0 integration for agenda queries, event mutations, and schedule conflict resolution.
 
-4. **Notion Workspace (`int-notion-mcp`)**
+3. **Notion Workspace (`int-notion-mcp`)**
    - Ingestion of Notion databases and document trees into the semantic vector vault.
 
-5. **Remote MCP Connector**
+4. **Remote MCP Connector**
    - Supports external MCP tools via standard STDIO pipes, Server-Sent Events (SSE), or streamable HTTP endpoints.
 
 ---
@@ -553,18 +541,18 @@ chmod +x scripts/gcp-free-tier-audit.sh
 
 The backend exposes a modular REST and streaming API prefixed with `/api`:
 
-| Route Prefix        | Module       |         Method          | Description                                                                   |
-| :------------------ | :----------- | :---------------------: | :---------------------------------------------------------------------------- |
-| `/api/chat`         | Chat         |  `GET`, `POST`, `SSE`   | Manage conversation sessions, message history, and real-time token streaming. |
+| Route Prefix | Module |        Method        | Description                                                                   |
+| :----------- | :----- | :------------------: | :---------------------------------------------------------------------------- |
+| `/api/chat`  | Chat   | `GET`, `POST`, `SSE` | Manage conversation sessions, message history, and real-time token streaming. |
 
-| `/api/knowledge`    | Knowledge    | `GET`, `POST`, `DELETE` | Ingest data sources, trigger vector chunking, and run similarity search.      |
-| `/api/goals`        | Goals        | `GET`, `POST`, `PATCH`  | Manage epistemic goals, milestones, and mastery roadmaps.                     |
-| `/api/wiki`         | Living Wiki  |      `GET`, `POST`      | Query and synthesize self-evolving wiki knowledge entries.                    |
-| `/api/ecosystem`    | Ecosystem    |      `GET`, `POST`      | Manage workspace agents, custom tools, and connection status.                 |
-| `/api/automation`   | Automation   | `GET`, `POST`, `PATCH`  | Configure CRON schedules, webhooks, and automation runs.                      |
-| `/api/personal-hub` | Personal Hub | `GET`, `POST`, `DELETE` | Long-term memory facts, persona customization, and preferences.               |
-| `/api/activity`     | Activity     |          `GET`          | Audit trail and system execution telemetry.                                   |
-| `/api/mcp/oauth/*`  | MCP OAuth    |          `GET`          | OAuth 2.0 callback endpoints for Notion and Google Calendar.                  |
+| `/api/knowledge` | Knowledge | `GET`, `POST`, `DELETE` | Ingest data sources, trigger vector chunking, and run similarity search. |
+| `/api/goals` | Goals | `GET`, `POST`, `PATCH` | Manage epistemic goals, milestones, and mastery roadmaps. |
+| `/api/wiki` | Living Wiki | `GET`, `POST` | Query and synthesize self-evolving wiki knowledge entries. |
+| `/api/ecosystem` | Ecosystem | `GET`, `POST` | Manage workspace agents, custom tools, and connection status. |
+| `/api/automation` | Automation | `GET`, `POST`, `PATCH` | Configure CRON schedules, webhooks, and automation runs. |
+| `/api/personal-hub` | Personal Hub | `GET`, `POST`, `DELETE` | Long-term memory facts, persona customization, and preferences. |
+| `/api/activity` | Activity | `GET` | Audit trail and system execution telemetry. |
+| `/api/mcp/oauth/*` | MCP OAuth | `GET` | OAuth 2.0 callback endpoints for Notion and Google Calendar. |
 
 For full database table definitions and architectural RFCs, refer to [`docs/ERD.md`](./docs/ERD.md) and [`docs/TDD.md`](./docs/TDD.md).
 
@@ -625,16 +613,15 @@ npm run test
 
 ### What Each Test Suite Covers
 
-| Test Suite                | File                          | What It Verifies                                                                                                                          |
-| :------------------------ | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Automation Engine**     | `automation-engine.spec.ts`   | Background CRON scheduler parsing, lifecycle management, and `AutomationToolHandler` Action Card generation                               |
-| **Goal-Oriented AI**      | `goals-engine.spec.ts`        | Full goal lifecycle: `create_goal` → `decompose_goal_into_tasks` → `verify_task_completion` → `record_goal_evaluation`                    |
-| **MCP Registry**          | `mcp-registry.spec.ts`        | Core `McpRegistryService` plugin registration, tool discovery, and connector lifecycle                                                    |
-| **Google Calendar MCP**   | `google-calendar-mcp.spec.ts` | Calendar parser engine (free slot calculation, event formatting, time range validation) and Gemini tool schema compliance                 |
-| **Android Bridge MCP**    | `android-bridge-mcp.spec.ts`  | `UsageStatsManager` telemetry formatters, package name validation, and MCP tool schema registration                                       |
-| **Notion & Obsidian MCP** | `notion-obsidian-mcp.spec.ts` | `[[wiki-link]]` traversal, YAML frontmatter parsing, and Notion connector tool schema                                                     |
-| **Agent Enhancements**    | `agent-enhancements.spec.ts`  | Sub-agent registry (Wellbeing, Second Brain, Executive Scheduler, Research Specialist), history compactor, and proactive guardian service |
-| **Personal Memory**       | `personal-memory.spec.ts`     | User memory ingestion, retrieval filtering, and `PersonalHubService` with mocked repository                                               |
+| Test Suite                | File                          | What It Verifies                                                                                                               |
+| :------------------------ | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------- |
+| **Automation Engine**     | `automation-engine.spec.ts`   | Background CRON scheduler parsing, lifecycle management, and `AutomationToolHandler` Action Card generation                    |
+| **Goal-Oriented AI**      | `goals-engine.spec.ts`        | Full goal lifecycle: `create_goal` → `decompose_goal_into_tasks` → `verify_task_completion` → `record_goal_evaluation`         |
+| **MCP Registry**          | `mcp-registry.spec.ts`        | Core `McpRegistryService` plugin registration, tool discovery, and connector lifecycle                                         |
+| **Google Calendar MCP**   | `google-calendar-mcp.spec.ts` | Calendar parser engine (free slot calculation, event formatting, time range validation) and Gemini tool schema compliance      |
+| **Notion & Obsidian MCP** | `notion-obsidian-mcp.spec.ts` | `[[wiki-link]]` traversal, YAML frontmatter parsing, and Notion connector tool schema                                          |
+| **Agent Enhancements**    | `agent-enhancements.spec.ts`  | Sub-agent registry (Second Brain, Executive Scheduler, Research Specialist), history compactor, and proactive guardian service |
+| **Personal Memory**       | `personal-memory.spec.ts`     | User memory ingestion, retrieval filtering, and `PersonalHubService` with mocked repository                                    |
 
 ### Code Formatting & Linting
 
@@ -705,7 +692,7 @@ docker compose logs -f postgres
 - [x] Agentic Core with Google Gemini 3.5 Flash & tool calling
 - [x] Zero-ORM PostgreSQL Native SQL pool architecture
 - [x] High-performance `pgvector` hybrid semantic search RAG (1536 dim)
-- [x] Model Context Protocol (MCP) Gateway (Obsidian, Calendar, Notion, Android Bridge)
+- [x] Model Context Protocol (MCP) Gateway (Obsidian, Calendar, Notion)
 - [x] Living Wiki & Epistemic Goals tracking
 - [x] 1-Click Google Cloud Run (Always Free Tier) deployment
 - [ ] Gemini Live API integration for real-time bidirectional voice interactions

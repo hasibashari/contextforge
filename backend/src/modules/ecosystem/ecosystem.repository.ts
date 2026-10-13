@@ -159,6 +159,8 @@ export class EcosystemRepository implements OnModuleInit {
         ALTER TABLE workspace_integrations DROP CONSTRAINT IF EXISTS workspace_integrations_transport_check;
         ALTER TABLE workspace_integrations ADD COLUMN IF NOT EXISTS auth_type VARCHAR(30) DEFAULT 'none';
         ALTER TABLE workspace_integrations ADD COLUMN IF NOT EXISTS auth_config JSONB DEFAULT '{}';
+        DELETE FROM workspace_integrations WHERE id LIKE '%android%' OR name ILIKE '%android%';
+        DELETE FROM workspace_agents WHERE id = 'wellbeing_coach' OR id LIKE '%wellbeing%' OR name ILIKE '%lyra%';
       `);
 
       // Seed core MCP integrations if missing
@@ -264,24 +266,6 @@ export class EcosystemRepository implements OnModuleInit {
           'idle',
           86,
           99.4
-        ),
-        (
-          'wellbeing_coach',
-          'Dr. Lyra - Wellbeing Coach',
-          'Mindful Productivity & Circadian Health Specialist',
-          'researcher',
-          'sandbox_write',
-          'Specialized sub-agent guiding users toward mindful productivity, deep focus blocks, restorative habits, and daily reflections.',
-          'bg-emerald-600',
-          'gemini-3.5-flash',
-          0.2,
-          'You are Dr. Lyra, an empathetic, scientifically grounded Digital Wellbeing & Focus Coach. Your mission is to guide the user toward sustainable productivity, deep focus blocks, and healthy routines.',
-          '[]'::jsonb,
-          ARRAY['google_calendar_create_event', 'google_calendar_list_events', 'notion_create_page', 'verify_task_completion', 'record_goal_evaluation'],
-          ARRAY[]::text[],
-          'idle',
-          53,
-          100.0
         ),
         (
           'second_brain',

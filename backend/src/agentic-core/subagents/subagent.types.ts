@@ -1,7 +1,6 @@
 import { McpToolDefinition } from '../../mcp/core';
 
 export type SubAgentId =
-  | 'wellbeing_coach'
   | 'second_brain'
   | 'executive_scheduler'
   | 'research_specialist'

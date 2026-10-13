@@ -86,6 +86,20 @@ gcloud services enable \
     cloudscheduler.googleapis.com \
     --project="$GCP_PROJECT_ID"
 
+# 5.1 Ensure Build Service Account Permissions (GCP 2024+ Default SA Compliance)
+echo -e "\n${BLUE}🔐 Ensuring Cloud Build / Compute Service Account permissions...${NC}"
+PROJECT_NUMBER=$(gcloud projects describe "$GCP_PROJECT_ID" --format="value(projectNumber)" 2>/dev/null || echo "")
+if [ -n "$PROJECT_NUMBER" ]; then
+    COMPUTE_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+    for ROLE in "roles/storage.objectViewer" "roles/logging.logWriter" "roles/artifactregistry.writer"; do
+        gcloud projects add-iam-policy-binding "$GCP_PROJECT_ID" \
+            --member="serviceAccount:${COMPUTE_SA}" \
+            --role="$ROLE" \
+            --quiet >/dev/null 2>&1 || true
+    done
+    echo -e "${GREEN}✓ Build service account IAM permissions verified (${COMPUTE_SA})${NC}"
+fi
+
 # 6. Always-Free Tier Guardrails & Lifecycle Checks
 echo -e "\n${BLUE}🛡️ Verifying Always-Free Tier Guardrails...${NC}"
 if [ ! -f ".gcloudignore" ]; then
@@ -158,7 +172,12 @@ gcloud run deploy "$SERVICE_NAME" \
 
 # 8. Optional / Automatic Google Cloud Scheduler (Scale-to-Zero Cron Waker)
 echo -e "\n${BLUE}⏳ Configuring Google Cloud Scheduler Tick (Scale-to-Zero Automation & Goal Waker)...${NC}"
-SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region="$REGION" --format="value(status.url)" 2>/dev/null || echo "")
+PROJECT_NUM=$(gcloud projects describe "$GCP_PROJECT_ID" --format="value(projectNumber)" 2>/dev/null || echo "")
+if [ -n "$PROJECT_NUM" ]; then
+    SERVICE_URL="https://${SERVICE_NAME}-${PROJECT_NUM}.${REGION}.run.app"
+else
+    SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region="$REGION" --format="value(status.url)" 2>/dev/null || echo "")
+fi
 
 if [ -n "$SERVICE_URL" ]; then
     SCHEDULER_JOB_NAME="contextforge-scheduler-tick"

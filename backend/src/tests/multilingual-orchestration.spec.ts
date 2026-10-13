@@ -4,7 +4,7 @@ import {
   LANGUAGE_AND_COMMUNICATION_GUIDELINES,
 } from '../agentic-core/prompts/orchestrator.prompt';
 import { getEvidenceSynthesisPrompt } from '../agentic-core/prompts/web-search.prompt';
-import { WellbeingCoachSubAgent } from '../agentic-core/subagents/personas/wellbeing-coach.subagent';
+
 import { SecondBrainSubAgent } from '../agentic-core/subagents/personas/second-brain.subagent';
 import { ExecutiveSchedulerSubAgent } from '../agentic-core/subagents/personas/executive-scheduler.subagent';
 import { ResearchSpecialistSubAgent } from '../agentic-core/subagents/personas/research-specialist.subagent';
@@ -64,18 +64,16 @@ export async function runMultilingualOrchestrationTests() {
 
   // 3. Sub-Agent System Instructions
   await test('3. SubAgentRegistry personas and combined instructions contain language guidelines', () => {
-    const wellbeingCoach = new WellbeingCoachSubAgent();
     const secondBrain = new SecondBrainSubAgent();
     const executiveScheduler = new ExecutiveSchedulerSubAgent();
     const researchSpecialist = new ResearchSpecialistSubAgent();
     const registry = new SubAgentRegistryService(
-      wellbeingCoach,
       secondBrain,
       executiveScheduler,
       researchSpecialist,
     );
 
-    const subAgent = registry.getSubAgent('wellbeing_coach');
+    const subAgent = registry.getSubAgent('second_brain');
     assert.ok(subAgent, 'Should retrieve sub-agent');
 
     const rawPrompt = subAgent.formatSubAgentPrompt();
