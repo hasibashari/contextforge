@@ -2,7 +2,6 @@ import type { FunctionDeclaration, Schema, Type } from '@google/genai';
 import { OBSIDIAN_MCP_TOOLS } from '../../mcp/connectors/obsidian/obsidian-tools.definition';
 import { NOTION_MCP_TOOLS } from '../../mcp/connectors/notion/notion-tools.definition';
 import { GOOGLE_CALENDAR_MCP_TOOLS } from '../../mcp/connectors/google-calendar/google-calendar-tools.definition';
-import { ANDROID_BRIDGE_MCP_TOOLS } from '../../mcp/connectors/android-bridge/android-bridge-tools.definition';
 import { McpToolDefinition } from '../../mcp/core';
 
 const strProp = (description: string): Schema => ({
@@ -22,7 +21,6 @@ export interface ToolMetadata {
     | 'mcp_obsidian'
     | 'mcp_notion'
     | 'mcp_google_calendar'
-    | 'mcp_android_bridge'
     | 'internal_rag'
     | 'web_search'
     | 'automation';
@@ -251,7 +249,7 @@ export const NATIVE_AGENTIC_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: 'decompose_goal_into_tasks',
     description:
-      'Goal Planner: Autonomously decomposes a high-level goal into actionable SMART sub-tasks grounded in MCP tools (Google Calendar, Notion, Android Bridge).',
+      'Goal Planner: Autonomously decomposes a high-level goal into actionable SMART sub-tasks grounded in MCP tools (Google Calendar, Notion).',
     parameters: {
       type: 'OBJECT' as unknown as Type,
       properties: {
@@ -314,7 +312,6 @@ export const BUILTIN_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   ...OBSIDIAN_MCP_TOOLS.map(convertMcpToolToGenAiDeclaration),
   ...NOTION_MCP_TOOLS.map(convertMcpToolToGenAiDeclaration),
   ...GOOGLE_CALENDAR_MCP_TOOLS.map(convertMcpToolToGenAiDeclaration),
-  ...ANDROID_BRIDGE_MCP_TOOLS.map(convertMcpToolToGenAiDeclaration),
 ];
 
 /**
@@ -436,20 +433,6 @@ export const TOOL_CATALOG: Record<string, ToolMetadata> = {
         category: 'mcp_google_calendar' as const,
         readOnly: Boolean(t.readOnly),
         serverName: 'Google Calendar MCP Server',
-        description: t.description,
-      },
-    ]),
-  ),
-
-  // 5. Android Bridge MCP Tools (Mapped dynamically)
-  ...Object.fromEntries(
-    ANDROID_BRIDGE_MCP_TOOLS.map((t) => [
-      t.name,
-      {
-        name: t.name,
-        category: 'mcp_android_bridge' as const,
-        readOnly: Boolean(t.readOnly),
-        serverName: 'Android Bridge MCP Server',
         description: t.description,
       },
     ]),

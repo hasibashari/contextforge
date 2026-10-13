@@ -65,7 +65,6 @@ export interface WorkspaceIntegrationRow {
     vaultName?: string;
     vaultPath?: string;
     deviceName?: string;
-    androidVersion?: string;
     pairedAt?: number;
     pairedVia?: string;
     headers?: Record<string, string>;
@@ -272,13 +271,13 @@ export class EcosystemRepository implements OnModuleInit {
           'Mindful Productivity & Circadian Health Specialist',
           'researcher',
           'sandbox_write',
-          'Specialized sub-agent analyzing screen time telemetry, sleep schedules, app habits, and delivering compassionate behavioral nudges.',
+          'Specialized sub-agent guiding users toward mindful productivity, deep focus blocks, restorative habits, and daily reflections.',
           'bg-emerald-600',
           'gemini-3.5-flash',
           0.2,
-          'You are Dr. Lyra, an empathetic, scientifically grounded Digital Wellbeing & Focus Coach. Your mission is to guide the user toward balanced screen time, deep focus blocks, and restorative sleep hygiene.',
+          'You are Dr. Lyra, an empathetic, scientifically grounded Digital Wellbeing & Focus Coach. Your mission is to guide the user toward sustainable productivity, deep focus blocks, and healthy routines.',
           '[]'::jsonb,
-          ARRAY['android_get_device_status', 'android_get_usage', 'android_get_usage_summary', 'android_get_foreground_app', 'android_set_app_limit', 'android_block_app', 'android_unblock_app', 'android_reset_all_restrictions', 'android_get_active_restrictions', 'android_set_dnd', 'android_send_notification', 'android_get_screen_time_status', 'android_set_bedtime_schedule', 'android_set_total_screen_time_limit', 'android_get_bedtime_config', 'android_trigger_bedtime_lock', 'android_send_agent_message', 'verify_task_goal'],
+          ARRAY['google_calendar_create_event', 'google_calendar_list_events', 'notion_create_page', 'verify_task_completion', 'record_goal_evaluation'],
           ARRAY[]::text[],
           'idle',
           53,

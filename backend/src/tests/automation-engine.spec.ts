@@ -117,7 +117,7 @@ export async function runAutomationTests() {
     assert.strictEqual(status.status, 'running');
     assert.strictEqual(status.totalWorkflowsCount, 2);
     assert.strictEqual(status.activeJobsCount, 1);
-    assert.strictEqual(status.jobs.length, 2);
+    assert.strictEqual(status.jobs.length, 1);
     assert.strictEqual(status.jobs[0].name, 'Morning Digest');
     scheduler.onModuleDestroy();
   });

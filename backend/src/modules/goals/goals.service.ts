@@ -105,7 +105,6 @@ export class GoalsService {
         },
         cron_evaluation: dto.cronEvaluation || '0 21 * * *',
         linked_mcp_servers: dto.linkedMcpServers || [
-          'android-bridge',
           'google-calendar',
           'notion',
         ],
@@ -138,9 +137,7 @@ export class GoalsService {
         description: `Automated closed-loop evaluation & Notion reflection report for goal "${createdGoal.title}"`,
         agent_id: 'agent-personal-assistant',
         agent_name: 'Personal Assistant',
-        mcp_server_id: 'notion',
         mcp_tools: [
-          'android_get_usage_summary',
           'google_calendar_list_events',
           'notion_create_page',
           'notion_get_tasks',
@@ -148,7 +145,7 @@ export class GoalsService {
         trigger_type: 'schedule',
         schedule_cron: createdGoal.cron_evaluation,
         schedule_label: 'Every Night at 21:00 (Evaluation Closed Loop)',
-        prompt_template: `Execute daily evaluation for Goal "${createdGoal.title}" (ID: ${createdGoal.id}). Collect telemetry from Android Bridge, compare against today's Google Calendar, verify task completion status in Notion, compute overall compliance score, and log reflection summary to Notion.`,
+        prompt_template: `Execute daily evaluation for Goal "${createdGoal.title}" (ID: ${createdGoal.id}). Compare against today's Google Calendar, verify task completion status in Notion, compute overall compliance score, and log reflection summary to Notion.`,
         is_active: true,
       });
       this.logger.log(
@@ -252,7 +249,7 @@ export class GoalsService {
     const isoToday = now.toISOString().slice(0, 10);
 
     const prompt = `You are the Goal-Oriented Strategic Decomposition Engine in ContextForge.
-Decompose the following high-level user goal into 3 to 5 concrete, actionable, SMART sub-tasks grounded in available MCP tools (Google Calendar, Notion, Android Bridge).
+Decompose the following high-level user goal into 3 to 5 concrete, actionable, SMART sub-tasks grounded in available MCP tools (Google Calendar, Notion).
 
 Goal Title: "${goal.title}"
 Goal Category: ${goal.category}
@@ -264,14 +261,13 @@ Return strictly a JSON object with this format (no markdown formatting outside J
 {
   "summary": "Brief executive summary of strategy",
   "targetMetrics": {
-    "daily_focus_mins": 120,
-    "max_screentime_mins": 90
+    "daily_focus_mins": 120
   },
   "tasks": [
     {
       "title": "Clear action title",
       "description": "Details of what to do",
-      "mcpTarget": "google-calendar" | "notion" | "android-bridge",
+      "mcpTarget": "google-calendar" | "notion",
       "scheduledStart": "${isoToday}T09:00:00+07:00",
       "scheduledEnd": "${isoToday}T11:00:00+07:00",
       "riskLevel": "low_risk" | "medium_risk" | "high_risk",
@@ -435,83 +431,6 @@ Return strictly a JSON object with this format (no markdown formatting outside J
               'Calendar event exists, but requires manual completion confirmation from user.';
           }
         }
-      } else if (task.mcp_target === 'android-bridge') {
-        const goal = await this.repo.getGoalById(task.goal_id);
-        const targetMetrics = goal?.target_metrics || {};
-        const maxMinutes =
-          typeof targetMetrics.max_screentime_mins === 'number'
-            ? targetMetrics.max_screentime_mins
-            : typeof targetMetrics.max_daily_screentime_mins === 'number'
-              ? targetMetrics.max_daily_screentime_mins
-              : 90;
-        const maxMs = Number(maxMinutes) * 60 * 1000;
-
-        const androidRes = await this.mcpHandler.execute(
-          'android_get_usage_summary',
-          task.title,
-          { days: 1 },
-          () => {},
-        );
-
-        const rawResult = (androidRes.rawResult || {}) as Record<
-          string,
-          unknown
-        >;
-        const rawData = (rawResult.data || {}) as {
-          totalScreenTimeMs?: number;
-          formattedTotalScreenTime?: string;
-          apps?: Array<{
-            packageName: string;
-            totalTimeInForegroundMs: number;
-          }>;
-        };
-
-        const totalScreenTime = rawData.totalScreenTimeMs ?? 0;
-        const formattedTotal =
-          rawData.formattedTotalScreenTime ||
-          `${Math.round(totalScreenTime / 60000)} mins`;
-
-        const targetPkg = task.mcp_resource_id;
-        let appUsageMs = totalScreenTime;
-        let appLabel = 'Total Screen Time';
-
-        if (targetPkg && rawData.apps) {
-          const matchedApp = rawData.apps.find(
-            (a) => a.packageName.toLowerCase() === targetPkg.toLowerCase(),
-          );
-          if (matchedApp) {
-            appUsageMs = matchedApp.totalTimeInForegroundMs;
-            appLabel = targetPkg;
-          }
-        }
-
-        if (rawResult.success === false) {
-          verificationStatus = 'unverified';
-          notes =
-            'Android Bridge device is currently offline or unreachable. Marked as unverified.';
-        } else if (appUsageMs <= maxMs) {
-          verificationStatus = 'verified_completed';
-          evidence = {
-            source: 'android_bridge_telemetry',
-            target: appLabel,
-            actualUsageMs: appUsageMs,
-            limitMs: maxMs,
-            formattedActualUsage: formattedTotal,
-            formattedLimit: `${maxMinutes} mins`,
-          };
-          notes = `Verified via Android Telemetry: ${appLabel} usage (${formattedTotal}) is within the target limit of ${maxMinutes} mins.`;
-        } else {
-          verificationStatus = 'incomplete';
-          evidence = {
-            source: 'android_bridge_telemetry',
-            target: appLabel,
-            actualUsageMs: appUsageMs,
-            limitMs: maxMs,
-            formattedActualUsage: formattedTotal,
-            formattedLimit: `${maxMinutes} mins`,
-          };
-          notes = `Screen time target exceeded: ${appLabel} reached ${formattedTotal}, exceeding the ${maxMinutes} mins limit.`;
-        }
       } else {
         // Physical or general offline task
         verificationStatus = 'unverified';
@@ -553,27 +472,6 @@ Return strictly a JSON object with this format (no markdown formatting outside J
     const isStreakMaintained = scorePct >= 70;
     const newStreak = isStreakMaintained ? goal.streak_days + 1 : 0;
 
-    // Optional: Fetch Android Telemetry for multi-day context if linked
-    let androidTelemetrySummary = '';
-    const hasAndroid =
-      goal.linked_mcp_servers?.includes('android-bridge') ||
-      tasks.some((t) => t.mcp_target === 'android-bridge');
-    if (hasAndroid) {
-      try {
-        const androidRes = await this.mcpHandler.execute(
-          'android_get_usage_summary',
-          goal.title,
-          { days: 7 },
-          () => {},
-        );
-        if (androidRes.summary) {
-          androidTelemetrySummary = `\n\nAndroid Bridge 7-Day Telemetry Context:\n${androidRes.summary}`;
-        }
-      } catch {
-        // Telemetry fetch fallback safe
-      }
-    }
-
     // AI Synthesis for Reflection & Adaptation
     const modelName = this.configService.get<string>(
       'gemini.defaultModel',
@@ -592,7 +490,7 @@ Compliance Score: ${scorePct}%
 Current Streak: ${newStreak} days
 
 Tasks Breakdown:
-${tasks.map((t) => `- [${t.status}] ${t.title} (${t.mcp_target || 'general'})`).join('\n')}${androidTelemetrySummary}
+${tasks.map((t) => `- [${t.status}] ${t.title} (${t.mcp_target || 'general'})`).join('\n')}
 
 Language Rule: Match the language of the Goal Title (e.g. if the goal title is in English, generate all fields in English; if in Indonesian, generate in natural Indonesian).
 

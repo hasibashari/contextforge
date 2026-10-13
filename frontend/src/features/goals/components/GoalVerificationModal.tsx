@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
-  Smartphone,
   Calendar,
   BookOpen,
   HelpCircle,
@@ -79,8 +78,6 @@ export const GoalVerificationModal: React.FC<GoalVerificationModalProps> = ({
 
   const getMcpIcon = (mcp?: string) => {
     switch (mcp) {
-      case 'android-bridge':
-        return <Smartphone size={13} className="text-semantic-success" />
       case 'google-calendar':
         return <Calendar size={13} className="text-primary" />
       case 'notion':

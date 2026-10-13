@@ -333,7 +333,6 @@ export const GoalDetailsModal: React.FC<GoalDetailsModalProps> = ({
                     >
                       <option value="google-calendar">Google Calendar (Time Blocking)</option>
                       <option value="notion">Notion Workspace (Task Item)</option>
-                      <option value="android-bridge">Android Bridge (Digital Wellbeing)</option>
                     </Select>
 
                     <div className="flex items-center gap-2">
@@ -361,7 +360,7 @@ export const GoalDetailsModal: React.FC<GoalDetailsModalProps> = ({
                     No sub-tasks registered yet.
                   </p>
                   <p className="text-xs text-muted max-w-sm mx-auto">
-                    Use AI Decomposition to automatically break this goal into scheduled action items across Calendar, Notion, and Android.
+                    Use AI Decomposition to automatically break this goal into scheduled action items across Calendar and Notion.
                   </p>
                   <Button
                     type="button"
@@ -522,14 +521,14 @@ export const GoalDetailsModal: React.FC<GoalDetailsModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="p-4.5 bg-surface-card border border-hairline rounded-2xl space-y-2.5 shadow-2xs">
                   <span className="text-xs font-semibold text-ink flex items-center gap-2">
-                    <IconBox size="sm" variant="success" icon={<Smartphone size={13} />} />
-                    <span>Android Bridge Telemetry</span>
+                    <IconBox size="sm" variant="success" icon={<CheckCircle2 size={13} />} />
+                    <span>Evidence-Based Verification</span>
                   </span>
                   <p className="text-xs text-muted">
-                    Max Screen Time Target: <strong className="text-ink">{String(goal.target_metrics?.max_daily_screentime_mins ?? 90)} mins</strong>.
+                    Daily Focus Target: <strong className="text-ink">{String(goal.target_metrics?.daily_focus_mins ?? 120)} mins</strong>.
                   </p>
                   <p className="text-[11px] text-muted leading-relaxed">
-                    Status: Actively monitors work apps vs distraction ratios via real-time WebSocket Bridge.
+                    Status: Verified against calendar completions and Notion task updates with zero hallucinations.
                   </p>
                 </div>
 

@@ -19,12 +19,6 @@ import { NotionOAuthService } from './connectors/notion/notion-oauth.service';
 import { GoogleCalendarApiClient } from './connectors/google-calendar/google-calendar-api.client';
 import { GoogleCalendarMcpConnector } from './connectors/google-calendar/google-calendar-mcp.connector';
 import { GoogleCalendarOAuthService } from './connectors/google-calendar/google-calendar-oauth.service';
-import { AndroidBridgeMcpConnector } from './connectors/android-bridge/android-bridge-mcp.connector';
-import { AndroidBridgeGatewayService } from './connectors/android-bridge/android-bridge.gateway';
-import { AndroidWsTransportService } from './connectors/android-bridge/services/android-ws-transport.service';
-import { AndroidSessionService } from './connectors/android-bridge/services/android-session.service';
-import { AndroidRpcDispatcherService } from './connectors/android-bridge/services/android-rpc-dispatcher.service';
-import { AndroidProtocolService } from './connectors/android-bridge/services/android-protocol.service';
 
 @Module({
   imports: [DatabaseModule, SecurityModule],
@@ -42,12 +36,6 @@ import { AndroidProtocolService } from './connectors/android-bridge/services/and
     GoogleCalendarApiClient,
     GoogleCalendarMcpConnector,
     GoogleCalendarOAuthService,
-    AndroidWsTransportService,
-    AndroidSessionService,
-    AndroidRpcDispatcherService,
-    AndroidProtocolService,
-    AndroidBridgeGatewayService,
-    AndroidBridgeMcpConnector,
     McpGatewayService,
 
     // Multi-Provider for MCP Servers (Plug-and-Play)
@@ -57,13 +45,11 @@ import { AndroidProtocolService } from './connectors/android-bridge/services/and
         obsidian: ObsidianMcpServer,
         notion: NotionMcpConnector,
         gcal: GoogleCalendarMcpConnector,
-        android: AndroidBridgeMcpConnector,
-      ) => [obsidian, notion, gcal, android],
+      ) => [obsidian, notion, gcal],
       inject: [
         ObsidianMcpServer,
         NotionMcpConnector,
         GoogleCalendarMcpConnector,
-        AndroidBridgeMcpConnector,
       ],
     },
 
@@ -89,12 +75,6 @@ import { AndroidProtocolService } from './connectors/android-bridge/services/and
     GoogleCalendarApiClient,
     GoogleCalendarMcpConnector,
     GoogleCalendarOAuthService,
-    AndroidWsTransportService,
-    AndroidSessionService,
-    AndroidRpcDispatcherService,
-    AndroidProtocolService,
-    AndroidBridgeGatewayService,
-    AndroidBridgeMcpConnector,
     McpHttpTransport,
     McpSseTransport,
     MCP_SERVERS,

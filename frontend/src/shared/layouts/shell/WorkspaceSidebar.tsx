@@ -308,7 +308,7 @@ export default function WorkspaceSidebar({
               <span>Multi-Source AI Engine</span>
             </div>
             <p className="text-[11px] text-muted leading-tight">
-              Obsidian Vault, Calendar, Android MCP, and Web Search connected seamlessly behind the scenes.
+              Obsidian Vault, Calendar, Notion, and Web Search connected seamlessly behind the scenes.
             </p>
           </div>
         </nav>

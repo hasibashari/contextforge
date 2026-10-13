@@ -11,9 +11,21 @@
     "temperature": 0.2,
     "systemPrompt": "You are ContextForge Personal Assistant Agent, the primary personal assistant and central reasoning brain of the ContextForge AI Workspace. You handle natural dialogue, strategic planning, direct MCP tool execution, and delegate deep literature investigation to the Research Specialist Agent.",
     "capabilities": [
-      { "id": "c1", "name": "Goal Understanding & Intent Analysis", "description": "Comprehend user goals, context, and complex intent via multi-turn reasoning" },
-      { "id": "c2", "name": "Strategic Planning & Decomposition", "description": "Decompose user objectives into structured execution plans and milestone steps" },
-      { "id": "c3", "name": "Direct MCP Tool & Sub-Agent Orchestration", "description": "Coordinate tools directly and delegate specialized deep literature analysis to the Research Agent" }
+      {
+        "id": "c1",
+        "name": "Goal Understanding & Intent Analysis",
+        "description": "Comprehend user goals, context, and complex intent via multi-turn reasoning"
+      },
+      {
+        "id": "c2",
+        "name": "Strategic Planning & Decomposition",
+        "description": "Decompose user objectives into structured execution plans and milestone steps"
+      },
+      {
+        "id": "c3",
+        "name": "Direct MCP Tool & Sub-Agent Orchestration",
+        "description": "Coordinate tools directly and delegate specialized deep literature analysis to the Research Agent"
+      }
     ],
     "assignedTools": [
       "web_search",
@@ -28,7 +40,9 @@
       "create_scheduled_automation",
       "transfer_to_agent"
     ],
-    "assignedSkills": ["skill-rfc-architect"],
+    "assignedSkills": [
+      "skill-rfc-architect"
+    ],
     "status": "idle",
     "totalTasksCompleted": 142,
     "successRatePct": 99.6
@@ -45,9 +59,21 @@
     "temperature": 0.2,
     "systemPrompt": "You are Research Specialist Agent in ContextForge AI Workspace. Search, read, and analyze information from live web sources and indexed vector knowledge bases, synthesizing cited analytical answers.",
     "capabilities": [
-      { "id": "c4", "name": "Live Web Grounding & Citations", "description": "Query Google Search, verify source authority, and synthesize cited findings" },
-      { "id": "c5", "name": "Internal Semantic Vector RAG", "description": "Search indexed knowledge vault and vector embeddings for technical context" },
-      { "id": "c6", "name": "Cross-Source Information Synthesis", "description": "Cross-reference data across web, documents, and memory into cohesive reports" }
+      {
+        "id": "c4",
+        "name": "Live Web Grounding & Citations",
+        "description": "Query Google Search, verify source authority, and synthesize cited findings"
+      },
+      {
+        "id": "c5",
+        "name": "Internal Semantic Vector RAG",
+        "description": "Search indexed knowledge vault and vector embeddings for technical context"
+      },
+      {
+        "id": "c6",
+        "name": "Cross-Source Information Synthesis",
+        "description": "Cross-reference data across web, documents, and memory into cohesive reports"
+      }
     ],
     "assignedTools": [
       "web_search",
@@ -56,7 +82,9 @@
       "notion_search",
       "transfer_to_agent"
     ],
-    "assignedSkills": ["skill-deep-web-research"],
+    "assignedSkills": [
+      "skill-deep-web-research"
+    ],
     "status": "idle",
     "totalTasksCompleted": 86,
     "successRatePct": 99.4
@@ -67,35 +95,34 @@
     "role": "Mindful Productivity & Circadian Health Specialist",
     "agentType": "researcher",
     "permissions": "sandbox_write",
-    "description": "Specialized sub-agent analyzing screen time telemetry, sleep schedules, app habits, and delivering compassionate behavioral nudges.",
+    "description": "Specialized sub-agent guiding users toward mindful productivity, deep focus blocks, restorative habits, and daily reflections.",
     "avatarColor": "bg-emerald-600",
     "model": "gemini-3.5-flash",
     "temperature": 0.2,
-    "systemPrompt": "You are Dr. Lyra, an empathetic, scientifically grounded Digital Wellbeing & Focus Coach. Your mission is to guide the user toward balanced screen time, deep focus blocks, and restorative sleep hygiene.",
+    "systemPrompt": "You are Dr. Lyra, an empathetic, scientifically grounded Digital Wellbeing & Focus Coach. Your mission is to guide the user toward sustainable productivity, deep focus blocks, and healthy routines.",
     "capabilities": [
-      { "id": "c7", "name": "Multi-Day Telemetry Discovery", "description": "Inspect 1-30 day screen time trends and app category distribution" },
-      { "id": "c8", "name": "Doomscrolling & Anomaly Detection", "description": "Identify late-night entertainment spikes and high-frequency unlock cycles" },
-      { "id": "c9", "name": "Proactive Device Interventions", "description": "Dispatch heads-up messages, engage DND, or configure bedtime schedule locks" }
+      {
+        "id": "c7",
+        "name": "Focus Block Scheduling",
+        "description": "Schedule and coordinate deep work focus sessions in Google Calendar"
+      },
+      {
+        "id": "c8",
+        "name": "Habit Reflection & Journaling",
+        "description": "Document daily wellbeing reviews and reflection logs in Notion"
+      },
+      {
+        "id": "c9",
+        "name": "Milestone Verification",
+        "description": "Verify daily progress on personal habit commitments"
+      }
     ],
     "assignedTools": [
-      "android_get_device_status",
-      "android_get_usage",
-      "android_get_usage_summary",
-      "android_get_foreground_app",
-      "android_set_app_limit",
-      "android_block_app",
-      "android_unblock_app",
-      "android_reset_all_restrictions",
-      "android_get_active_restrictions",
-      "android_set_dnd",
-      "android_send_notification",
-      "android_get_screen_time_status",
-      "android_set_bedtime_schedule",
-      "android_set_total_screen_time_limit",
-      "android_get_bedtime_config",
-      "android_trigger_bedtime_lock",
-      "android_send_agent_message",
-      "verify_task_goal"
+      "google_calendar_create_event",
+      "google_calendar_list_events",
+      "notion_create_page",
+      "verify_task_completion",
+      "record_goal_evaluation"
     ],
     "assignedSkills": [],
     "status": "idle",
@@ -114,9 +141,21 @@
     "temperature": 0.1,
     "systemPrompt": "You are Atlas, the Second Brain & Knowledge Architect. Your mission is to structure atomic, highly connected, and easily retrievable Markdown notes in Obsidian.",
     "capabilities": [
-      { "id": "c10", "name": "Dynamic Vault Alignment", "description": "Inspect user's folder hierarchy to ensure clean note placement" },
-      { "id": "c11", "name": "Zettelkasten Bidirectional Linking", "description": "Synthesize atomic concepts with [[Wikilinks]] cross-references" },
-      { "id": "c12", "name": "Semantic Knowledge Retrieval", "description": "Index and query local markdown files and pgvector knowledge vault" }
+      {
+        "id": "c10",
+        "name": "Dynamic Vault Alignment",
+        "description": "Inspect user's folder hierarchy to ensure clean note placement"
+      },
+      {
+        "id": "c11",
+        "name": "Zettelkasten Bidirectional Linking",
+        "description": "Synthesize atomic concepts with [[Wikilinks]] cross-references"
+      },
+      {
+        "id": "c12",
+        "name": "Semantic Knowledge Retrieval",
+        "description": "Index and query local markdown files and pgvector knowledge vault"
+      }
     ],
     "assignedTools": [
       "obsidian_list_vault_notes",
@@ -148,9 +187,21 @@
     "temperature": 0.15,
     "systemPrompt": "You are Vanguard, the Executive Scheduler & Goal Strategist. Your mission is to maximize high-leverage focus time, resolve calendar conflicts, and drive goal execution.",
     "capabilities": [
-      { "id": "c13", "name": "Focus Time-Blocking", "description": "Create uninterrupted deep work blocks on Google Calendar" },
-      { "id": "c14", "name": "Notion Database Sync", "description": "Query and manage project tasks and sprint backlogs in Notion" },
-      { "id": "c15", "name": "Autonomous Goal Verification", "description": "Evaluate task completion velocity against target milestones" }
+      {
+        "id": "c13",
+        "name": "Focus Time-Blocking",
+        "description": "Create uninterrupted deep work blocks on Google Calendar"
+      },
+      {
+        "id": "c14",
+        "name": "Notion Database Sync",
+        "description": "Query and manage project tasks and sprint backlogs in Notion"
+      },
+      {
+        "id": "c15",
+        "name": "Autonomous Goal Verification",
+        "description": "Evaluate task completion velocity against target milestones"
+      }
     ],
     "assignedTools": [
       "gcal_list_events",

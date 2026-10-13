@@ -231,7 +231,7 @@ CREATE TABLE IF NOT EXISTS goals (
     current_progress_pct NUMERIC(5,2) DEFAULT 0.0,
     streak_days INTEGER DEFAULT 0,
     cron_evaluation VARCHAR(100) DEFAULT '0 21 * * *',
-    linked_mcp_servers TEXT[] DEFAULT '{"android-bridge", "google-calendar", "notion"}',
+    linked_mcp_servers TEXT[] DEFAULT '{"google-calendar", "notion"}',
     notion_parent_page_id VARCHAR(100),
     notion_database_id VARCHAR(100),
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -273,34 +273,6 @@ CREATE TABLE IF NOT EXISTS goal_evaluations (
 );
 
 -- =====================================================================
--- 12b. Entitas Android Bridge Presence & Distributed Task Queue
--- =====================================================================
-CREATE TABLE IF NOT EXISTS android_device_sessions (
-    device_id VARCHAR(100) PRIMARY KEY,
-    device_name VARCHAR(150) NOT NULL,
-    instance_id VARCHAR(100) NOT NULL,
-    is_online BOOLEAN DEFAULT true,
-    battery_level INTEGER,
-    android_version VARCHAR(50),
-    client_ip VARCHAR(50),
-    last_heartbeat_at TIMESTAMPTZ DEFAULT NOW(),
-    connected_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS android_bridge_tasks (
-    id VARCHAR(100) PRIMARY KEY,
-    device_id VARCHAR(100) NOT NULL REFERENCES android_device_sessions(device_id) ON DELETE CASCADE,
-    action VARCHAR(100) NOT NULL,
-    payload JSONB DEFAULT '{}',
-    status VARCHAR(30) DEFAULT 'pending' CHECK (status IN ('pending', 'dispatched', 'completed', 'failed', 'timeout')),
-    response_data JSONB,
-    error_message TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
-);
-
--- =====================================================================
 -- 13. Performance Indexing
 -- =====================================================================
 
@@ -315,8 +287,6 @@ CREATE INDEX IF NOT EXISTS idx_automation_runs_workflow ON automation_runs(workf
 CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status, category);
 CREATE INDEX IF NOT EXISTS idx_goal_tasks_goal ON goal_tasks(goal_id, status);
 CREATE INDEX IF NOT EXISTS idx_goal_evaluations_goal ON goal_evaluations(goal_id, evaluation_date DESC);
-CREATE INDEX IF NOT EXISTS idx_android_sessions_heartbeat ON android_device_sessions(is_online, last_heartbeat_at DESC);
-CREATE INDEX IF NOT EXISTS idx_android_tasks_status ON android_bridge_tasks(device_id, status, created_at DESC);
 
 -- =====================================================================
 -- 14. Row Level Security (RLS) - Hardened Security for Cloud DB
@@ -338,6 +308,4 @@ ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE goal_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE goal_evaluations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wiki_pages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE android_device_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE android_bridge_tasks ENABLE ROW LEVEL SECURITY;
 

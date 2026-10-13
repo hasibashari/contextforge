@@ -9,7 +9,6 @@ import { McpGatewayService } from '../../../mcp/mcp-gateway.service';
 import { McpToolDefinition } from '../../../mcp/core';
 import { ObsidianVaultService } from '../../../mcp/connectors/obsidian/obsidian-vault.service';
 import { EncryptionService } from '../../../common/security/encryption.service';
-import { AndroidBridgeGatewayService } from '../../../mcp/connectors/android-bridge/android-bridge.gateway';
 import { EcosystemEventsService } from './ecosystem-events.service';
 import {
   WorkspaceIntegrationRow,
@@ -26,8 +25,6 @@ export class IntegrationsService {
     private readonly mcpGateway: McpGatewayService,
     private readonly obsidianVaultService: ObsidianVaultService,
     private readonly encryption: EncryptionService,
-    @Optional()
-    private readonly androidBridgeGateway?: AndroidBridgeGatewayService,
     @Optional()
     private readonly eventsService?: EcosystemEventsService,
   ) {}
@@ -90,46 +87,13 @@ export class IntegrationsService {
                   ? 'Google Calendar not connected. Click Connect to authorize.'
                   : row.id === 'int-obsidian-vault-mcp'
                     ? 'Obsidian vault not paired on this device'
-                    : row.id === 'int-android-bridge-mcp'
-                      ? 'Android device not connected. Scan QR code to pair.'
-                      : 'Disconnected by user',
+                    : 'Disconnected by user',
             latency_ms: 0,
             last_ping_ms: 0,
           };
         }
 
-        // 1. Special check: Android Bridge live WebSocket connection
-        if (row.id === 'int-android-bridge-mcp') {
-          const isConnected =
-            this.androidBridgeGateway?.isBridgeConnected() ?? false;
-          if (isConnected) {
-            const devInfo = this.androidBridgeGateway!.getDeviceInfo();
-            return {
-              ...row,
-              status: 'connected',
-              health_message: `Active via WebSocket (${devInfo.deviceName || 'Android Device'})`,
-              latency_ms: 4,
-              last_ping_ms: 4,
-              auth_config: {
-                ...row.auth_config,
-                deviceName: devInfo.deviceName,
-                androidVersion: devInfo.androidVersion,
-                batteryLevel: devInfo.batteryLevel,
-              },
-            };
-          } else {
-            return {
-              ...row,
-              status: 'disconnected',
-              health_message:
-                'Android device not connected. Scan QR code to pair.',
-              latency_ms: 0,
-              last_ping_ms: 0,
-            };
-          }
-        }
-
-        // 2. Special check: Obsidian Vault live browser bridge
+        // Special check: Obsidian Vault live browser bridge
         if (row.id === 'int-obsidian-vault-mcp') {
           const pathAccess = await this.obsidianVaultService.verifyPathAccess();
           if (pathAccess.isAccessible && pathAccess.isClientPaired) {
@@ -327,26 +291,13 @@ export class IntegrationsService {
       await this.obsidianVaultService.refreshVaultRootFromDb();
     }
 
-    if (updates.status === 'connected') {
-      if (
-        id === 'int-android-bridge-mcp' ||
-        id.toLowerCase().includes('android')
-      ) {
-        this.androidBridgeGateway?.setBridgeEnabled(true);
-      }
-    } else if (isDisconnecting) {
+    if (isDisconnecting) {
       // Polymorphic Disconnect Lifecycle: invoke disconnect() on any active MCP server
       if (
         serverToDisconnect &&
         typeof serverToDisconnect.disconnect === 'function'
       ) {
         await serverToDisconnect.disconnect();
-      }
-      if (
-        id === 'int-android-bridge-mcp' ||
-        id.toLowerCase().includes('android')
-      ) {
-        this.androidBridgeGateway?.setBridgeEnabled(false);
       }
     }
 

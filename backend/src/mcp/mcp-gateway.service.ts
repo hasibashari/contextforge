@@ -13,7 +13,6 @@ import { DatabaseService } from '../common/database/database.service';
 import { EncryptionService } from '../common/security/encryption.service';
 import { NotionMcpConnector } from './connectors/notion/notion-mcp.connector';
 import { GoogleCalendarMcpConnector } from './connectors/google-calendar/google-calendar-mcp.connector';
-import { AndroidBridgeMcpConnector } from './connectors/android-bridge/android-bridge-mcp.connector';
 
 @Injectable()
 export class McpGatewayService implements OnModuleInit {
@@ -33,7 +32,7 @@ export class McpGatewayService implements OnModuleInit {
   }
 
   /**
-   * 🔐 Preload credentials & endpoints for core built-in MCP connectors (Google Calendar, Notion, Android Bridge) from PostgreSQL
+   * 🔐 Preload credentials & endpoints for core built-in MCP connectors (Google Calendar, Notion) from PostgreSQL
    */
   async initCoreConnectorsFromDb(): Promise<void> {
     try {
@@ -51,7 +50,7 @@ export class McpGatewayService implements OnModuleInit {
       }>(
         `SELECT id, endpoint, auth_config, status 
          FROM workspace_integrations 
-         WHERE id IN ('int-google-calendar-mcp', 'int-notion-mcp', 'int-android-bridge-mcp');`,
+         WHERE id IN ('int-google-calendar-mcp', 'int-notion-mcp');`,
       );
 
       for (const row of res.rows) {
@@ -102,23 +101,6 @@ export class McpGatewayService implements OnModuleInit {
               `🔑 Loaded Notion MCP credentials from PostgreSQL (status: ${row.status})`,
             );
           }
-        } else if (row.id === 'int-android-bridge-mcp') {
-          const server = this.registry.getServer('int-android-bridge-mcp');
-          if (server instanceof AndroidBridgeMcpConnector) {
-            const rawToken = row.auth_config?.token || row.auth_config?.apiKey;
-            const decryptedToken = rawToken
-              ? this.encryption.decrypt(rawToken)
-              : undefined;
-
-            server.configure({
-              endpoint: row.endpoint,
-              authToken: decryptedToken,
-              deviceName: row.auth_config?.deviceName,
-            });
-            this.logger.log(
-              `📱 Loaded Android MCP Bridge endpoint from PostgreSQL: ${row.endpoint} (status: ${row.status})`,
-            );
-          }
         }
       }
     } catch (err: unknown) {
@@ -151,7 +133,7 @@ export class McpGatewayService implements OnModuleInit {
       }>(
         `SELECT id, name, category, endpoint, transport, auth_config, tools, status
          FROM workspace_integrations 
-         WHERE id NOT IN ('int-obsidian-vault-mcp', 'int-notion-mcp', 'int-google-calendar-mcp', 'int-android-bridge-mcp') 
+         WHERE id NOT IN ('int-obsidian-vault-mcp', 'int-notion-mcp', 'int-google-calendar-mcp') 
            AND status = 'connected';`,
       );
 
@@ -218,8 +200,6 @@ export class McpGatewayService implements OnModuleInit {
       toolName === 'query_notion_workspace'
     ) {
       targetServer = this.registry.getServer('int-notion-mcp');
-    } else if (toolName.startsWith('android_')) {
-      targetServer = this.registry.getServer('int-android-bridge-mcp');
     } else if (toolName.startsWith('obsidian_')) {
       targetServer = this.registry.getServer('int-obsidian-vault-mcp');
     }
@@ -256,21 +236,6 @@ export class McpGatewayService implements OnModuleInit {
   }
 
   /**
-   * Determines if an error from an Android Bridge operation is non-retryable.
-   */
-  private isAndroidNonRetryableError(err: Error): boolean {
-    const msg = err.message.toLowerCase();
-    return (
-      msg.includes('android device is not connected') ||
-      msg.includes('android device is currently disconnected') ||
-      msg.includes('not connected via websocket') ||
-      msg.includes('android device request for') ||
-      msg.includes('failed to transmit request') ||
-      msg.includes('android bridge gateway is shutting down')
-    );
-  }
-
-  /**
    * Resilient execution wrapper with Exponential Backoff + Timeout Circuit Breaker.
    */
   private async executeWithRetryAndTimeout<T>(
@@ -280,9 +245,6 @@ export class McpGatewayService implements OnModuleInit {
     timeoutMs = 15000,
     maxRetries = 3,
   ): Promise<T> {
-    const isAndroidOp =
-      serverName.toLowerCase().includes('android') ||
-      operationName.startsWith('android_');
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -301,13 +263,6 @@ export class McpGatewayService implements OnModuleInit {
         return await Promise.race([fn(), timeoutPromise]);
       } catch (err: unknown) {
         lastError = err instanceof Error ? err : new Error(String(err));
-
-        if (isAndroidOp && this.isAndroidNonRetryableError(lastError)) {
-          this.logger.warn(
-            `[MCP Gateway] Non-retryable Android error for "${operationName}": ${lastError.message}. Skipping retries.`,
-          );
-          break;
-        }
 
         if (attempt < maxRetries) {
           const backoff = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
@@ -420,39 +375,6 @@ export class McpGatewayService implements OnModuleInit {
             endpoint: row.endpoint,
             token: decryptedToken,
             refreshToken: decryptedRefreshToken,
-          });
-        }
-      } catch {
-        // Continue with existing in-memory config
-      }
-    } else if (
-      serverId === 'int-android-bridge-mcp' ||
-      serverId.includes('android')
-    ) {
-      try {
-        const res = await this.db.query<{
-          endpoint: string;
-          auth_config: {
-            token?: string;
-            apiKey?: string;
-            deviceName?: string;
-          };
-        }>(
-          `SELECT endpoint, auth_config FROM workspace_integrations WHERE id = 'int-android-bridge-mcp' LIMIT 1;`,
-        );
-        if (
-          res.rows.length > 0 &&
-          server instanceof AndroidBridgeMcpConnector
-        ) {
-          const row = res.rows[0];
-          const rawToken = row.auth_config?.token || row.auth_config?.apiKey;
-          const decryptedToken = rawToken
-            ? this.encryption.decrypt(rawToken)
-            : undefined;
-          server.configure({
-            endpoint: row.endpoint,
-            authToken: decryptedToken,
-            deviceName: row.auth_config?.deviceName,
           });
         }
       } catch {

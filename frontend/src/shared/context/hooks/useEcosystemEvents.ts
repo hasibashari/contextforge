@@ -16,7 +16,7 @@ export interface PairingStatusEvent {
   deviceInfo?: {
     deviceName: string;
     deviceEndpoint?: string;
-    androidVersion?: string;
+    deviceVersion?: string;
     batteryLevel?: number;
   };
   timestamp: number;

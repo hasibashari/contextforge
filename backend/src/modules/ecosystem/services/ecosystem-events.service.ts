@@ -98,7 +98,7 @@ export class EcosystemEventsService implements OnModuleDestroy {
   }
 
   /**
-   * Broadcast an Android QR pairing session status update
+   * Broadcast a pairing session status update
    */
   public emitPairingSessionUpdate(
     sessionId: string,

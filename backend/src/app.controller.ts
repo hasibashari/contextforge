@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { getAppBaseUrl } from './common/utils/app-url.util';
 
 @Controller()
 export class AppController {
@@ -20,7 +21,7 @@ export class AppController {
         automations: '/api/automations',
         automationRuns: '/api/automations/runs',
       },
-      frontendApp: 'http://localhost:5173',
+      frontendApp: getAppBaseUrl(),
       timestamp: new Date().toISOString(),
     };
   }

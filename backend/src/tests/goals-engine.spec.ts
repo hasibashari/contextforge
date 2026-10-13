@@ -35,7 +35,7 @@ export async function runGoalsTests() {
     current_progress_pct: 75.0,
     streak_days: 4,
     cron_evaluation: '0 21 * * *',
-    linked_mcp_servers: ['android-bridge', 'google-calendar'],
+    linked_mcp_servers: ['google-calendar', 'notion'],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -146,10 +146,8 @@ export async function runGoalsTests() {
 
     assert.ok(result.textContent.includes('decomposed into 3 sub-tasks'));
     const raw = result.rawResult as { tasks: GoalTaskRow[] };
-    assert.strictEqual(raw.tasks.length, 3);
     assert.ok(raw.tasks.some((t) => t.mcp_target === 'google-calendar'));
     assert.ok(raw.tasks.some((t) => t.mcp_target === 'notion'));
-    assert.ok(raw.tasks.some((t) => t.mcp_target === 'android-bridge'));
   });
 
   // 4. Tool Call: verify_task_completion

@@ -22,7 +22,7 @@ export default function CTASection() {
           </h2>
 
           <p className="text-sm sm:text-base text-body leading-relaxed max-w-lg mx-auto mb-8 font-sans">
-            Connect your Obsidian vault, pair your Android smartphone, and experience context-aware AI execution in less than two minutes.
+            Connect your Obsidian vault, sync your Notion workspace and Google Calendar, and experience context-aware AI execution in less than two minutes.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">

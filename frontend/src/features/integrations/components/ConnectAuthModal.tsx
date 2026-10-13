@@ -1,6 +1,5 @@
 import type { FC } from 'react'
 import type { Integration } from '@/shared/types/workspace'
-import { AndroidBridgeConnectModal } from './mcp/android-bridge/AndroidBridgeConnectModal'
 import { GoogleCalendarConnectModal } from './mcp/google-calendar/GoogleCalendarConnectModal'
 import { NotionConnectModal } from './mcp/notion/NotionConnectModal'
 import { ObsidianConnectModal } from './mcp/obsidian/ObsidianConnectModal'
@@ -64,19 +63,7 @@ export const ConnectAuthModal: FC<ConnectAuthModalProps> = ({
     )
   }
 
-  // 4. Android Bridge & Digital Wellbeing MCP
-  if (id.includes('android') || name.includes('android')) {
-    return (
-      <AndroidBridgeConnectModal
-        integration={integration}
-        isOpen={isOpen}
-        onClose={onClose}
-        onSuccess={onSuccess}
-      />
-    )
-  }
-
-  // 5. Generic / Dynamic Remote MCP Server Fallback
+  // 4. Generic / Dynamic Remote MCP Server Fallback
   return (
     <GenericConnectModal
       integration={integration}

@@ -1,7 +1,6 @@
 import { runGoogleCalendarTests } from './google-calendar-mcp.spec';
 import { runMcpRegistryTests } from './mcp-registry.spec';
 import { runNotionAndObsidianTests } from './notion-obsidian-mcp.spec';
-import { runAndroidBridgeTests } from './android-bridge-mcp.spec';
 import { runPersonalMemoryTests } from './personal-memory.spec';
 import { runAgentEnhancementTests } from './agent-enhancements.spec';
 import { runAutomationTests } from './automation-engine.spec';
@@ -14,7 +13,6 @@ async function main() {
     await runMcpRegistryTests();
     await runNotionAndObsidianTests();
     await runGoogleCalendarTests();
-    await runAndroidBridgeTests();
     await runPersonalMemoryTests();
     await runAgentEnhancementTests();
     await runAutomationTests();

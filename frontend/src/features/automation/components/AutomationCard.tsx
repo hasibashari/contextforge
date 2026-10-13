@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import {
   Play,
   Clock,
@@ -17,39 +17,38 @@ import {
   Globe,
   GitBranch,
   Plug,
-  Smartphone,
   Calendar,
-} from 'lucide-react'
-import type { AutomationWorkflow } from '@/shared/types/workspace'
-import { Button } from '@/shared/components/ui/Button'
+} from 'lucide-react';
+import type { AutomationWorkflow } from '@/shared/types/workspace';
+import { Button } from '@/shared/components/ui/Button';
 
 interface AutomationCardProps {
-  workflow: AutomationWorkflow
-  isRunning: boolean
-  onRunNow: (id: string) => void
-  onToggleActive: (id: string) => void
-  onEdit: (workflow: AutomationWorkflow) => void
-  onDelete: (id: string) => void
+  workflow: AutomationWorkflow;
+  isRunning: boolean;
+  onRunNow: (id: string) => void;
+  onToggleActive: (id: string) => void;
+  onEdit: (workflow: AutomationWorkflow) => void;
+  onDelete: (id: string) => void;
 }
 
 interface ServiceTag {
-  id: string
-  label: string
-  icon: React.ReactNode
-  colorClass: string
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  colorClass: string;
 }
 
 function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
-  const tags: ServiceTag[] = []
-  const serverId = (workflow.mcpServerId || '').toLowerCase()
-  const tools = (workflow.mcpTools || []).map((t) => t.toLowerCase())
-  const name = workflow.name.toLowerCase()
-  const desc = workflow.description.toLowerCase()
+  const tags: ServiceTag[] = [];
+  const serverId = (workflow.mcpServerId || '').toLowerCase();
+  const tools = (workflow.mcpTools || []).map(t => t.toLowerCase());
+  const name = workflow.name.toLowerCase();
+  const desc = workflow.description.toLowerCase();
 
   // 1. Obsidian Vault
   if (
     serverId.includes('obsidian') ||
-    tools.some((t) => t.includes('obsidian')) ||
+    tools.some(t => t.includes('obsidian')) ||
     name.includes('obsidian') ||
     desc.includes('obsidian')
   ) {
@@ -58,13 +57,13 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
       label: 'Obsidian Vault',
       icon: <BookOpen size={11} />,
       colorClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
-    })
+    });
   }
 
   // 2. Notion Workspace
   if (
     serverId.includes('notion') ||
-    tools.some((t) => t.includes('notion')) ||
+    tools.some(t => t.includes('notion')) ||
     name.includes('notion') ||
     desc.includes('notion')
   ) {
@@ -73,30 +72,13 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
       label: 'Notion MCP',
       icon: <Layers size={11} />,
       colorClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-    })
-  }
-
-  // 3. Android Bridge & Digital Wellbeing
-  if (
-    serverId.includes('android') ||
-    tools.some((t) => t.includes('android')) ||
-    name.includes('android') ||
-    desc.includes('android') ||
-    name.includes('screen time') ||
-    desc.includes('wellbeing')
-  ) {
-    tags.push({
-      id: 'android',
-      label: 'Android Bridge',
-      icon: <Smartphone size={11} />,
-      colorClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-    })
+    });
   }
 
   // 4. Google Calendar
   if (
     serverId.includes('calendar') ||
-    tools.some((t) => t.includes('calendar')) ||
+    tools.some(t => t.includes('calendar')) ||
     name.includes('calendar') ||
     desc.includes('calendar')
   ) {
@@ -105,12 +87,12 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
       label: 'Google Calendar',
       icon: <Calendar size={11} />,
       colorClass: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
-    })
+    });
   }
 
   // 5. Web Grounding / Internet Search
   if (
-    tools.some((t) => t.includes('web_search') || t.includes('search')) ||
+    tools.some(t => t.includes('web_search') || t.includes('search')) ||
     name.includes('berita') ||
     name.includes('news') ||
     desc.includes('web') ||
@@ -121,13 +103,13 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
       label: 'Web Grounding',
       icon: <Globe size={11} />,
       colorClass: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20',
-    })
+    });
   }
 
   // 6. GitHub / Git
   if (
     serverId.includes('github') ||
-    tools.some((t) => t.includes('git')) ||
+    tools.some(t => t.includes('git')) ||
     name.includes('github') ||
     desc.includes('github')
   ) {
@@ -136,7 +118,7 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
       label: 'GitHub MCP',
       icon: <GitBranch size={11} />,
       colorClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20',
-    })
+    });
   }
 
   // 7. Generic Custom MCP Connector
@@ -149,10 +131,10 @@ function getServiceTags(workflow: AutomationWorkflow): ServiceTag[] {
       label: workflow.mcpServerId ? 'MCP Server' : 'MCP Tools',
       icon: <Plug size={11} />,
       colorClass: 'bg-canvas-soft text-muted border-hairline',
-    })
+    });
   }
 
-  return tags
+  return tags;
 }
 
 export function AutomationCard({
@@ -163,14 +145,19 @@ export function AutomationCard({
   onEdit,
   onDelete,
 }: AutomationCardProps) {
-  const [showMenu, setShowMenu] = useState(false)
-  const serviceTags = getServiceTags(workflow)
+  const [showMenu, setShowMenu] = useState(false);
+  const serviceTags = getServiceTags(workflow);
 
   const formatLastRun = (timestamp?: string) => {
-    if (!timestamp) return 'Never executed'
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' (' + date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ')'
-  }
+    if (!timestamp) return 'Never executed';
+    const date = new Date(timestamp);
+    return (
+      date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+      ' (' +
+      date.toLocaleDateString([], { month: 'short', day: 'numeric' }) +
+      ')'
+    );
+  };
 
   return (
     <div
@@ -178,34 +165,34 @@ export function AutomationCard({
         isRunning
           ? 'border-primary/60 shadow-md ring-1 ring-primary/20 bg-primary-soft'
           : workflow.isActive
-          ? 'border-hairline hover:border-primary/40'
-          : 'border-hairline hover:border-primary/40 opacity-75'
+            ? 'border-hairline hover:border-primary/40'
+            : 'border-hairline hover:border-primary/40 opacity-75'
       }`}
     >
       {/* Top Header: Trigger Badge, Service Tags, Guardrails, Menu & Toggle */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
+      <div className='space-y-3'>
+        <div className='flex items-center justify-between gap-2'>
+          <div className='flex items-center gap-1.5 flex-wrap'>
             {/* Trigger Badge */}
             {workflow.triggerType === 'schedule' ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-primary-soft text-primary border border-primary-subtle">
+              <span className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-primary-soft text-primary border border-primary-subtle'>
                 <Clock size={12} />
                 <span>{workflow.scheduleLabel || workflow.scheduleCron}</span>
               </span>
             ) : workflow.triggerType === 'event' ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <span className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'>
                 <Zap size={12} />
                 <span>{workflow.scheduleLabel || 'Event Watcher'}</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-canvas-soft text-muted border border-hairline">
+              <span className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-canvas-soft text-muted border border-hairline'>
                 <Play size={12} />
                 <span>Manual Trigger</span>
               </span>
             )}
 
             {/* Dynamic Ecosystem / Service Tags */}
-            {serviceTags.map((tag) => (
+            {serviceTags.map(tag => (
               <span
                 key={tag.id}
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${tag.colorClass}`}
@@ -217,7 +204,7 @@ export function AutomationCard({
 
             {/* Guardrail Badge */}
             {workflow.guardrailStrictHITL && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-semantic-warning/10 text-semantic-warning border border-semantic-warning/20">
+              <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-semantic-warning/10 text-semantic-warning border border-semantic-warning/20'>
                 <ShieldAlert size={11} />
                 <span>Strict HITL</span>
               </span>
@@ -225,10 +212,10 @@ export function AutomationCard({
           </div>
 
           {/* Active Switch & Menu */}
-          <div className="flex items-center gap-2">
+          <div className='flex items-center gap-2'>
             {/* Active Toggle Pill */}
             <button
-              type="button"
+              type='button'
               onClick={() => onToggleActive(workflow.id)}
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
                 workflow.isActive ? 'bg-primary' : 'bg-canvas-soft border-hairline'
@@ -243,38 +230,35 @@ export function AutomationCard({
             </button>
 
             {/* Context Menu Dropdown */}
-            <div className="relative">
+            <div className='relative'>
               <button
-                type="button"
-                onClick={() => setShowMenu((prev) => !prev)}
-                className="p-1 rounded-lg text-muted hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer"
+                type='button'
+                onClick={() => setShowMenu(prev => !prev)}
+                className='p-1 rounded-lg text-muted hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer'
               >
                 <MoreVertical size={15} />
               </button>
 
               {showMenu && (
                 <>
-                  <div
-                    className="fixed inset-0 z-20"
-                    onClick={() => setShowMenu(false)}
-                  />
-                  <div className="absolute right-0 mt-1 w-36 rounded-xl bg-surface-card border border-hairline shadow-lg py-1 z-30 space-y-0.5">
+                  <div className='fixed inset-0 z-20' onClick={() => setShowMenu(false)} />
+                  <div className='absolute right-0 mt-1 w-36 rounded-xl bg-surface-card border border-hairline shadow-lg py-1 z-30 space-y-0.5'>
                     <button
                       onClick={() => {
-                        setShowMenu(false)
-                        onEdit(workflow)
+                        setShowMenu(false);
+                        onEdit(workflow);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-body hover:text-ink hover:bg-canvas-soft text-left cursor-pointer"
+                      className='w-full flex items-center gap-2 px-3 py-1.5 text-xs text-body hover:text-ink hover:bg-canvas-soft text-left cursor-pointer'
                     >
                       <Edit2 size={13} />
                       <span>Edit Rules</span>
                     </button>
                     <button
                       onClick={() => {
-                        setShowMenu(false)
-                        onDelete(workflow.id)
+                        setShowMenu(false);
+                        onDelete(workflow.id);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-semantic-error hover:bg-semantic-error/10 text-left cursor-pointer"
+                      className='w-full flex items-center gap-2 px-3 py-1.5 text-xs text-semantic-error hover:bg-semantic-error/10 text-left cursor-pointer'
                     >
                       <Trash2 size={13} />
                       <span>Delete</span>
@@ -288,30 +272,30 @@ export function AutomationCard({
 
         {/* Title & Description */}
         <div>
-          <h3 className="text-sm sm:text-base font-semibold text-ink tracking-tight font-sans flex items-center gap-2">
+          <h3 className='text-sm sm:text-base font-semibold text-ink tracking-tight font-sans flex items-center gap-2'>
             {workflow.name}
           </h3>
-          <p className="text-xs text-body font-sans mt-1 line-clamp-2 leading-relaxed">
+          <p className='text-xs text-body font-sans mt-1 line-clamp-2 leading-relaxed'>
             {workflow.description}
           </p>
         </div>
 
         {/* Agent & MCP Tools Assignment */}
-        <div className="space-y-1.5 pt-2 border-t border-hairline/60">
-          <div className="flex items-center gap-2 text-xs text-body font-sans">
-            <Bot size={13} className="text-primary shrink-0" />
-            <span className="truncate font-medium text-ink">
+        <div className='space-y-1.5 pt-2 border-t border-hairline/60'>
+          <div className='flex items-center gap-2 text-xs text-body font-sans'>
+            <Bot size={13} className='text-primary shrink-0' />
+            <span className='truncate font-medium text-ink'>
               {workflow.agentName || workflow.agentId}
             </span>
           </div>
 
           {workflow.mcpTools && workflow.mcpTools.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Cpu size={12} className="text-muted shrink-0" />
-              {workflow.mcpTools.map((tool) => (
+            <div className='flex items-center gap-1.5 flex-wrap'>
+              <Cpu size={12} className='text-muted shrink-0' />
+              {workflow.mcpTools.map(tool => (
                 <span
                   key={tool}
-                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-canvas-soft text-muted border border-hairline"
+                  className='text-[10px] font-mono px-1.5 py-0.5 rounded bg-canvas-soft text-muted border border-hairline'
                 >
                   {tool}
                 </span>
@@ -322,41 +306,41 @@ export function AutomationCard({
       </div>
 
       {/* Bottom Footer: Last Run Status & Run Now CTA */}
-      <div className="pt-3 border-t border-hairline/60 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-xs text-muted font-mono">
+      <div className='pt-3 border-t border-hairline/60 flex items-center justify-between gap-3'>
+        <div className='flex items-center gap-1.5 text-xs text-muted font-mono'>
           {isRunning ? (
-            <div className="flex items-center gap-1.5 text-primary font-medium">
-              <Loader2 size={13} className="animate-spin" />
+            <div className='flex items-center gap-1.5 text-primary font-medium'>
+              <Loader2 size={13} className='animate-spin' />
               <span>Executing steps...</span>
             </div>
           ) : workflow.lastRunStatus === 'success' ? (
-            <div className="flex items-center gap-1 text-semantic-success text-[11px]">
+            <div className='flex items-center gap-1 text-semantic-success text-[11px]'>
               <CheckCircle2 size={12} />
               <span>Ran {formatLastRun(workflow.lastRunAt)}</span>
             </div>
           ) : workflow.lastRunStatus === 'failed' ? (
-            <div className="flex items-center gap-1 text-semantic-error text-[11px]">
+            <div className='flex items-center gap-1 text-semantic-error text-[11px]'>
               <AlertCircle size={12} />
               <span>Failed {formatLastRun(workflow.lastRunAt)}</span>
             </div>
           ) : (
-            <span className="text-[11px]">Ready ({workflow.totalRuns || 0} runs)</span>
+            <span className='text-[11px]'>Ready ({workflow.totalRuns || 0} runs)</span>
           )}
         </div>
 
         {/* Action Button: Run Now */}
         <Button
-          type="button"
-          variant="primary"
-          size="xs"
+          type='button'
+          variant='primary'
+          size='xs'
           disabled={isRunning || !workflow.isActive}
           isLoading={isRunning}
-          leftIcon={<Play size={11} className="fill-current" />}
+          leftIcon={<Play size={11} className='fill-current' />}
           onClick={() => onRunNow(workflow.id)}
         >
           Run Now
         </Button>
       </div>
     </div>
-  )
+  );
 }

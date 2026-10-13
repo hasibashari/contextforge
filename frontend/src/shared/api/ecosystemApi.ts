@@ -108,8 +108,8 @@ function mapAgentFromBackend(row: BackendAgent): Agent {
       typeof row.temperature === 'number'
         ? row.temperature
         : typeof row.temperature === 'string'
-        ? parseFloat(row.temperature)
-        : 0.2,
+          ? parseFloat(row.temperature)
+          : 0.2,
     systemPrompt: row.system_prompt || row.systemPrompt || '',
     capabilities: row.capabilities || [],
     assignedTools: row.assigned_tools || row.assignedTools || [],
@@ -120,10 +120,10 @@ function mapAgentFromBackend(row: BackendAgent): Agent {
       typeof row.success_rate_pct === 'number'
         ? row.success_rate_pct
         : typeof row.success_rate_pct === 'string'
-        ? parseFloat(row.success_rate_pct)
-        : typeof row.successRatePct === 'number'
-        ? row.successRatePct
-        : 100,
+          ? parseFloat(row.success_rate_pct)
+          : typeof row.successRatePct === 'number'
+            ? row.successRatePct
+            : 100,
   };
 }
 
@@ -295,9 +295,12 @@ export const ecosystemApi = {
     latencyMs: number;
     message: string;
   }> {
-    const res = await fetch(`${API_BASE_URL}/ecosystem/integrations/${encodeURIComponent(id)}/discover`, {
-      method: 'POST',
-    });
+    const res = await fetch(
+      `${API_BASE_URL}/ecosystem/integrations/${encodeURIComponent(id)}/discover`,
+      {
+        method: 'POST',
+      },
+    );
     return handleApiResponse<{
       id: string;
       tools: McpTool[];
@@ -312,9 +315,12 @@ export const ecosystemApi = {
     latencyMs: number;
     message: string;
   }> {
-    const res = await fetch(`${API_BASE_URL}/ecosystem/integrations/${encodeURIComponent(id)}/test`, {
-      method: 'POST',
-    });
+    const res = await fetch(
+      `${API_BASE_URL}/ecosystem/integrations/${encodeURIComponent(id)}/test`,
+      {
+        method: 'POST',
+      },
+    );
     return handleApiResponse<{
       id: string;
       status: 'connected' | 'error';
@@ -416,14 +422,11 @@ export const ecosystemApi = {
     summary: string;
     error?: string;
   }> {
-    const res = await fetch(
-      `${API_BASE_URL}/ecosystem/integrations/tools/execute`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ toolName, args }),
-      },
-    );
+    const res = await fetch(`${API_BASE_URL}/ecosystem/integrations/tools/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ toolName, args }),
+    });
     if (!res.ok) {
       let msg = `HTTP Error ${res.status}`;
       try {
@@ -440,97 +443,5 @@ export const ecosystemApi = {
       summary: string;
       error?: string;
     };
-  },
-
-  // ------------------------------------------
-  // ANDROID BRIDGE QR CODE PAIRING
-  // ------------------------------------------
-  async createAndroidPairingSession(customHost?: string): Promise<{
-    sessionId: string;
-    pinCode: string;
-    formattedPin: string;
-    createdAt: number;
-    expiresAt: number;
-    status: 'waiting' | 'confirmed' | 'expired';
-    desktopHost: string;
-    desktopPort: number;
-    confirmUrl: string;
-    qrPayloadJson: string;
-  }> {
-    const res = await fetch(
-      `${API_BASE_URL}/ecosystem/integrations/android/pair/session`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customHost }),
-      },
-    );
-    return handleApiResponse(res);
-  },
-
-  async checkAndroidPairingStatus(sessionId: string): Promise<{
-    sessionId: string;
-    pinCode: string;
-    formattedPin: string;
-    status: 'waiting' | 'confirmed' | 'expired';
-    deviceInfo?: {
-      deviceName: string;
-      deviceEndpoint: string;
-      androidVersion?: string;
-      batteryLevel?: number;
-      pairedAt: number;
-    };
-  }> {
-    const res = await fetch(
-      `${API_BASE_URL}/ecosystem/integrations/android/pair/status/${encodeURIComponent(sessionId)}`,
-    );
-    return handleApiResponse(res);
-  },
-
-  async confirmAndroidPairing(payload: {
-    sessionId: string;
-    deviceEndpoint: string;
-    deviceName?: string;
-    androidVersion?: string;
-  }): Promise<{
-    sessionId: string;
-    status: string;
-    deviceInfo?: {
-      deviceName: string;
-      deviceEndpoint: string;
-    };
-  }> {
-    const res = await fetch(
-      `${API_BASE_URL}/ecosystem/integrations/android/pair/confirm`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      },
-    );
-    return handleApiResponse(res);
-  },
-
-  async verifyAndroidPairingPin(payload: {
-    pinCode: string;
-    deviceEndpoint: string;
-    deviceName?: string;
-  }): Promise<{
-    sessionId: string;
-    status: string;
-    deviceInfo?: {
-      deviceName: string;
-      deviceEndpoint: string;
-    };
-  }> {
-    const res = await fetch(
-      `${API_BASE_URL}/ecosystem/integrations/android/pair/verify-pin`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      },
-    );
-    return handleApiResponse(res);
   },
 };

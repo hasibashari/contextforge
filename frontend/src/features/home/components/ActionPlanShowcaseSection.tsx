@@ -116,8 +116,8 @@ export default function ActionPlanShowcaseSection() {
                   <div className="flex items-start gap-2 bg-surface-card p-2.5 rounded-xl border border-hairline shadow-2xs">
                     <CheckCircle2 size={14} className="text-semantic-success shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-xs text-ink font-sans">2. Android Screen Time & App Telemetry</div>
-                      <div className="text-[11px] text-body font-sans">Captured 4h 12m usage & battery health (89%) via Termux Bridge.</div>
+                      <div className="font-semibold text-xs text-ink font-sans">2. Notion Workspace Tasks & Priorities</div>
+                      <div className="text-[11px] text-body font-sans">Captured 12 project tasks, sprint deadlines, and database milestones.</div>
                     </div>
                   </div>
 

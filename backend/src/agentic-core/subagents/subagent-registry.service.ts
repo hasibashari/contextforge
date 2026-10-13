@@ -50,19 +50,19 @@ export class SubAgentRegistryService {
   public routePromptToSubAgent(prompt: string): ISubAgent | undefined {
     const p = prompt.toLowerCase();
 
-    // 1. Wellbeing / Screen time / Sleep patterns
+    // 1. Wellbeing / Focus habits / Sleep patterns
     if (
+      p.includes('focus') ||
+      p.includes('fokus') ||
       p.includes('screen time') ||
       p.includes('waktu layar') ||
-      p.includes('hp') ||
-      p.includes('android') ||
       p.includes('tidur') ||
       p.includes('sleep') ||
       p.includes('bedtime') ||
       p.includes('dnd') ||
       p.includes('doomscroll') ||
-      p.includes('fokus') ||
-      p.includes('app limit')
+      p.includes('habit') ||
+      p.includes('wellbeing')
     ) {
       return this.subAgents.get('wellbeing_coach');
     }

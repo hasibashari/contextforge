@@ -7,9 +7,9 @@ const METRICS = [
     description: 'Obsidian notes & device telemetry stay strictly on your local machine.',
   },
   {
-    value: '5+',
+    value: '4+',
     label: 'Official MCP Connectors',
-    description: 'Obsidian Protocol, Android Bridge, Google Calendar, Notion, & Web Search.',
+    description: 'Obsidian Protocol, Notion Workspace, Google Calendar, & Web Search.',
   },
   {
     value: 'Strict',
@@ -18,22 +18,22 @@ const METRICS = [
   },
   {
     value: 'Real-time',
-    label: 'Mobile Telemetry Sync',
-    description: 'Continuous Screen Time, battery health, and push notifications via Termux/ADB.',
+    label: 'Knowledge Base Sync',
+    description: 'Continuous bi-directional synchronization across notes, databases, and schedules.',
   },
 ]
 
 const TESTIMONIALS = [
   {
     quote:
-      'ContextForge bridges the gap between my mobile life and daily Obsidian journaling. It automatically grabs my Google Calendar agenda and screen time habits, creating atomic daily notes with frontmatter every single morning.',
+      'ContextForge bridges the gap between my task management and daily Obsidian journaling. It automatically grabs my Google Calendar agenda and Notion priorities, creating atomic daily notes with frontmatter every single morning.',
     author: 'Ryan K.',
     role: 'Knowledge Architect',
     company: 'Personal PKM Vault',
   },
   {
     quote:
-      'The Model Context Protocol (MCP) integration with Android Termux is brilliant. My AI assistant can check battery health, audit running background apps, and notify me directly on my smartphone when scheduled automations finish.',
+      'The Model Context Protocol (MCP) integration with Notion and Obsidian is brilliant. My AI assistant can cross-reference my databases, verify project roadmaps, and generate structured executive summaries whenever scheduled automations finish.',
     author: 'Maya T.',
     role: 'Systems Engineer',
     company: 'Context Engine Labs',

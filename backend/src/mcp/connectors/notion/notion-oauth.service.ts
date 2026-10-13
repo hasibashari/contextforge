@@ -3,6 +3,7 @@ import { DatabaseService } from '../../../common/database/database.service';
 import { EncryptionService } from '../../../common/security/encryption.service';
 import { IMcpOAuthHandler } from '../../core';
 import { NotionMcpConnector } from './notion-mcp.connector';
+import { getApiBaseUrl } from '../../../common/utils/app-url.util';
 
 @Injectable()
 export class NotionOAuthService implements IMcpOAuthHandler {
@@ -19,10 +20,7 @@ export class NotionOAuthService implements IMcpOAuthHandler {
     if (process.env.NOTION_REDIRECT_URI) {
       return process.env.NOTION_REDIRECT_URI;
     }
-    const isCloud = process.env.NODE_ENV === 'production';
-    const baseUrl = isCloud
-      ? 'https://contextforge-441184699407.us-central1.run.app'
-      : 'http://localhost:3001';
+    const baseUrl = getApiBaseUrl();
     return `${baseUrl}/api/ecosystem/oauth/notion/callback`;
   }
 

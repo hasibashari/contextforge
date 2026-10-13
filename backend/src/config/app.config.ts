@@ -1,4 +1,5 @@
 import { registerAs } from '@nestjs/config';
+import { getApiBaseUrl } from '../common/utils/app-url.util';
 
 export const appConfig = registerAs('app', () => ({
   port: parseInt(process.env.PORT || '3001', 10),
@@ -10,6 +11,6 @@ export const appConfig = registerAs('app', () => ({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     redirectUri:
       process.env.GOOGLE_REDIRECT_URI ||
-      'http://localhost:3001/api/ecosystem/oauth/google-calendar/callback',
+      `${getApiBaseUrl()}/api/ecosystem/oauth/google-calendar/callback`,
   },
 }));

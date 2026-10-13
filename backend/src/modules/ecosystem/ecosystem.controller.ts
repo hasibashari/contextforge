@@ -7,14 +7,12 @@ import {
   Param,
   Body,
   Query,
-  Req,
   Res,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { EcosystemService } from './ecosystem.service';
 import { NotionOAuthService } from '../../mcp/connectors/notion/notion-oauth.service';
 import { GoogleCalendarOAuthService } from '../../mcp/connectors/google-calendar/google-calendar-oauth.service';
-import { AndroidPairingService } from './services/android-pairing.service';
 import { EcosystemEventsService } from './services/ecosystem-events.service';
 import type {
   WorkspaceAgentRow,
@@ -28,7 +26,6 @@ export class EcosystemController {
     private readonly service: EcosystemService,
     private readonly notionOAuthService: NotionOAuthService,
     private readonly googleCalendarOAuthService: GoogleCalendarOAuthService,
-    private readonly androidPairingService: AndroidPairingService,
     private readonly eventsService: EcosystemEventsService,
   ) {}
 
@@ -355,82 +352,6 @@ export class EcosystemController {
       success: true,
       data,
       message: `Google Calendar connected successfully`,
-    };
-  }
-
-  // ==========================================
-  // ANDROID BRIDGE QR CODE PAIRING ENDPOINTS
-  // ==========================================
-
-  @Post('integrations/android/pair/session')
-  createAndroidPairingSession(
-    @Req() req: Request,
-    @Body() body?: { customHost?: string },
-  ) {
-    const rawHost =
-      (req.headers['x-forwarded-host'] as string) || req.headers.host;
-    const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
-
-    const session = this.androidPairingService.createPairingSession(
-      body?.customHost,
-      undefined,
-      rawHost,
-      proto,
-    );
-    return {
-      success: true,
-      data: session,
-      message: 'Pairing session initialized',
-    };
-  }
-
-  @Get('integrations/android/pair/status/:sessionId')
-  getAndroidPairingStatus(@Param('sessionId') sessionId: string) {
-    const session = this.androidPairingService.getSessionStatus(sessionId);
-    return {
-      success: true,
-      data: session,
-    };
-  }
-
-  @Post('integrations/android/pair/confirm')
-  async confirmAndroidPairing(
-    @Body()
-    body: {
-      sessionId: string;
-      deviceEndpoint: string;
-      pinCode?: string;
-      deviceName?: string;
-      androidVersion?: string;
-      batteryLevel?: number;
-    },
-  ) {
-    const res = await this.androidPairingService.confirmPairing(body);
-    return {
-      success: true,
-      data: res.session,
-      message: res.message,
-    };
-  }
-
-  @Post('integrations/android/pair/verify-pin')
-  async verifyAndroidPairingPin(
-    @Body()
-    body: {
-      pinCode: string;
-      deviceEndpoint: string;
-      deviceName?: string;
-    },
-  ) {
-    const res = await this.androidPairingService.verifyByPin(
-      body.pinCode,
-      body.deviceEndpoint,
-      body.deviceName,
-    );
-    return {
-      success: true,
-      data: res.session,
-      message: res.message,
     };
   }
 }

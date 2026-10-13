@@ -9,6 +9,7 @@ import { EncryptionService } from '../../../common/security/encryption.service';
 import { IMcpOAuthHandler } from '../../core';
 import { GoogleCalendarMcpConnector } from './google-calendar-mcp.connector';
 import { GoogleOAuthTokenResponse } from './google-calendar.types';
+import { getApiBaseUrl } from '../../../common/utils/app-url.util';
 
 @Injectable()
 export class GoogleCalendarOAuthService
@@ -33,10 +34,7 @@ export class GoogleCalendarOAuthService
     if (process.env.GOOGLE_REDIRECT_URI) {
       return process.env.GOOGLE_REDIRECT_URI;
     }
-    const isCloud = process.env.NODE_ENV === 'production';
-    const baseUrl = isCloud
-      ? 'https://contextforge-441184699407.us-central1.run.app'
-      : 'http://localhost:3001';
+    const baseUrl = getApiBaseUrl();
     return `${baseUrl}/api/ecosystem/oauth/google-calendar/callback`;
   }
 

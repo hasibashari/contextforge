@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { McpRegistryService } from '../core';
+import { getAppBaseUrl } from '../../common/utils/app-url.util';
 
 @Controller('api/mcp/oauth')
 export class McpOAuthController {
@@ -40,11 +41,7 @@ export class McpOAuthController {
     @Res() res: Response,
   ) {
     const handler = this.registry.getOAuthHandler(provider);
-    const frontendUrl =
-      process.env.FRONTEND_URL ||
-      (process.env.NODE_ENV === 'production'
-        ? 'https://contextforge-441184699407.us-central1.run.app'
-        : 'http://localhost:5173');
+    const frontendUrl = getAppBaseUrl();
 
     if (!handler) {
       res.setHeader('Content-Type', 'text/html');

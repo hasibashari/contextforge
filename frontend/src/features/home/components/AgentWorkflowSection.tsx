@@ -8,10 +8,10 @@ const STEPS = [
     pillClass: 'bg-primary-soft text-primary border border-primary-subtle',
     title: '1. Multi-Source Context Ingestion',
     description:
-      'The agent gathers real-world signals across Google Calendar meetings, Android device telemetry (Screen Time, battery), and your existing Obsidian vault.',
+      'The agent gathers real-world signals across Google Calendar meetings, Notion workspace databases, and your existing Obsidian vault.',
     icon: Brain,
     activityLabel: 'Agent Activity:',
-    activityText: 'Ingested 4 calendar events, Android telemetry stream, and 365 vault daily notes.',
+    activityText: 'Ingested 4 calendar events, Notion project roadmaps, and 365 vault daily notes.',
   },
   {
     step: '02',
@@ -22,7 +22,7 @@ const STEPS = [
       'Matches your natural language instruction to standardized SOP skills, applying deterministic rules and domain-specific formatting.',
     icon: Cpu,
     activityLabel: 'Agent Activity:',
-    activityText: 'Loaded `obsidian-note-creator` & `android-telemetry-audit` playbooks.',
+    activityText: 'Loaded `obsidian-note-creator` & `notion-sync-audit` playbooks.',
   },
   {
     step: '03',

@@ -64,7 +64,7 @@ export class GoalToolHandler {
             daily_focus_mins: 120,
             max_screentime_mins: 90,
           },
-          linkedMcpServers: ['android-bridge', 'google-calendar', 'notion'],
+          linkedMcpServers: ['google-calendar', 'notion'],
         });
 
         const summaryText = `New Goal **"${created.title}"** has been successfully registered to ContextForge and scheduled in Automations. The system will track daily progress and run automated reflections to Notion daily at 21:00.`;
@@ -163,17 +163,17 @@ export class GoalToolHandler {
 
         const task3 = await this.goalsRepo.createTask({
           goal_id: targetGoal.id,
-          title: 'Enforce Social Media Screen Time Limit (Max 60 Mins)',
-          description: 'Apply app usage constraints via Android Bridge',
-          scheduled_start: `${todayIso}T08:00:00+07:00`,
-          scheduled_end: `${todayIso}T22:00:00+07:00`,
-          mcp_target: 'android-bridge',
-          risk_level: 'medium_risk',
-          requires_user_approval: true,
+          title: 'Evening Goal Review & Reflection in Notion',
+          description:
+            'Document progress and capture blockers in daily journal',
+          scheduled_start: `${todayIso}T20:00:00+07:00`,
+          scheduled_end: `${todayIso}T20:30:00+07:00`,
+          mcp_target: 'notion',
+          risk_level: 'low_risk',
         });
 
         return {
-          textContent: `Goal **"${targetGoal.title}"** has been successfully decomposed into 3 sub-tasks integrated with Google Calendar, Notion, and Android Bridge.`,
+          textContent: `Goal **"${targetGoal.title}"** has been successfully decomposed into 3 sub-tasks integrated with Google Calendar and Notion.`,
           summary: `Decomposed goal into 3 tasks`,
           rawResult: {
             success: true,

@@ -63,7 +63,7 @@ export const QrCodeBox: React.FC<QrCodeBoxProps> = ({
             }`}
           />
 
-          {/* Centered Android / ContextForge Badge */}
+          {/* Centered Device / ContextForge Badge */}
           {!isExpired && (
             <div className="absolute w-10 h-10 rounded-full bg-white border-2 border-emerald-500 flex items-center justify-center shadow-md">
               <Smartphone size={20} className="text-emerald-600" />

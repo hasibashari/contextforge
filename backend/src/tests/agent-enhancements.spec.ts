@@ -9,8 +9,6 @@ import {
   HistoryTurn,
 } from '../agentic-core/services/history-compactor.service';
 import { ProactiveGuardianService } from '../agentic-core/services/proactive-guardian.service';
-import { AndroidBridgeGatewayService } from '../mcp/connectors/android-bridge/android-bridge.gateway';
-import { AndroidBridgeMcpConnector } from '../mcp/connectors/android-bridge/android-bridge-mcp.connector';
 import { McpToolDefinition } from '../mcp/core';
 
 export async function runAgentEnhancementTests() {
@@ -89,22 +87,23 @@ export async function runAgentEnhancementTests() {
   });
 
   // 6. Tool Scoping: Wellbeing Coach
-  await test('6. WellbeingCoachSubAgent scopes tools strictly to Android & Wellbeing', () => {
+  await test('6. WellbeingCoachSubAgent scopes tools strictly to Focus & Habit Tools', () => {
     const mockTools: McpToolDefinition[] = [
-      { name: 'android_get_usage', description: 'usage' },
-      { name: 'android_set_dnd', description: 'dnd' },
+      { name: 'google_calendar_create_event', description: 'event' },
+      { name: 'notion_create_page', description: 'page' },
       { name: 'obsidian_create_note', description: 'note' },
-      { name: 'gcal_create_event', description: 'event' },
+      { name: 'web_search', description: 'search' },
     ];
     const filtered = wellbeingCoach.filterAllowedTools(mockTools);
     assert.strictEqual(filtered.length, 2);
-    assert.ok(filtered.every((t) => t.name.startsWith('android_')));
+    assert.ok(filtered.some((t) => t.name === 'google_calendar_create_event'));
+    assert.ok(filtered.some((t) => t.name === 'notion_create_page'));
   });
 
   // 7. Tool Scoping: Second Brain
   await test('7. SecondBrainSubAgent scopes tools strictly to Obsidian Vault', () => {
     const mockTools: McpToolDefinition[] = [
-      { name: 'android_get_usage', description: 'usage' },
+      { name: 'notion_create_page', description: 'notion' },
       { name: 'obsidian_read_vault_note', description: 'read note' },
       { name: 'obsidian_create_vault_note', description: 'create note' },
       { name: 'gcal_create_event', description: 'event' },
@@ -132,7 +131,7 @@ export async function runAgentEnhancementTests() {
     const mockTools: McpToolDefinition[] = [
       { name: 'web_search', description: 'search' },
       { name: 'search_knowledge_vault', description: 'knowledge' },
-      { name: 'android_set_dnd', description: 'dnd' },
+      { name: 'notion_create_page', description: 'notion' },
       { name: 'gcal_create_event', description: 'event' },
     ];
     const filtered = researchSpecialist.filterAllowedTools(mockTools);
@@ -173,56 +172,12 @@ export async function runAgentEnhancementTests() {
     assert.ok(res.summaryBlock.includes('Turn 1'));
   });
 
-  // 12. Proactive Guardian - Offline Device Safety
-  await test('12. ProactiveGuardianService handles offline device safely without throwing', async () => {
-    const gateway = new AndroidBridgeGatewayService();
-    gateway.isBridgeConnected = () => false;
-    const connector = new AndroidBridgeMcpConnector(gateway);
-    const guardian = new ProactiveGuardianService(gateway, connector);
-
+  // 12. Proactive Guardian - Standalone Safety
+  await test('12. ProactiveGuardianService runs cycle safely without throwing', async () => {
+    const guardian = new ProactiveGuardianService();
     const result = await guardian.runEvaluationCycle();
     assert.strictEqual(result.triggered, false);
-    assert.strictEqual(result.reason, 'Device offline');
-  });
-
-  // 13. Proactive Guardian - Doomscrolling Nudge Dispatch
-  await test('13. ProactiveGuardianService detects entertainment usage and dispatches nudge', async () => {
-    const gateway = new AndroidBridgeGatewayService();
-    gateway.isBridgeConnected = () => true;
-
-    let dispatchedAction = '';
-    let dispatchedPayload: Record<string, unknown> | undefined;
-
-    gateway.dispatchBridgeRequest = <T>(
-      action: string,
-      payload?: Record<string, unknown>,
-    ) => {
-      if (action === 'get_foreground_app') {
-        return Promise.resolve({
-          currentForegroundApp: 'com.instagram.android',
-          friendlyName: 'Instagram',
-        } as unknown as T);
-      }
-      if (action === 'send_agent_message') {
-        dispatchedAction = action;
-        dispatchedPayload = payload;
-        return Promise.resolve({
-          status: 'success',
-          userAction: 'dismissed',
-        } as unknown as T);
-      }
-      return Promise.resolve({ status: 'ok' } as unknown as T);
-    };
-
-    const connector = new AndroidBridgeMcpConnector(gateway);
-    const guardian = new ProactiveGuardianService(gateway, connector);
-
-    const result = await guardian.runEvaluationCycle();
-    assert.strictEqual(typeof result.triggered, 'boolean');
-    if (result.triggered) {
-      assert.strictEqual(dispatchedAction, 'send_agent_message');
-      assert.strictEqual(dispatchedPayload?.style, 'heads_up');
-    }
+    assert.strictEqual(result.reason, 'No mobile device attached');
   });
 
   console.log(
