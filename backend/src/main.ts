@@ -9,7 +9,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('app.port', 3001);
+  const port =
+    Number(process.env.PORT) || configService.get<number>('app.port', 8080);
 
   // Enable graceful shutdown for Cloud Run container lifecycle
   app.enableShutdownHooks();

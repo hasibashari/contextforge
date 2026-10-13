@@ -177,7 +177,7 @@ export async function runAgentEnhancementTests() {
     const guardian = new ProactiveGuardianService();
     const result = await guardian.runEvaluationCycle();
     assert.strictEqual(result.triggered, false);
-    assert.strictEqual(result.reason, 'No mobile device attached');
+    assert.strictEqual(result.reason, 'No active mobile device attached');
   });
 
   console.log(
