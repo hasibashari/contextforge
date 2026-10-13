@@ -15,7 +15,7 @@ export function getAppBaseUrl(): string {
     return process.env.FRONTEND_URL.replace(/\/$/, '');
   }
   if (process.env.NODE_ENV === 'production') {
-    return 'https://contextforge-441184699407.us-central1.run.app';
+    return 'https://contextforge-162101005673.us-central1.run.app';
   }
   return 'http://localhost:5173';
 }
@@ -28,7 +28,7 @@ export function getApiBaseUrl(): string {
     return process.env.APP_URL.replace(/\/$/, '');
   }
   if (process.env.NODE_ENV === 'production') {
-    return 'https://contextforge-441184699407.us-central1.run.app';
+    return 'https://contextforge-162101005673.us-central1.run.app';
   }
   const port = process.env.PORT || '8080';
   return `http://localhost:${port}`;

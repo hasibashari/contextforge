@@ -32,20 +32,20 @@ if ! command -v gcloud &> /dev/null; then
 fi
 
 # 2. Detect / Set GCP Project ID
+DEFAULT_PROJECT="cloud-run-workloads-511508"
 CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null || echo "")
 if [ -z "$CURRENT_PROJECT" ]; then
-    echo -e "${YELLOW}⚠️ No active GCP project configured in gcloud.${NC}"
-    read -p "Enter your GCP Project ID: " GCP_PROJECT_ID
+    CURRENT_PROJECT="$DEFAULT_PROJECT"
+fi
+
+echo -e "${GREEN}✓ Target GCP Project: ${CURRENT_PROJECT}${NC}"
+read -p "Press ENTER to use [${CURRENT_PROJECT}] or type a new Project ID: " INPUT_PROJECT
+if [ -n "$INPUT_PROJECT" ]; then
+    GCP_PROJECT_ID="$INPUT_PROJECT"
     gcloud config set project "$GCP_PROJECT_ID"
 else
-    echo -e "${GREEN}✓ Using active GCP Project: ${CURRENT_PROJECT}${NC}"
-    read -p "Press ENTER to use this project or type a new Project ID: " INPUT_PROJECT
-    if [ -n "$INPUT_PROJECT" ]; then
-        GCP_PROJECT_ID="$INPUT_PROJECT"
-        gcloud config set project "$GCP_PROJECT_ID"
-    else
-        GCP_PROJECT_ID="$CURRENT_PROJECT"
-    fi
+    GCP_PROJECT_ID="$CURRENT_PROJECT"
+    gcloud config set project "$GCP_PROJECT_ID"
 fi
 
 # 3. Target Configuration
